@@ -1,0 +1,168 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+body{
+    background:#f5f7fb;
+}
+
+.wrapper{
+    display:flex;
+}
+
+.sidebar{
+
+    width:260px;
+
+    background:#fff;
+
+    height:100vh;
+
+    position:fixed;
+
+    border-right:1px solid #ddd;
+
+    padding:25px;
+
+}
+
+.logo h4{
+
+    font-weight:700;
+
+}
+
+.sidebar ul{
+
+    list-style:none;
+
+    padding:0;
+
+}
+
+.sidebar li{
+
+    padding:14px;
+
+    margin:8px 0;
+
+    border-radius:10px;
+
+    cursor:pointer;
+
+}
+
+.sidebar li:hover{
+
+    background:#edf3ff;
+
+}
+
+.sidebar li.active{
+
+    background:#3f7cff;
+
+    color:white;
+
+}
+
+.sidebar li i{
+
+    margin-right:12px;
+
+}
+
+.menu-title{
+
+    display:block;
+
+    margin-top:25px;
+
+    color:#888;
+
+    font-size:12px;
+
+}
+
+.main-content{
+
+    margin-left:260px;
+
+    width:100%;
+
+}
+
+.top-navbar{
+
+    background:white;
+
+    padding:20px 35px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    border-bottom:1px solid #ddd;
+
+}
+
+.user-area{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:25px;
+
+}
+
+.user{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+}
+
+.content-area{
+
+    padding:35px;
+
+}
+
+.dashboard-card{
+
+    background:white;
+
+    border-radius:15px;
+
+    padding:25px;
+
+    text-align:center;
+
+    box-shadow:0 5px 18px rgba(0,0,0,.08);
+
+    transition:.3s;
+
+}
+
+.dashboard-card:hover{
+
+    transform:translateY(-5px);
+
+}
+
+.dashboard-card h2{
+
+    margin:12px 0;
+
+    font-weight:700;
+
+}
