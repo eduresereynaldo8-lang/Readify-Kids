@@ -335,6 +335,7 @@ class ActivityController extends Controller
         ]);
 
         $student->increment('total_points', $activity->points_reward);
+        $student->checkAndUpdateLevel();
 
         return redirect()->route('student.activities.index')
                ->with('success', 'Activity submitted!');

@@ -91,7 +91,9 @@ class EvaluationController extends Controller
         );
 
         // Award points to student
-        $recording->student->increment('total_points', $recording->activity->points_reward);
+        $student = $recording->student;
+        $student->increment('total_points', $recording->activity->points_reward);
+        $student->checkAndUpdateLevel();
 
         return redirect()->route('teacher.evaluations.index')
                ->with('success', 'Evaluation saved successfully! Student has been notified.');

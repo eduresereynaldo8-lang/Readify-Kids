@@ -1,17 +1,18 @@
-# Teacher Activity Restructuring - TODO
+# Auto Level-Up System Implementation
 
-## Steps to complete:
+## Steps
 
-- [x] Step 0: Plan confirmed with user
-- [x] Step 1: Update routes (`web.php`) - Add separate routes for readaloud & battle create/edit
-- [x] Step 2: Update `ActivityController.php` - Add separate methods for create/store/edit/update for both types
-- [x] Step 3: Create `resources/views/teacher/activities/create-readaloud.blade.php` — created ✅
-- [x] Step 4: Create `resources/views/teacher/activities/create-battle.blade.php` — created ✅
-- [x] Step 5: Create `resources/views/teacher/activities/edit-readaloud.blade.php` — created ✅
-- [x] Step 6: Create `resources/views/teacher/activities/edit-battle.blade.php` — created ✅
-- [x] Step 7: Update `resources/views/teacher/activities/index.blade.php` — split buttons ✅
-- [x] Step 8: Update `resources/views/teacher/activities/show.blade.php` — type-aware display ✅
-- [x] Step 9: Update `resources/views/layouts/teacher.blade.php` sidebar — sub-items added ✅
+- [x] Plan approved by user
+- [x] Create TODO.md
+- [x] **Step 1**: Add `checkAndUpdateLevel()` method to `app/Models/Student.php`
+- [x] **Step 2**: Update `app/Http/Controllers/ActivityController.php` — call level check after points increment
+- [x] **Step 3**: Update `app/Http/Controllers/EvaluationController.php` — call level check after points increment
+- [x] **Step 4**: Update `app/Http/Controllers/GameController.php` — call level check after points increment (both `submitRound` and `overrideScore`)
 
-## All 9 steps complete! ✅
+## Result
+
+All 4 files have been updated. The auto level-up system now works as follows:
+
+- `Student::checkAndUpdateLevel()` loop checks if `total_points >= current_level * 500` and increments level until points are below the next threshold
+- Called automatically after every points award across all 3 controllers (4 locations total)
 

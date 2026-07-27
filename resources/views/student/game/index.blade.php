@@ -115,16 +115,67 @@
     </strong>
 </div>
 
-            {{-- Battle button --}}
-            <a href="{{ route('student.game.start', $activity->id) }}"
-               style="display:block;text-align:center;padding:10px;border-radius:10px;
-                      background:linear-gradient(135deg,#7C3AED,#4F46E5);color:#fff;
-                      font-size:13px;font-weight:700;text-decoration:none;
-                      transition:opacity 0.2s;"
-               onmouseover="this.style.opacity='0.9'"
-               onmouseout="this.style.opacity='1'">
-                ⚔️ Start Battle!
-            </a>
+           {{-- Session status + battle button --}}
+@php
+    $sess       = $sessionStatuses->get($activity->id);
+    $sessStatus = $sess?->status ?? null;
+@endphp
+
+@if($sessStatus === 'won')
+<div style="text-align:center;padding:8px;background:#DCFCE7;
+            border-radius:10px;margin-bottom:8px;">
+    <div style="font-size:12px;font-weight:700;color:#166534;">
+        🏆 Defeated! You won this battle!
+    </div>
+    <div style="font-size:10px;color:#166534;">
+        +{{ $sess->points_earned }} pts earned
+    </div>
+</div>
+<a href="{{ route('student.game.start', $activity->id) }}"
+   style="display:block;text-align:center;padding:9px;border-radius:10px;
+          background:#DCFCE7;color:#166534;font-size:13px;
+          font-weight:700;text-decoration:none;border:2px solid #22C55E;">
+    🔄 Battle Again
+</a>
+
+@elseif($sessStatus === 'lost')
+<div style="text-align:center;padding:8px;background:#FEE2E2;
+            border-radius:10px;margin-bottom:8px;">
+    <div style="font-size:12px;font-weight:700;color:#991B1B;">
+        💀 You lost to {{ $enemies->get($activity->level)?->name ?? 'the enemy' }}!
+    </div>
+    <div style="font-size:10px;color:#991B1B;">
+        The battle continues — try again!
+    </div>
+</div>
+<a href="{{ route('student.game.start', $activity->id) }}"
+   style="display:block;text-align:center;padding:9px;border-radius:10px;
+          background:linear-gradient(135deg,#EF4444,#DC2626);color:#fff;
+          font-size:13px;font-weight:700;text-decoration:none;">
+    ⚔️ Try Again!
+</a>
+
+@elseif($sessStatus === 'ongoing')
+<div style="text-align:center;padding:6px;background:#FEF3C7;
+            border-radius:10px;margin-bottom:8px;
+            font-size:11px;font-weight:600;color:#92400E;">
+    ⚔️ Battle in progress — {{ $sess->rounds_played }} rounds played
+</div>
+<a href="{{ route('student.game.battle', $sess->id) }}"
+   style="display:block;text-align:center;padding:9px;border-radius:10px;
+          background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;
+          font-size:13px;font-weight:700;text-decoration:none;">
+    ▶️ Continue Battle
+</a>
+
+@else
+<a href="{{ route('student.game.start', $activity->id) }}"
+   style="display:block;text-align:center;padding:10px;border-radius:10px;
+          background:linear-gradient(135deg,#7C3AED,#4F46E5);color:#fff;
+          font-size:13px;font-weight:700;text-decoration:none;">
+    ⚔️ Start Battle!
+</a>
+@endif
         </div>
     </div>
     @empty
