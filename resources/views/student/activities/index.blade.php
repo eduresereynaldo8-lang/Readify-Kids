@@ -70,7 +70,9 @@ $typeConfig = [
             };
             $routeName = $type === 'Read Aloud'
                 ? 'student.readaloud.show'
-                : 'student.activities.show';
+                : ($type === 'Word Game'
+                    ? 'student.game.start'
+                    : 'student.activities.show');
         @endphp
         <div class="col-md-6 col-lg-4 activity-card-wrap" data-type="{{ Str::slug($type) }}">
             <div class="dash-card h-100"
