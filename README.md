@@ -1,59 +1,342 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 📚 Readify Kids
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**Readify Kids** is a web-based **Gamified Reading Assistance System** designed to improve the reading skills of Grade 2 learners. The system combines interactive reading activities, a battle mode, teacher evaluation, and a machine learning speech assessment powered by OpenAI Whisper.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+# Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Teacher
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+* Teacher authentication
+* Dashboard with activity statistics
+* Reading material management
+* Activity management
+* Battle Mode activity creation
+* Student progress monitoring
+* Manual reading evaluation
+* Achievement and reward management
 
-## Learning Laravel
+### Student
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+* Student authentication
+* Interactive Read Aloud activities
+* Battle Mode
+* Earn points and rewards
+* Achievement system
+* Leaderboard
+* Reading history
+* Voice recording submission
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Machine Learning
 
-## Laravel Sponsors
+* Speech-to-text using OpenAI Whisper
+* Automatic pronunciation/reading analysis
+* Integration between Laravel and Python Flask API
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+# System Requirements
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Software
 
-## Contributing
+* PHP 8.2 or later
+* Composer
+* XAMPP (Apache + MySQL)
+* Node.js & npm
+* Python 3.14 or later
+* Git
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+# Installation Guide
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 1. Clone the Repository
 
-## Security Vulnerabilities
+```bash
+git clone https://github.com/YOUR_USERNAME/Readify-Kids.git
+cd Readify-Kids
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## 2. Install PHP Dependencies
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+composer install
+```
+
+---
+
+## 3. Install JavaScript Dependencies
+
+```bash
+npm install
+```
+
+(Optional)
+
+```bash
+npm run build
+```
+
+or
+
+```bash
+npm run dev
+```
+
+---
+
+## 4. Create Environment File
+
+Windows
+
+```cmd
+copy .env.example .env
+```
+
+Linux / macOS
+
+```bash
+cp .env.example .env
+```
+
+---
+
+## 5. Generate Application Key
+
+```bash
+php artisan key:generate
+```
+
+---
+
+## 6. Configure Database
+
+Open phpMyAdmin and create a database named
+
+```
+readify_kids_db
+```
+
+Edit the `.env` file.
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=readify_kids_db
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+---
+
+## 7. Run Database Migrations
+
+```bash
+php artisan migrate
+```
+
+If seeders are available:
+
+```bash
+php artisan db:seed
+```
+
+or
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+---
+
+## 8. Install Python Dependencies
+
+Navigate to the ML API folder.
+
+```bash
+cd ml_api
+```
+
+Install all required packages.
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+---
+
+## 9. Start the Whisper Flask API
+
+```bash
+python ml_api.py
+```
+
+The API should remain running while using the system.
+
+---
+
+## 10. Run Laravel
+
+Return to the project folder.
+
+```bash
+cd ..
+```
+
+Run Laravel.
+
+```bash
+php artisan serve
+```
+
+or access through XAMPP:
+
+```
+http://localhost/Readify-Kids/public
+```
+
+---
+
+# Default Project Structure
+
+```
+Readify-Kids
+│
+├── app/
+├── bootstrap/
+├── config/
+├── database/
+│   ├── migrations/
+│   ├── seeders/
+│   └── factories/
+│
+├── ml_api/
+│   ├── ml_api.py
+│   ├── requirements.txt
+│   └── ...
+│
+├── public/
+├── resources/
+├── routes/
+├── storage/
+├── vendor/
+├── composer.json
+├── package.json
+├── README.md
+└── .env.example
+```
+
+---
+
+# Machine Learning
+
+The system uses **OpenAI Whisper** to transcribe students' voice recordings during reading activities.
+
+Workflow:
+
+1. Student records voice.
+2. Laravel uploads the audio.
+3. Python Flask API receives the audio.
+4. Whisper transcribes the speech.
+5. Results are returned to Laravel.
+6. Teacher reviews and confirms the score.
+
+---
+
+# Technologies Used
+
+### Backend
+
+* Laravel 12
+* PHP 8.2
+
+### Frontend
+
+* Blade Templates
+* Bootstrap 5
+* JavaScript
+
+### Database
+
+* MySQL
+
+### Machine Learning
+
+* Python
+* Flask
+* OpenAI Whisper
+* PyTorch
+
+---
+
+# Troubleshooting
+
+## Missing APP_KEY
+
+Run:
+
+```bash
+php artisan key:generate
+```
+
+---
+
+## Missing Vendor Folder
+
+Run:
+
+```bash
+composer install
+```
+
+---
+
+## Missing Python Packages
+
+Run:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+---
+
+## Database Errors
+
+Ensure:
+
+* MySQL is running.
+* Database `readify_kids_db` exists.
+* `.env` database settings are correct.
+* Run:
+
+```bash
+php artisan migrate
+```
+
+---
+
+## Battle Mode Errors
+
+If Battle Mode reports missing columns, ensure all migrations have been executed:
+
+```bash
+php artisan migrate
+```
+
+---
+
+# Contributors
+
+* Reynaldo Edurese
+* BSIT Capstone Team
+
+---
+
+# License
+
+This project was developed as a Bachelor of Science in Information Technology (BSIT) Capstone Project for educational purposes.

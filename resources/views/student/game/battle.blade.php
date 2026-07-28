@@ -9,7 +9,6 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
         body {
             font-family: 'Segoe UI', sans-serif;
             background: #1E0A3C;
@@ -39,9 +38,11 @@
             padding: 6px 14px;
             border-radius: 8px;
             border: 1px solid rgba(248,113,113,0.4);
+            cursor: pointer;
+            background: transparent;
             transition: all 0.2s;
         }
-        .quit-btn:hover { background: rgba(248,113,113,0.15); color: #F87171; }
+        .quit-btn:hover { background: rgba(248,113,113,0.15); }
         .round-badge {
             background: #7C3AED;
             color: #fff;
@@ -50,16 +51,8 @@
             padding: 5px 16px;
             border-radius: 20px;
         }
-        .top-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .hp-display {
-            font-size: 13px;
-            font-weight: 700;
-            color: #FCA5A5;
-        }
+        .top-right { display: flex; align-items: center; gap: 12px; }
+        .hp-display { font-size: 13px; font-weight: 700; color: #FCA5A5; }
         .level-chip {
             background: #7C3AED;
             color: #fff;
@@ -78,325 +71,227 @@
             position: relative;
             overflow: hidden;
         }
-
-        .stars {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .star {
-            position: absolute;
-            background: #fff;
-            border-radius: 50%;
-            animation: twinkle 2s infinite alternate;
-        }
-
+        .stars { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+        .star  { position: absolute; background: #fff; border-radius: 50%; animation: twinkle 2s infinite alternate; }
         .ground {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 80px;
+            position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
             background: linear-gradient(180deg, #2D1B69 0%, #1A0F3C 100%);
-            border-top: 2px solid rgba(124,58,237,0.4);
-            z-index: 1;
+            border-top: 2px solid rgba(124,58,237,0.4); z-index: 1;
         }
 
         /* ── HP section ──────────────────────── */
         .hp-section {
-            display: flex;
-            align-items: flex-start;
+            display: flex; align-items: flex-start;
             justify-content: space-between;
-            padding: 14px 24px 0;
-            position: relative;
-            z-index: 5;
+            padding: 14px 24px 0; position: relative; z-index: 5;
         }
         .hp-block { width: 220px; }
         .hp-name {
-            font-size: 13px;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            font-size: 13px; font-weight: 700; color: #fff;
+            margin-bottom: 5px; display: flex; align-items: center; gap: 6px;
         }
         .hp-name .label {
-            font-size: 10px;
-            background: rgba(255,255,255,0.15);
-            padding: 1px 8px;
-            border-radius: 20px;
-            font-weight: 500;
+            font-size: 10px; background: rgba(255,255,255,0.15);
+            padding: 1px 8px; border-radius: 20px; font-weight: 500;
         }
         .hp-bar-bg {
-            background: rgba(0,0,0,0.4);
-            border-radius: 8px;
-            height: 14px;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.4); border-radius: 8px; height: 14px;
+            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
         }
-        .hp-bar-fill {
-            height: 14px;
-            border-radius: 8px;
-            transition: width 0.8s ease;
-        }
+        .hp-bar-fill { height: 14px; border-radius: 8px; transition: width 0.8s ease; }
         .hp-bar-fill.student { background: linear-gradient(90deg,#4ADE80,#22C55E); }
         .hp-bar-fill.enemy   { background: linear-gradient(90deg,#EF4444,#FCA5A5); }
         .hp-text {
-            font-size: 10px;
-            color: rgba(255,255,255,0.7);
-            margin-top: 3px;
-            text-align: right;
+            font-size: 10px; color: rgba(255,255,255,0.7);
+            margin-top: 3px; text-align: right;
         }
-
         .center-info {
-            position: absolute;
-            top: 14px;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            z-index: 5;
+            position: absolute; top: 14px; left: 50%;
+            transform: translateX(-50%); text-align: center; z-index: 5;
         }
         .vs-badge {
-            font-size: 18px;
-            font-weight: 900;
-            color: #FBBF24;
+            font-size: 18px; font-weight: 900; color: #FBBF24;
             text-shadow: 0 0 20px rgba(251,191,36,0.6);
         }
         .rounds-left-pill {
-            font-size: 10px;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-weight: 600;
-            margin-top: 4px;
-            display: inline-block;
-            transition: all 0.3s;
+            font-size: 10px; padding: 2px 10px; border-radius: 20px;
+            font-weight: 600; margin-top: 4px; display: inline-block; transition: all 0.3s;
         }
 
         /* ── Battlefield ─────────────────────── */
         .battlefield {
-            flex: 1;
-            display: flex;
-            align-items: flex-end;
+            flex: 1; display: flex; align-items: flex-end;
             justify-content: space-between;
-            padding: 0 80px 90px;
-            position: relative;
-            z-index: 2;
+            padding: 0 80px 90px; position: relative; z-index: 2;
         }
-
         .character-wrap {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            position: relative;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 8px; position: relative;
         }
         .character-label {
-            font-size: 11px;
-            font-weight: 700;
+            font-size: 11px; font-weight: 700;
             color: rgba(255,255,255,0.6);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
+            text-transform: uppercase; letter-spacing: 0.08em;
         }
         .character-sprite {
-            font-size: 90px;
-            line-height: 1;
+            font-size: 90px; line-height: 1;
             filter: drop-shadow(0 0 16px rgba(124,58,237,0.6));
             transition: transform 0.2s;
         }
         .enemy-sprite {
-            font-size: 90px;
-            line-height: 1;
+            font-size: 90px; line-height: 1;
             filter: drop-shadow(0 0 16px rgba(239,68,68,0.6));
             transition: transform 0.3s, filter 0.3s;
         }
 
-        /* ── Attack effect overlay ────────────── */
-        #attack-effect {
+        /* ── Enemy attack word bubble ─────────── */
+        #enemy-attack-bubble {
+            display: none;
             position: absolute;
-            top: 50%;
+            top: -60px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 60px;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #EF4444, #DC2626);
+            border: 2px solid #FCA5A5;
+            border-radius: 12px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 800;
+            color: #fff;
+            white-space: nowrap;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+            z-index: 30;
+            animation: bubblePop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        #enemy-attack-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 10px solid #DC2626;
+        }
+
+        /* ── Student damage indicator ─────────── */
+        #student-damage-indicator {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 22px;
+            font-weight: 900;
+            color: #F87171;
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.8);
             pointer-events: none;
-            opacity: 0;
-            z-index: 20;
-            transition: none;
+            display: none;
+            z-index: 25;
+        }
+
+        /* ── HP shake on student ─────────────── */
+        .hp-bar-bg.shake {
+            animation: hpShake 0.4s ease;
+        }
+
+        /* ── Attack effect ───────────────────── */
+        #attack-effect {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            font-size: 60px; pointer-events: none;
+            opacity: 0; z-index: 20;
         }
 
         /* ── Score reveal ────────────────────── */
         #score-reveal {
-            position: absolute;
-            top: 20%;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 30;
-            text-align: center;
-            display: none;
+            position: absolute; top: 20%; left: 50%;
+            transform: translateX(-50%); z-index: 30;
+            text-align: center; display: none;
             animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
         }
         .score-reveal-inner {
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             border: 2px solid rgba(124,58,237,0.6);
-            border-radius: 16px;
-            padding: 14px 28px;
-            text-align: center;
+            border-radius: 16px; padding: 14px 28px; text-align: center;
+            backdrop-filter: blur(8px);
         }
-        .score-reveal-label {
-            font-size: 11px;
-            color: rgba(255,255,255,0.6);
-            margin-bottom: 4px;
-        }
-        .score-reveal-value {
-            font-size: 36px;
-            font-weight: 900;
-            margin-bottom: 4px;
-        }
-        .score-reveal-damage {
-            font-size: 14px;
-            font-weight: 700;
-            color: #FCA5A5;
-        }
-        .score-reveal-transcript {
-            font-size: 11px;
-            color: rgba(255,255,255,0.5);
-            margin-top: 4px;
-        }
+        .score-reveal-label  { font-size:11px; color:rgba(255,255,255,0.6); margin-bottom:4px; }
+        .score-reveal-value  { font-size:36px; font-weight:900; margin-bottom:4px; }
+        .score-reveal-damage { font-size:14px; font-weight:700; color:#FCA5A5; }
+        .score-reveal-transcript { font-size:11px; color:rgba(255,255,255,0.5); margin-top:4px; }
 
-        /* Damage floater */
+        /* Damage floaters */
         .damage-floater {
-            position: absolute;
-            top: -20px;
-            left: 50%;
+            position: absolute; top: -20px; left: 50%;
             transform: translateX(-50%);
-            font-size: 28px;
-            font-weight: 900;
-            color: #FBBF24;
+            font-size: 28px; font-weight: 900; color: #FBBF24;
             text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
             pointer-events: none;
             animation: floatUp 1.2s ease forwards;
-            white-space: nowrap;
-            z-index: 25;
+            white-space: nowrap; z-index: 25;
         }
 
         /* Battle message */
         .battle-msg-wrap {
-            position: absolute;
-            bottom: 90px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-            white-space: nowrap;
+            position: absolute; bottom: 90px; left: 50%;
+            transform: translateX(-50%); z-index: 10; white-space: nowrap;
         }
         .battle-msg {
             background: rgba(0,0,0,0.6);
             border: 1px solid rgba(124,58,237,0.5);
-            border-radius: 20px;
-            padding: 8px 20px;
-            font-size: 13px;
-            color: #fff;
-            text-align: center;
+            border-radius: 20px; padding: 8px 20px;
+            font-size: 13px; color: #fff; text-align: center;
             backdrop-filter: blur(4px);
         }
-        .battle-transcript {
-            font-size: 11px;
-            color: rgba(255,255,255,0.6);
-            margin-top: 3px;
-            display: none;
-        }
+        .battle-transcript { font-size:11px; color:rgba(255,255,255,0.6); margin-top:3px; display:none; }
 
         /* ── Bottom panel ────────────────────── */
         .bottom-panel {
             background: rgba(0,0,0,0.5);
             border-top: 1px solid rgba(124,58,237,0.3);
             backdrop-filter: blur(8px);
-            padding: 14px 24px;
-            position: relative;
-            z-index: 10;
+            padding: 14px 24px; position: relative; z-index: 10;
         }
         .bottom-inner {
-            display: flex;
-            align-items: stretch;
-            gap: 16px;
-            max-width: 900px;
-            margin: 0 auto;
+            display: flex; align-items: stretch; gap: 16px;
+            max-width: 900px; margin: 0 auto;
         }
-
         .word-card {
             flex: 1;
             background: rgba(255,255,255,0.08);
             border: 2px solid rgba(124,58,237,0.6);
-            border-radius: 14px;
-            padding: 14px 20px;
-            text-align: center;
+            border-radius: 14px; padding: 14px 20px; text-align: center;
         }
         .word-label {
-            font-size: 10px;
-            color: #A78BFA;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 6px;
+            font-size: 10px; color: #A78BFA; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;
         }
         .word-text {
-            font-size: 26px;
-            font-weight: 800;
-            color: #fff;
-            line-height: 1.3;
-            animation: wordPumpIn 0.5s ease;
+            font-size: 26px; font-weight: 800; color: #fff;
+            line-height: 1.3; animation: wordPumpIn 0.5s ease;
         }
         .word-text.paragraph { font-size: 14px; line-height: 1.6; }
 
-        .rec-panel {
-            width: 280px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+        .rec-panel { width: 280px; display: flex; flex-direction: column; gap: 10px; }
         .waveform-wrap {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 8px 12px;
-            display: flex;
-            align-items: center;
-            gap: 3px;
-            height: 40px;
+            border-radius: 10px; padding: 8px 12px;
+            display: flex; align-items: center; gap: 3px; height: 40px;
         }
         .wv {
-            width: 4px;
-            border-radius: 3px;
-            background: rgba(255,255,255,0.2);
-            height: 6px;
-            transition: height 0.08s;
+            width: 4px; border-radius: 3px;
+            background: rgba(255,255,255,0.2); height: 6px; transition: height 0.08s;
         }
-        .rec-timer {
-            font-size: 13px;
-            font-weight: 700;
-            color: #fff;
-            margin-left: auto;
-            flex-shrink: 0;
-        }
-        .rec-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
+        .rec-timer { font-size:13px; font-weight:700; color:#fff; margin-left:auto; flex-shrink:0; }
+        .rec-actions { display: flex; gap: 8px; align-items: center; }
         .rec-btn {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: #7C3AED;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            box-shadow: 0 0 0 6px rgba(124,58,237,0.2);
-            transition: all 0.2s;
-            animation: pulse 2s infinite;
+            width: 48px; height: 48px; border-radius: 50%;
+            background: #7C3AED; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; box-shadow: 0 0 0 6px rgba(124,58,237,0.2);
+            transition: all 0.2s; animation: pulse 2s infinite;
         }
         .rec-btn i { color: #fff; font-size: 20px; }
         .rec-btn.recording {
@@ -405,113 +300,106 @@
             animation: none;
         }
         .attack-btn {
-            flex: 1;
-            padding: 10px;
-            border-radius: 10px;
-            border: none;
+            flex: 1; padding: 10px; border-radius: 10px; border: none;
             background: linear-gradient(135deg,#7C3AED,#4F46E5);
-            color: #fff;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            display: none;
+            color: #fff; font-size: 13px; font-weight: 700;
+            cursor: pointer; display: none;
         }
+        .attack-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .rerecord-btn {
-            padding: 8px 12px;
-            border-radius: 8px;
+            padding: 8px 12px; border-radius: 8px;
             border: 1px solid rgba(255,255,255,0.2);
-            background: transparent;
-            color: rgba(255,255,255,0.7);
-            font-size: 12px;
-            cursor: pointer;
-            display: none;
+            background: transparent; color: rgba(255,255,255,0.7);
+            font-size: 12px; cursor: pointer; display: none;
         }
         .loading-wrap {
-            display: none;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 0;
+            display: none; align-items: center; gap: 8px; padding: 8px 0;
         }
-        .loading-wrap span {
-            font-size: 12px;
-            color: rgba(255,255,255,0.7);
-        }
-        .audio-preview {
-            display: none;
-        }
-        .audio-preview audio {
-            width: 100%;
-            height: 28px;
-            border-radius: 6px;
-        }
+        .loading-wrap span { font-size: 12px; color: rgba(255,255,255,0.7); }
+        .audio-preview { display: none; }
+        .audio-preview audio { width: 100%; height: 28px; border-radius: 6px; }
 
         .history-panel {
-            width: 200px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            overflow-y: auto;
-            max-height: 120px;
+            width: 200px; display: flex; flex-direction: column;
+            gap: 6px; overflow-y: auto; max-height: 120px;
         }
         .history-title {
-            font-size: 10px;
-            font-weight: 700;
-            color: rgba(255,255,255,0.5);
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
-            flex-shrink: 0;
+            font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5);
+            text-transform: uppercase; letter-spacing: 0.07em; flex-shrink: 0;
         }
         .history-item {
             background: rgba(255,255,255,0.06);
             border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 6px;
-            padding: 5px 8px;
-            font-size: 10px;
+            border-radius: 6px; padding: 5px 8px; font-size: 10px;
             color: rgba(255,255,255,0.8);
         }
         .history-item .hi-score { font-weight: 700; }
-        .history-item .hi-dmg  { color: #FCA5A5; font-weight: 700; }
+        .history-item .hi-dmg   { color: #FCA5A5; font-weight: 700; }
 
-        .dots-wrap {
-            display: flex;
-            justify-content: center;
-            gap: 5px;
-            margin-bottom: 8px;
+        .dots-wrap { display:flex; justify-content:center; gap:5px; margin-bottom:8px; }
+        .dot { width:10px; height:10px; border-radius:50%; transition:all 0.3s; }
+
+        /* ── Quit confirm modal ───────────────── */
+        .quit-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85); z-index: 99999;
+            align-items: center; justify-content: center;
+            animation: fadeIn 0.2s ease;
         }
-        .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            transition: all 0.3s;
+        .quit-modal-card {
+            background: #1E0A3C;
+            border: 2px solid rgba(248,113,113,0.5);
+            border-radius: 20px; padding: 36px 32px;
+            text-align: center; max-width: 380px; width: 90%;
+            animation: popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .quit-modal-emoji { font-size: 60px; margin-bottom: 12px; }
+        .quit-modal-title {
+            font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 8px;
+        }
+        .quit-modal-sub {
+            font-size: 13px; color: rgba(255,255,255,0.6);
+            line-height: 1.5; margin-bottom: 20px;
+        }
+        .quit-modal-note {
+            font-size: 11px; color: rgba(255,255,255,0.35);
+            margin-bottom: 20px; font-style: italic;
+        }
+        .quit-modal-btns { display: flex; gap: 10px; justify-content: center; }
+        .btn-stay {
+            padding: 10px 22px; border-radius: 10px;
+            background: linear-gradient(135deg,#7C3AED,#4F46E5);
+            color: #fff; font-size: 13px; font-weight: 700;
+            border: none; cursor: pointer;
+        }
+        .btn-quit-confirm {
+            padding: 10px 22px; border-radius: 10px;
+            background: rgba(239,68,68,0.15);
+            color: #F87171; font-size: 13px; font-weight: 600;
+            border: 1px solid rgba(239,68,68,0.4); cursor: pointer;
+            text-decoration: none; display: inline-block;
         }
 
-        /* ── Overlays ─────────────────────────── */
+        /* ── Win / Lose overlays ─────────────── */
         .overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85); z-index: 9999;
+            align-items: center; justify-content: center;
             animation: fadeIn 0.3s ease;
         }
         .overlay-card {
             background: #1E0A3C;
             border: 2px solid rgba(124,58,237,0.5);
-            border-radius: 24px;
-            padding: 40px 36px;
-            text-align: center;
-            max-width: 420px;
-            width: 90%;
+            border-radius: 24px; padding: 40px 36px;
+            text-align: center; max-width: 420px; width: 90%;
             animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
         }
         .overlay-card.lose { border-color: rgba(239,68,68,0.5); }
         .overlay-emoji { font-size: 80px; margin-bottom: 14px; }
-        .overlay-title { font-size: 26px; font-weight: 800; color:#fff; margin-bottom:8px; }
-        .overlay-sub   { font-size: 14px; color: rgba(255,255,255,0.65); margin-bottom:6px; }
-        .overlay-pts   { font-size: 28px; font-weight: 800; color:#FBBF24; margin:10px 0 24px; }
-        .overlay-btns  { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+        .overlay-title { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+        .overlay-sub   { font-size: 14px; color: rgba(255,255,255,0.65); margin-bottom: 6px; }
+        .overlay-pts   { font-size: 28px; font-weight: 800; color: #FBBF24; margin: 10px 0 24px; }
+        .overlay-btns  { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
         .btn-back  { padding:11px 22px; border-radius:12px; background:rgba(255,255,255,0.1); color:#fff; font-size:13px; font-weight:600; text-decoration:none; border:1px solid rgba(255,255,255,0.2); }
         .btn-retry { padding:11px 22px; border-radius:12px; font-size:13px; font-weight:700; text-decoration:none; color:#fff; }
         .btn-retry.win  { background: linear-gradient(135deg,#7C3AED,#4F46E5); }
@@ -530,10 +418,27 @@
             0%   { opacity:1; transform:translateX(-50%) translateY(0); }
             100% { opacity:0; transform:translateX(-50%) translateY(-70px); }
         }
+        @keyframes bubblePop {
+            0%   { opacity:0; transform:translateX(-50%) scale(0.5); }
+            70%  { transform:translateX(-50%) scale(1.1); }
+            100% { opacity:1; transform:translateX(-50%) scale(1); }
+        }
+        @keyframes hpShake {
+            0%,100% { transform:translateX(0); }
+            20%     { transform:translateX(-6px); }
+            40%     { transform:translateX(5px); }
+            60%     { transform:translateX(-4px); }
+            80%     { transform:translateX(3px); }
+        }
+        @keyframes studentHit {
+            0%,100% { transform:translateX(0); }
+            20%     { transform:translateX(10px) rotate(3deg); }
+            40%     { transform:translateX(-8px) rotate(-2deg); }
+            60%     { transform:translateX(6px); }
+            80%     { transform:translateX(-4px); }
+        }
 
-        /* ── Attack style animations ──────────── */
-
-        /* Style 1: Dash — rush forward and slash */
+        /* ── Attack animations ────────────────── */
         @keyframes attackDash {
             0%   { transform:translateX(0) scaleX(1); }
             30%  { transform:translateX(200px) scaleX(1.15); }
@@ -541,18 +446,14 @@
             80%  { transform:translateX(200px) scaleX(1); }
             100% { transform:translateX(0) scaleX(1); }
         }
-
-        /* Style 2: Jump — leap into the air and slam down */
         @keyframes attackJump {
             0%   { transform:translateX(0) translateY(0) scaleX(1); }
             25%  { transform:translateX(80px) translateY(-80px) scaleX(1.1) rotate(10deg); }
-            50%  { transform:translateX(190px) translateY(0) scaleX(1.2) rotate(0deg); }
+            50%  { transform:translateX(190px) translateY(0) scaleX(1.2); }
             65%  { transform:translateX(185px) translateY(10px) scaleX(0.9); }
             80%  { transform:translateX(190px) translateY(0); }
             100% { transform:translateX(0) translateY(0) scaleX(1); }
         }
-
-        /* Style 3: Spin — spin and charge */
         @keyframes attackSpin {
             0%   { transform:translateX(0) rotate(0deg) scale(1); }
             30%  { transform:translateX(100px) rotate(360deg) scale(1.2); }
@@ -560,8 +461,6 @@
             75%  { transform:translateX(190px) rotate(720deg) scale(1); }
             100% { transform:translateX(0) rotate(0deg) scale(1); }
         }
-
-        /* Style 4: Blink — teleport blink strike */
         @keyframes attackBlink {
             0%   { transform:translateX(0); opacity:1; }
             25%  { transform:translateX(0); opacity:0; }
@@ -569,22 +468,51 @@
             45%  { transform:translateX(190px) scaleX(1.2); opacity:1; }
             70%  { transform:translateX(190px); opacity:1; }
             85%  { transform:translateX(0); opacity:0; }
-            86%  { transform:translateX(0); opacity:0; }
             100% { transform:translateX(0); opacity:1; }
         }
-
-        /* Style 5: Power charge — charge up then burst */
         @keyframes attackCharge {
             0%   { transform:translateX(0) scale(1); filter:brightness(1); }
             20%  { transform:translateX(-20px) scale(0.85); filter:brightness(2) hue-rotate(60deg); }
             40%  { transform:translateX(-20px) scale(1.3); filter:brightness(3) hue-rotate(120deg); }
             60%  { transform:translateX(200px) scale(1.1); filter:brightness(2); }
             75%  { transform:translateX(190px) scale(0.9); filter:brightness(1.5); }
-            90%  { transform:translateX(190px) scale(1); filter:brightness(1); }
+            90%  { transform:translateX(190px); filter:brightness(1); }
             100% { transform:translateX(0) scale(1); filter:brightness(1); }
         }
 
-        /* Enemy hit animations */
+        /* ── Enemy attack animations ─────────── */
+        @keyframes enemyDash {
+            0%   { transform:translateX(0); }
+            30%  { transform:translateX(-180px) scaleX(1.1); }
+            55%  { transform:translateX(-170px) scaleX(0.9); }
+            80%  { transform:translateX(-180px); }
+            100% { transform:translateX(0); }
+        }
+        @keyframes enemyLeap {
+            0%   { transform:translateX(0) translateY(0); }
+            25%  { transform:translateX(-80px) translateY(-70px) rotate(-10deg); }
+            50%  { transform:translateX(-180px) translateY(0); }
+            65%  { transform:translateX(-175px) translateY(8px); }
+            80%  { transform:translateX(-180px) translateY(0); }
+            100% { transform:translateX(0) translateY(0); }
+        }
+        @keyframes enemyZap {
+            0%   { transform:translateX(0); filter:brightness(1); }
+            15%  { transform:translateX(0); filter:brightness(3) hue-rotate(120deg); }
+            30%  { transform:translateX(-160px); filter:brightness(2); }
+            50%  { transform:translateX(-180px) scaleX(1.15); filter:brightness(1.5); }
+            70%  { transform:translateX(-180px); filter:brightness(1); }
+            100% { transform:translateX(0); filter:brightness(1); }
+        }
+        @keyframes enemySwipe {
+            0%   { transform:translateX(0) rotate(0); }
+            20%  { transform:translateX(-60px) rotate(-15deg); }
+            45%  { transform:translateX(-180px) rotate(5deg); }
+            65%  { transform:translateX(-170px) rotate(-5deg) scaleX(1.1); }
+            80%  { transform:translateX(-180px) rotate(0); }
+            100% { transform:translateX(0) rotate(0); }
+        }
+
         @keyframes shakeEnemy {
             0%,100% { transform:translateX(0) rotate(0); }
             15%     { transform:translateX(-14px) rotate(-4deg); }
@@ -599,7 +527,7 @@
             100% { transform:scale(0) rotate(40deg); opacity:0; }
         }
 
-        /* Effect overlays for each attack style */
+        /* ── Effect animations ────────────────── */
         @keyframes effectSlash {
             0%   { opacity:0; transform:translate(-50%,-50%) scale(0.5) rotate(-30deg); }
             40%  { opacity:1; transform:translate(-50%,-50%) scale(1.4) rotate(10deg); }
@@ -615,21 +543,12 @@
             50%  { opacity:1; transform:translate(-50%,-50%) scale(1.3) rotate(180deg); }
             100% { opacity:0; transform:translate(-50%,-50%) scale(0.8) rotate(360deg); }
         }
-
-        @keyframes popIn {
-            0%   { transform:scale(0.5); opacity:0; }
-            70%  { transform:scale(1.05); }
-            100% { transform:scale(1); opacity:1; }
-        }
-        @keyframes fadeIn {
-            from { opacity:0; } to { opacity:1; }
-        }
-        @keyframes pulse {
-            0%,100% { box-shadow:0 0 0 6px rgba(124,58,237,0.2); }
-            50%     { box-shadow:0 0 0 12px rgba(124,58,237,0.08); }
+        @keyframes effectZap {
+            0%,100% { opacity:0; }
+            10%,30%,50%,70% { opacity:1; }
+            20%,40%,60%,80% { opacity:0.3; }
         }
 
-        /* Score-based aura on student */
         @keyframes auraExcellent {
             0%,100% { filter:drop-shadow(0 0 16px #4ADE80) brightness(1.3); }
             50%     { filter:drop-shadow(0 0 32px #4ADE80) brightness(1.6); }
@@ -642,15 +561,27 @@
             0%,100% { filter:drop-shadow(0 0 10px #F87171) brightness(1.1); }
             50%     { filter:drop-shadow(0 0 20px #F87171) brightness(1.3); }
         }
+        @keyframes popIn {
+            0%   { transform:scale(0.5); opacity:0; }
+            70%  { transform:scale(1.05); }
+            100% { transform:scale(1); opacity:1; }
+        }
+        @keyframes fadeIn {
+            from { opacity:0; } to { opacity:1; }
+        }
+        @keyframes pulse {
+            0%,100% { box-shadow:0 0 0 6px rgba(124,58,237,0.2); }
+            50%     { box-shadow:0 0 0 12px rgba(124,58,237,0.08); }
+        }
     </style>
 </head>
 <body>
 
 {{-- ── TOP BAR ──────────────────────────────────────────── --}}
 <div class="top-bar">
-    <a href="{{ route('student.game.index') }}" class="quit-btn">
+    <button class="quit-btn" onclick="showQuitModal()">
         <i class="ti ti-logout"></i> Quit
-    </a>
+    </button>
     <div class="round-badge">
         ⚔️ Round <span id="round-num">{{ $session->rounds_played + 1 }}</span>
         of {{ $totalWords }}
@@ -667,7 +598,6 @@
 
 {{-- ── ARENA ─────────────────────────────────────────────── --}}
 <div class="arena">
-
     <div class="stars" id="stars"></div>
     <div class="ground"></div>
 
@@ -678,10 +608,10 @@
                 <span>{{ auth()->user()->student->firstname }}</span>
                 <span class="label">YOU</span>
             </div>
-            <div class="hp-bar-bg">
-                <div class="hp-bar-fill student" style="width:100%;"></div>
+            <div class="hp-bar-bg" id="student-hp-bar-bg">
+                <div class="hp-bar-fill student" id="student-hp-bar" style="width:100%;"></div>
             </div>
-            <div class="hp-text">
+            <div class="hp-text" id="student-hp-text">
                 ⭐ {{ number_format(auth()->user()->student->total_points) }} pts
             </div>
         </div>
@@ -718,13 +648,15 @@
         <div class="character-wrap" id="student-wrap">
             <div class="character-label">{{ auth()->user()->student->firstname }}</div>
             <div class="character-sprite" id="student-sprite">🧒</div>
+            {{-- Student damage indicator --}}
+            <div id="student-damage-indicator">💢</div>
         </div>
 
-        {{-- Score reveal (shown after ML returns, before attack) --}}
+        {{-- Score reveal --}}
         <div id="score-reveal">
             <div class="score-reveal-inner">
                 <div class="score-reveal-label">🤖 AI Score</div>
-                <div class="score-reveal-value" id="score-reveal-value"></div>
+                <div class="score-reveal-value"  id="score-reveal-value"></div>
                 <div class="score-reveal-damage" id="score-reveal-damage"></div>
                 <div class="score-reveal-transcript" id="score-reveal-transcript"></div>
             </div>
@@ -744,13 +676,14 @@
         {{-- Enemy --}}
         <div class="character-wrap" id="enemy-wrap">
             <div class="character-label">{{ $session->enemy->name }}</div>
+            {{-- Enemy attack word bubble --}}
+            <div id="enemy-attack-bubble"></div>
             <div class="enemy-sprite" id="enemy-sprite">{{ $session->enemy->sprite }}</div>
         </div>
     </div>
 
     {{-- ── BOTTOM PANEL ──────────────────────────────────── --}}
     <div class="bottom-panel">
-
         <div class="dots-wrap">
             @foreach($allWords as $i => $w)
             <div id="dot-{{ $i }}" class="dot"
@@ -761,7 +694,6 @@
         </div>
 
         <div class="bottom-inner">
-
             {{-- Word card --}}
             <div class="word-card">
                 <div class="word-label">📖 Read this aloud:</div>
@@ -774,16 +706,12 @@
             {{-- Recording panel --}}
             <div class="rec-panel">
                 <div class="waveform-wrap">
-                    @for($i = 0; $i < 18; $i++)
-                    <div class="wv"></div>
-                    @endfor
+                    @for($i = 0; $i < 18; $i++)<div class="wv"></div>@endfor
                     <span class="rec-timer" id="rec-timer">0:00</span>
                 </div>
-
                 <div class="audio-preview" id="audio-preview">
                     <audio id="playback-audio" controls></audio>
                 </div>
-
                 <div class="rec-actions">
                     <button class="rec-btn" id="rec-btn" type="button">
                         <i class="ti ti-microphone" id="rec-icon"></i>
@@ -793,12 +721,10 @@
                     </button>
                     <button class="attack-btn" id="attack-btn">⚔️ Attack!</button>
                 </div>
-
                 <div class="loading-wrap" id="loading-wrap">
                     <div class="spinner-border text-light" style="width:16px;height:16px;"></div>
-                    <span>🤖 AI analyzing your reading...</span>
+                    <span id="loading-text">🤖 AI analyzing your reading...</span>
                 </div>
-
                 <div id="rec-status"
                      style="font-size:11px;color:rgba(255,255,255,0.5);text-align:center;">
                     Press the button to start recording
@@ -827,6 +753,29 @@
                     @endforelse
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+{{-- ── QUIT CONFIRM MODAL ───────────────────────────────── --}}
+<div class="quit-modal" id="quit-modal">
+    <div class="quit-modal-card">
+        <div class="quit-modal-emoji">⚠️</div>
+        <div class="quit-modal-title">Quit Battle?</div>
+        <div class="quit-modal-sub">
+            Are you sure you want to leave the battle against
+            <strong style="color:#FCA5A5;">{{ $session->enemy->name }}</strong>?
+        </div>
+        <div class="quit-modal-note">
+            Your progress will be saved. You can continue this battle later from the Arena.
+        </div>
+        <div class="quit-modal-btns">
+            <button class="btn-stay" onclick="hideQuitModal()">
+                ⚔️ Stay & Fight!
+            </button>
+            <a href="{{ route('student.game.index') }}" class="btn-quit-confirm">
+                🚪 Yes, Quit
+            </a>
         </div>
     </div>
 </div>
@@ -883,7 +832,7 @@
 (function() {
     const c = document.getElementById('stars');
     for (let i = 0; i < 60; i++) {
-        const s = document.createElement('div');
+        const s  = document.createElement('div');
         s.className = 'star';
         const sz = Math.random() * 2.5 + 0.5;
         s.style.cssText = `width:${sz}px;height:${sz}px;
@@ -894,74 +843,73 @@
     }
 })();
 
-// ── Attack styles ──────────────────────────────────────────────
-// Each style has: animation name, duration, effect emoji, effect animation, aura
-const ATTACK_STYLES = [
-    {
-        name    : 'Dash Strike',
-        anim    : 'attackDash',
-        dur     : 900,
-        effect  : '⚡',
-        effectAnim: 'effectSlash',
-        effectDur : 600,
-        color   : '#FBBF24',
-    },
-    {
-        name    : 'Jump Slam',
-        anim    : 'attackJump',
-        dur     : 1000,
-        effect  : '💥',
-        effectAnim: 'effectBoom',
-        effectDur : 700,
-        color   : '#F87171',
-    },
-    {
-        name    : 'Spin Charge',
-        anim    : 'attackSpin',
-        dur     : 1100,
-        effect  : '🌀',
-        effectAnim: 'effectSpin',
-        effectDur : 800,
-        color   : '#A78BFA',
-    },
-    {
-        name    : 'Blink Strike',
-        anim    : 'attackBlink',
-        dur     : 900,
-        effect  : '✨',
-        effectAnim: 'effectSlash',
-        effectDur : 500,
-        color   : '#60A5FA',
-    },
-    {
-        name    : 'Power Burst',
-        anim    : 'attackCharge',
-        dur     : 1200,
-        effect  : '🔥',
-        effectAnim: 'effectBoom',
-        effectDur : 900,
-        color   : '#4ADE80',
-    },
+// ── Quit modal ─────────────────────────────────────────────────
+function showQuitModal() {
+    document.getElementById('quit-modal').style.display = 'flex';
+}
+function hideQuitModal() {
+    document.getElementById('quit-modal').style.display = 'none';
+}
+// Close on backdrop click
+document.getElementById('quit-modal').addEventListener('click', function(e) {
+    if (e.target === this) hideQuitModal();
+});
+
+// ── Enemy attack words pool ─────────────────────────────────────
+// Pool of words/taunts the enemy uses to "attack"
+const ENEMY_ATTACK_POOL = [
+    // Curses / spells
+    'Mumbo Jumbo!',  'Abra Kadabra!',  'Fizzle Wizzle!',
+    'Blunder Blitz!','Snazzle Frazzle!','Kerplunk!',
+    // Scary sounds
+    'Boo!',          'Ugh!',            'Grrr!',
+    'Roooaar!',      'Bwahahaha!',      'Zap!',
+    // Enemy-type specific
+    '📖 Garble!',    '🌀 Confuse!',     '🔥 Burn!',
+    '💨 Whoosh!',    '⚡ Shock!',        '🌊 Splash!',
+    // Gibberish
+    'Flibbertigibbet!','Supercalifragilistic!','Bibbidi Bobbidi!',
+    'Zippity Zap!',  'Hocus Pocus!',    'Wacka Wacka!',
 ];
 
-// Pick attack style based on score
-// Higher score → stronger-looking attack style
-function pickAttackStyle(score) {
-    if (score >= 90) return ATTACK_STYLES[4]; // Power Burst
-    if (score >= 75) return ATTACK_STYLES[2]; // Spin Charge
-    if (score >= 60) return ATTACK_STYLES[1]; // Jump Slam
-    if (score >= 40) return ATTACK_STYLES[3]; // Blink Strike
-    return ATTACK_STYLES[0];                  // Dash Strike (default)
-}
+// Enemy attack styles (mirror of student attacks)
+const ENEMY_ATTACK_STYLES = [
+    { anim:'enemyDash',  dur:900,  effect:'💨', color:'#F87171' },
+    { anim:'enemyLeap',  dur:1000, effect:'💥', color:'#FBBF24' },
+    { anim:'enemyZap',   dur:900,  effect:'⚡', color:'#60A5FA' },
+    { anim:'enemySwipe', dur:950,  effect:'🌀', color:'#C084FC' },
+];
 
-// If score is null (ML failed) pick randomly
+// ── Student attack styles ──────────────────────────────────────
+const ATTACK_STYLES = [
+    { name:'Dash Strike', anim:'attackDash',   dur:900,  effect:'⚡', effectAnim:'effectSlash', effectDur:600, color:'#FBBF24' },
+    { name:'Jump Slam',   anim:'attackJump',   dur:1000, effect:'💥', effectAnim:'effectBoom',  effectDur:700, color:'#F87171' },
+    { name:'Spin Charge', anim:'attackSpin',   dur:1100, effect:'🌀', effectAnim:'effectSpin',  effectDur:800, color:'#A78BFA' },
+    { name:'Blink Strike',anim:'attackBlink',  dur:900,  effect:'✨', effectAnim:'effectSlash', effectDur:500, color:'#60A5FA' },
+    { name:'Power Burst', anim:'attackCharge', dur:1200, effect:'🔥', effectAnim:'effectBoom',  effectDur:900, color:'#4ADE80' },
+];
+
+function pickAttackStyle(score) {
+    if (score >= 90) return ATTACK_STYLES[4];
+    if (score >= 75) return ATTACK_STYLES[2];
+    if (score >= 60) return ATTACK_STYLES[1];
+    if (score >= 40) return ATTACK_STYLES[3];
+    return ATTACK_STYLES[0];
+}
 function pickRandomStyle() {
     return ATTACK_STYLES[Math.floor(Math.random() * ATTACK_STYLES.length)];
+}
+function pickEnemyStyle() {
+    return ENEMY_ATTACK_STYLES[Math.floor(Math.random() * ENEMY_ATTACK_STYLES.length)];
+}
+function pickEnemyWord() {
+    return ENEMY_ATTACK_POOL[Math.floor(Math.random() * ENEMY_ATTACK_POOL.length)];
 }
 
 // ── State ──────────────────────────────────────────────────────
 let mediaRecorder, audioChunks=[], isRecording=false;
 let timerInterval, seconds=0, audioBlob=null, waveInterval=null;
+let battleLocked = false; // prevent double submit
 
 // ── DOM refs ───────────────────────────────────────────────────
 const recBtn       = document.getElementById('rec-btn');
@@ -971,6 +919,7 @@ const recTimer     = document.getElementById('rec-timer');
 const rerecordBtn  = document.getElementById('rerecord-btn');
 const attackBtn    = document.getElementById('attack-btn');
 const loadingWrap  = document.getElementById('loading-wrap');
+const loadingText  = document.getElementById('loading-text');
 const audioPreview = document.getElementById('audio-preview');
 const playbackAud  = document.getElementById('playback-audio');
 const wvBars       = document.querySelectorAll('.wv');
@@ -982,6 +931,7 @@ const totalWords   = parseInt(document.getElementById('total-words').value);
 
 // ── Record button ──────────────────────────────────────────────
 recBtn.addEventListener('click', async () => {
+    if (battleLocked) return;
     if (!isRecording) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -989,8 +939,8 @@ recBtn.addEventListener('click', async () => {
             audioChunks   = [];
             mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
             mediaRecorder.onstop = () => {
-                audioBlob               = new Blob(audioChunks, { type: 'audio/webm' });
-                playbackAud.src         = URL.createObjectURL(audioBlob);
+                audioBlob                  = new Blob(audioChunks, { type: 'audio/webm' });
+                playbackAud.src            = URL.createObjectURL(audioBlob);
                 audioPreview.style.display = 'block';
                 rerecordBtn.style.display  = 'inline-block';
                 attackBtn.style.display    = 'block';
@@ -998,14 +948,12 @@ recBtn.addEventListener('click', async () => {
             };
             mediaRecorder.start(100);
             isRecording = true;
-
             recBtn.classList.add('recording');
             recIcon.className          = 'ti ti-player-stop';
             recStatus.textContent      = '🔴 Recording your reading...';
             audioPreview.style.display = 'none';
             rerecordBtn.style.display  = 'none';
             attackBtn.style.display    = 'none';
-
             seconds = 0;
             timerInterval = setInterval(() => {
                 seconds++;
@@ -1014,7 +962,6 @@ recBtn.addEventListener('click', async () => {
                     (seconds%60).toString().padStart(2,'0');
             }, 1000);
             animateWaveform();
-
         } catch(e) {
             alert('Microphone access denied! Please allow microphone access.');
         }
@@ -1029,24 +976,19 @@ recBtn.addEventListener('click', async () => {
     }
 });
 
-// ── Re-record ──────────────────────────────────────────────────
 rerecordBtn.addEventListener('click', resetRec);
 
 // ── Attack button ──────────────────────────────────────────────
-// FLOW: Press Attack → Send to ML → ML returns score
-//       → Show score reveal animation
-//       → Play attack animation (style based on score)
-//       → Attack effect hits enemy
-//       → Enemy shakes / HP bar updates
-//       → Move to next round
-
 attackBtn.addEventListener('click', async () => {
-    if (!audioBlob) { alert('Please record first!'); return; }
+    if (!audioBlob || battleLocked) return;
 
+    battleLocked = true;
     attackBtn.style.display    = 'none';
     rerecordBtn.style.display  = 'none';
     loadingWrap.style.display  = 'flex';
-    recStatus.textContent      = '🤖 AI is analyzing your reading...';
+    loadingText.textContent    = '🤖 AI is analyzing your reading...';
+    recStatus.textContent      = '';
+    recBtn.disabled            = true;
 
     const word     = document.getElementById('current-word-value').value;
     const formData = new FormData();
@@ -1063,42 +1005,53 @@ attackBtn.addEventListener('click', async () => {
 
         loadingWrap.style.display = 'none';
 
-        // ── Step 1: Show score reveal ──────────────────────
+        // ── 1. Show AI score reveal ────────────────────────
         await showScoreReveal(data);
 
-        // ── Step 2: Pick attack style based on score ───────
+        // ── 2. Pick attack style based on score ───────────
         const style = data.ml_score !== null
             ? pickAttackStyle(data.ml_score)
             : pickRandomStyle();
 
-        // ── Step 3: Apply aura to student based on score ───
+        // ── 3. Student aura glow ──────────────────────────
         applyStudentAura(data.ml_score);
 
-        // ── Step 4: Play student attack animation ──────────
-        await playAttack(style);
+        // ── 4. Student attacks ────────────────────────────
+        await playStudentAttack(style);
 
-        // ── Step 5: Trigger enemy hit + effect ─────────────
+        // ── 5. Enemy gets hit + HP updates ────────────────
         playEnemyHit(data.damage, data.ml_score, style);
-        updateHpBar(data.enemy_hp ?? 0, data.hp_percent ?? 0);
+        updateEnemyHpBar(data.enemy_hp ?? 0, data.hp_percent ?? 0);
         updateStats(data);
         addHistory(data, word);
-        showBattleMsg(data);
+
         if (data.rounds_left !== undefined) updateRoundsLeft(data.rounds_left);
 
-        // ── Step 6: Handle win / lose / ongoing ────────────
+        // ── 6. Handle win / lose / ongoing ────────────────
         if (data.status === 'won') {
+            showBattleMsg({ message: '🎉 Final blow landed!', transcript: data.transcript });
+            await delay(600);
             await playEnemyDefeat();
-            setTimeout(() => showWin(data), 600);
+            setTimeout(() => showWin(data), 400);
 
         } else if (data.status === 'lost') {
-            setTimeout(() => showLose(data), 1000);
+            showBattleMsg(data);
+            await delay(600);
+            // Enemy does one last attack before showing lose
+            await playEnemyCounterAttack();
+            setTimeout(() => showLose(data), 800);
 
         } else if (data.status === 'ongoing') {
-            setTimeout(() => moveToNext(), 1800);
+            showBattleMsg(data);
+            await delay(600);
+            // ── 7. Enemy counterattack ─────────────────────
+            await playEnemyCounterAttack();
+            await delay(400);
+            setTimeout(() => moveToNext(), 1200);
 
         } else {
-            // ML pending
             setBattleMsg('⏳ Recording submitted! Waiting for AI scoring...');
+            battleLocked = false;
             setTimeout(() => resetRec(), 1500);
         }
 
@@ -1106,6 +1059,8 @@ attackBtn.addEventListener('click', async () => {
         loadingWrap.style.display = 'none';
         console.error(err);
         setBattleMsg('❌ Something went wrong. Try again!');
+        battleLocked = false;
+        recBtn.disabled = false;
         setTimeout(() => resetRec(), 2000);
     }
 });
@@ -1113,53 +1068,39 @@ attackBtn.addEventListener('click', async () => {
 // ── Score reveal ───────────────────────────────────────────────
 function showScoreReveal(data) {
     return new Promise(resolve => {
-        const panel     = document.getElementById('score-reveal');
-        const valEl     = document.getElementById('score-reveal-value');
-        const dmgEl     = document.getElementById('score-reveal-damage');
-        const transEl   = document.getElementById('score-reveal-transcript');
+        const panel   = document.getElementById('score-reveal');
+        const valEl   = document.getElementById('score-reveal-value');
+        const dmgEl   = document.getElementById('score-reveal-damage');
+        const transEl = document.getElementById('score-reveal-transcript');
 
-        // Set color based on score
         const score = data.ml_score;
-        let   color = '#9CA3AF';
-        let   label = '😐 Keep trying!';
-        if      (score === null)  { color = '#9CA3AF'; label = '⏳ Pending'; }
-        else if (score >= 90)     { color = '#4ADE80'; label = '🔥 Excellent!'; }
-        else if (score >= 75)     { color = '#60A5FA'; label = '⚔️ Great!'; }
-        else if (score >= 60)     { color = '#FBBF24'; label = '👍 Good!'; }
-        else if (score >= 40)     { color = '#F97316'; label = '💪 OK!'; }
-        else                      { color = '#F87171'; label = '😅 Try harder!'; }
+        let color = '#9CA3AF', label = '😐 Keep trying!';
+        if      (score === null) { color = '#9CA3AF'; label = '⏳ Pending'; }
+        else if (score >= 90)    { color = '#4ADE80'; label = '🔥 Excellent!'; }
+        else if (score >= 75)    { color = '#60A5FA'; label = '⚔️ Great!'; }
+        else if (score >= 60)    { color = '#FBBF24'; label = '👍 Good!'; }
+        else if (score >= 40)    { color = '#F97316'; label = '💪 OK!'; }
+        else                     { color = '#F87171'; label = '😅 Try harder!'; }
 
         valEl.style.color   = color;
         valEl.textContent   = score !== null ? `${score}% — ${label}` : '— Pending';
         dmgEl.textContent   = `💥 ${data.damage} damage dealt!`;
-        transEl.textContent = data.transcript ? `🎙️ AI heard: "${data.transcript}"` : '';
+        transEl.textContent = data.transcript ? `🎙️ "${data.transcript}"` : '';
 
         panel.style.display = 'block';
-
-        // Hide after 1.4s then resolve
-        setTimeout(() => {
-            panel.style.display = 'none';
-            resolve();
-        }, 1400);
+        setTimeout(() => { panel.style.display = 'none'; resolve(); }, 1400);
     });
 }
 
-// ── Play attack animation ──────────────────────────────────────
-function playAttack(style) {
+// ── Student attack animation ───────────────────────────────────
+function playStudentAttack(style) {
     return new Promise(resolve => {
         const wrap = document.getElementById('student-wrap');
         wrap.style.animation = 'none';
-        void wrap.offsetWidth; // reflow
-        wrap.style.animation =
-            `${style.anim} ${style.dur}ms cubic-bezier(0.34,1.56,0.64,1) forwards`;
-
-        // Show attack name briefly
+        void wrap.offsetWidth;
+        wrap.style.animation = `${style.anim} ${style.dur}ms cubic-bezier(0.34,1.56,0.64,1) forwards`;
         recStatus.textContent = `⚔️ ${style.name}!`;
-
-        setTimeout(() => {
-            wrap.style.animation = '';
-            resolve();
-        }, style.dur);
+        setTimeout(() => { wrap.style.animation = ''; resolve(); }, style.dur);
     });
 }
 
@@ -1168,7 +1109,6 @@ function playEnemyHit(damage, score, style) {
     const sprite = document.getElementById('enemy-sprite');
     const wrap   = document.getElementById('enemy-wrap');
 
-    // Shake enemy
     sprite.style.animation = 'none';
     void sprite.offsetWidth;
     sprite.style.animation = 'shakeEnemy 0.6s ease';
@@ -1178,34 +1118,98 @@ function playEnemyHit(damage, score, style) {
         sprite.style.animation = '';
     }, 600);
 
-    // Show attack effect emoji near enemy
-    const effect     = document.getElementById('attack-effect');
+    // Effect near enemy
+    const effect       = document.getElementById('attack-effect');
     effect.textContent = style.effect;
     effect.style.animation = 'none';
     void effect.offsetWidth;
-    effect.style.animation =
-        `${style.effectAnim} ${style.effectDur}ms ease forwards`;
-    effect.style.fontSize = '64px';
-    effect.style.position = 'absolute';
-    // Position near enemy
-    const enemyRect  = wrap.getBoundingClientRect();
-    const arenaRect  = document.querySelector('.arena').getBoundingClientRect();
-    effect.style.top  = (enemyRect.top  - arenaRect.top  + 10) + 'px';
-    effect.style.left = (enemyRect.left - arenaRect.left + enemyRect.width/2) + 'px';
-    effect.style.zIndex = '25';
+    effect.style.cssText = `
+        position:absolute;font-size:64px;pointer-events:none;z-index:25;
+        animation:${style.effectAnim} ${style.effectDur}ms ease forwards;
+    `;
+    const eRect = wrap.getBoundingClientRect();
+    const aRect = document.querySelector('.arena').getBoundingClientRect();
+    effect.style.top  = (eRect.top  - aRect.top  + 10) + 'px';
+    effect.style.left = (eRect.left - aRect.left + eRect.width/2) + 'px';
 
-    setTimeout(() => {
-        effect.textContent = '';
-        effect.style.animation = '';
-    }, style.effectDur + 100);
+    setTimeout(() => { effect.textContent = ''; }, style.effectDur + 100);
 
-    // Damage floater
+    // Damage floater on enemy
     const floater     = document.createElement('div');
     floater.className = 'damage-floater';
     floater.style.color = style.color;
     floater.textContent = `-${damage} ${style.effect}`;
     wrap.appendChild(floater);
     setTimeout(() => floater.remove(), 1300);
+}
+
+// ── Enemy counterattack ────────────────────────────────────────
+function playEnemyCounterAttack() {
+    return new Promise(resolve => {
+        const enemySprite  = document.getElementById('enemy-sprite');
+        const enemyWrap    = document.getElementById('enemy-wrap');
+        const studentWrap  = document.getElementById('student-wrap');
+        const studentSprite= document.getElementById('student-sprite');
+        const bubble       = document.getElementById('enemy-attack-bubble');
+        const hpBg         = document.getElementById('student-hp-bar-bg');
+        const dmgInd       = document.getElementById('student-damage-indicator');
+
+        const style    = pickEnemyStyle();
+        const word     = pickEnemyWord();
+        const dmgText  = ['💢',  '😵', '💫', '🌀', '😤'][Math.floor(Math.random()*5)];
+
+        // Step 1: Show enemy attack word bubble
+        bubble.textContent   = word;
+        bubble.style.display = 'block';
+
+        setTimeout(() => {
+            // Step 2: Enemy moves toward student
+            enemySprite.style.animation = 'none';
+            void enemySprite.offsetWidth;
+            enemySprite.style.animation =
+                `${style.anim} ${style.dur}ms cubic-bezier(0.34,1.56,0.64,1) forwards`;
+            enemySprite.style.filter = `drop-shadow(0 0 20px ${style.color})`;
+
+            setBattleMsg(`${enemyName} uses: "${word}"`);
+
+        }, 300);
+
+        setTimeout(() => {
+            // Step 3: Student gets hit
+            studentSprite.style.animation = 'none';
+            void studentSprite.offsetWidth;
+            studentSprite.style.animation = 'studentHit 0.5s ease';
+            studentSprite.style.filter    = 'brightness(3) saturate(0)';
+
+            // HP bar shake
+            hpBg.classList.remove('shake');
+            void hpBg.offsetWidth;
+            hpBg.classList.add('shake');
+
+            // Damage indicator above student
+            dmgInd.textContent    = dmgText;
+            dmgInd.style.display  = 'block';
+            dmgInd.style.animation= 'none';
+            void dmgInd.offsetWidth;
+            dmgInd.style.animation= 'floatUp 1s ease forwards';
+
+            setTimeout(() => {
+                studentSprite.style.filter    = 'drop-shadow(0 0 16px rgba(124,58,237,0.6))';
+                studentSprite.style.animation = '';
+                hpBg.classList.remove('shake');
+                dmgInd.style.display = 'none';
+            }, 600);
+
+        }, style.dur * 0.55);
+
+        setTimeout(() => {
+            // Step 4: Enemy returns + bubble disappears
+            enemySprite.style.animation = '';
+            enemySprite.style.filter    = 'drop-shadow(0 0 16px rgba(239,68,68,0.6))';
+            bubble.style.display        = 'none';
+            resolve();
+        }, style.dur + 200);
+    });
 }
 
 // ── Enemy defeat ───────────────────────────────────────────────
@@ -1217,37 +1221,33 @@ function playEnemyDefeat() {
     });
 }
 
-// ── Student aura based on score ────────────────────────────────
+// ── Student aura ───────────────────────────────────────────────
 function applyStudentAura(score) {
     const sprite = document.getElementById('student-sprite');
     sprite.style.animation = 'none';
     void sprite.offsetWidth;
-
     if      (score >= 80) sprite.style.animation = 'auraExcellent 0.6s ease 3';
     else if (score >= 55) sprite.style.animation = 'auraGood 0.6s ease 2';
     else if (score !== null) sprite.style.animation = 'auraWeak 0.6s ease 2';
-
     setTimeout(() => {
-        sprite.style.animation  = '';
-        sprite.style.filter     = 'drop-shadow(0 0 16px rgba(124,58,237,0.6))';
+        sprite.style.animation = '';
+        sprite.style.filter    = 'drop-shadow(0 0 16px rgba(124,58,237,0.6))';
     }, 2000);
 }
 
-// ── UI updates ──────────────────────────────────────────────────
-function updateHpBar(newHp, hpPercent) {
+// ── HP bar updates ──────────────────────────────────────────────
+function updateEnemyHpBar(newHp, hpPercent) {
     const bar = document.getElementById('hp-bar');
     bar.style.width = Math.max(0, hpPercent) + '%';
     document.getElementById('hp-current').textContent = newHp.toLocaleString();
-
     if      (hpPercent <= 25) bar.style.background = '#EF4444';
     else if (hpPercent <= 50) bar.style.background = 'linear-gradient(90deg,#F59E0B,#FCD34D)';
     else                      bar.style.background = 'linear-gradient(90deg,#EF4444,#FCA5A5)';
 }
 
+// ── Stats updates ───────────────────────────────────────────────
 function updateStats(data) {
-    const oldDmg = parseInt(
-        document.getElementById('top-damage').textContent.replace(/,/g,'')
-    );
+    const oldDmg = parseInt(document.getElementById('top-damage').textContent.replace(/,/g,''));
     const oldRnd = parseInt(document.getElementById('round-num').textContent);
     document.getElementById('top-damage').textContent =
         (oldDmg + data.damage).toLocaleString();
@@ -1287,7 +1287,6 @@ function addHistory(data, word) {
     const hist  = document.getElementById('round-history');
     const empty = hist.querySelector('[style*="No rounds"]');
     if (empty) empty.remove();
-
     const scoreColor = data.ml_score >= 90 ? '#4ADE80'
                      : data.ml_score >= 70 ? '#60A5FA'
                      : data.ml_score >= 50 ? '#FBBF24' : '#F87171';
@@ -1300,11 +1299,9 @@ function addHistory(data, word) {
         <span class="hi-dmg"> -${data.damage}HP</span>
         ${data.transcript
             ? `<div style="color:rgba(255,255,255,0.4);margin-top:2px;font-size:9px;">
-                🎙️ "${data.transcript.substring(0,16)}"
-               </div>` : ''}
+                🎙️ "${data.transcript.substring(0,16)}"</div>` : ''}
         <div style="color:rgba(255,255,255,0.3);font-size:9px;">
-            "${word.substring(0,14)}"
-        </div>
+            "${word.substring(0,14)}"</div>
     `;
     hist.insertBefore(div, hist.firstChild);
 }
@@ -1312,10 +1309,7 @@ function addHistory(data, word) {
 function moveToNext() {
     const idx = parseInt(document.getElementById('current-round-index').value);
     const dot  = document.getElementById(`dot-${idx}`);
-    if (dot) {
-        dot.style.background = '#22C55E';
-        dot.style.boxShadow  = 'none';
-    }
+    if (dot) { dot.style.background = '#22C55E'; dot.style.boxShadow = 'none'; }
     window.location.reload();
 }
 
@@ -1340,7 +1334,9 @@ function showLose(data) {
 }
 
 function resetRec() {
-    audioBlob = null;
+    audioBlob                  = null;
+    battleLocked               = false;
+    recBtn.disabled            = false;
     audioPreview.style.display = 'none';
     rerecordBtn.style.display  = 'none';
     attackBtn.style.display    = 'none';
@@ -1349,6 +1345,10 @@ function resetRec() {
     recBtn.classList.remove('recording');
     recIcon.className = 'ti ti-microphone';
     stopWaveform();
+}
+
+function delay(ms) {
+    return new Promise(r => setTimeout(r, ms));
 }
 
 // ── Waveform ────────────────────────────────────────────────────
