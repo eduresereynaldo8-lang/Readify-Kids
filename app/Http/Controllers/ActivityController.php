@@ -302,6 +302,7 @@ class ActivityController extends Controller
     $student = auth()->user()->student;
 
     $activities = Activity::where('is_published', true)
+                  ->where('teacher_id', $student->teacher_id)
                   ->where('level', '<=', $student->current_level)
                   ->with(['results' => fn($q) => $q->where('student_id', $student->id)])
                   ->get();
@@ -313,7 +314,10 @@ class ActivityController extends Controller
 
     public function studentShow($id)
     {
+        $student = auth()->user()->student;
+
         $activity = Activity::where('is_published', true)
+                    ->where('teacher_id', $student->teacher_id)
                     ->with('wordBank')
                     ->findOrFail($id);
         return view('student.activities.show', compact('activity'));
@@ -322,7 +326,7 @@ class ActivityController extends Controller
     public function submit(Request $request, $id)
     {
         $student  = auth()->user()->student;
-        $activity = Activity::findOrFail($id);
+        $activity = Activity::where('teacher_id', $student->teacher_id)->findOrFail($id);
 
         \App\Models\ActivityResult::create([
             'student_id'   => $student->id,

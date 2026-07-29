@@ -8,7 +8,7 @@ class Activity extends Model
         'teacher_id', 'reading_material_id', 'activity_name',
         'description', 'activity_type', 'level', 'difficulty_level',
         'duration_minutes', 'points_reward', 'is_published',
-        'allow_reattempt', 'adaptive_difficulty'
+        'allow_reattempt', 'adaptive_difficulty', 'battle_mode'
     ];
 
     public function teacher() {

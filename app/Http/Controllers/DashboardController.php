@@ -48,8 +48,9 @@ class DashboardController extends Controller
 {
     $student = auth()->user()->student;
 
-    // Activities assigned to student's level that are published
+    // Activities assigned to student's level that are published (scoped to student's teacher)
     $activities = \App\Models\Activity::where('is_published', true)
+                  ->where('teacher_id', $student->teacher_id)
                   ->where('level', '<=', $student->current_level)
                   ->latest()->take(4)->get();
 

@@ -14,6 +14,7 @@ class GameController extends Controller
     {
         $student    = auth()->user()->student;
         $activities = Activity::where('is_published', true)
+                      ->where('teacher_id', $student->teacher_id)
                       ->where('level', '<=', $student->current_level)
                       ->where('battle_mode', true)
                       ->whereIn('activity_type', [
@@ -41,7 +42,7 @@ class GameController extends Controller
     public function start($activityId)
     {
         $student  = auth()->user()->student;
-        $activity = Activity::findOrFail($activityId);
+        $activity = Activity::where('teacher_id', $student->teacher_id)->findOrFail($activityId);
         $enemy    = Enemy::where('level', $activity->level)->first();
 
         if (!$enemy) {

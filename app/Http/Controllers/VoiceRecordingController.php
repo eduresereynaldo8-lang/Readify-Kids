@@ -13,6 +13,7 @@ class VoiceRecordingController extends Controller
     $student = auth()->user()->student;
 
     $activities = Activity::where('is_published', true)
+        ->where('teacher_id', $student->teacher_id)
         ->where('activity_type', 'Read Aloud')
         ->where('level', '<=', $student->current_level)
         ->with([
@@ -31,6 +32,7 @@ class VoiceRecordingController extends Controller
     {
         $student  = auth()->user()->student;
         $activity = Activity::where('is_published', true)
+                    ->where('teacher_id', $student->teacher_id)
                     ->where('activity_type', 'Read Aloud')
                     ->with(['readingMaterial', 'wordBank'])
                     ->findOrFail($id);
@@ -54,7 +56,7 @@ class VoiceRecordingController extends Controller
         ]);
 
         $student  = auth()->user()->student;
-        $activity = Activity::findOrFail($id);
+        $activity = Activity::where('teacher_id', $student->teacher_id)->findOrFail($id);
 
         // Count previous attempts
         $attemptNumber = VoiceRecording::where('student_id', $student->id)
