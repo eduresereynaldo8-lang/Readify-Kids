@@ -6,12 +6,32 @@
     <title>Battle! — Readify Kids</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
+        :root{
+            --sky-top:#5FC0FF;
+            --sky-mid:#8FD8FF;
+            --sky-bottom:#FFDD8A;
+            --ground:#7BC96F;
+            --ground-dark:#5AA652;
+            --panel:#3B2E63;
+            --panel-light:#5B4696;
+            --gold:#FFC93C;
+            --gold-dark:#E0A11B;
+            --hp-green:#57D67B;
+            --hp-orange:#FFA53C;
+            --hp-red:#FF5C5C;
+            --ink:#2B2140;
+            --cream:#FFF7E6;
+            --pink:#FF6FA5;
+            --purple:#7C3AED;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #1E0A3C;
+            font-family: 'Nunito', sans-serif;
+            background: var(--sky-top);
             min-height: 100vh;
             overflow-x: hidden;
         }
@@ -21,44 +41,68 @@
             display: flex; align-items: center;
             justify-content: space-between;
             padding: 10px 20px;
-            background: rgba(0,0,0,0.4);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: var(--cream);
+            border-bottom: 3px solid var(--panel);
             position: relative; z-index: 10;
         }
         .quit-btn {
             display: flex; align-items: center; gap: 6px;
-            color: #F87171; font-size: 13px; font-weight: 600;
-            text-decoration: none; padding: 6px 14px;
-            border-radius: 8px; border: 1px solid rgba(248,113,113,0.4);
-            cursor: pointer; background: transparent; transition: all 0.2s;
+            color: #B3261E; font-size: 13px; font-weight: 800;
+            font-family: 'Baloo 2', sans-serif;
+            text-decoration: none; padding: 6px 16px;
+            border-radius: 20px; border: 2px solid #B3261E;
+            cursor: pointer; background: #FFE1E1; transition: all 0.2s;
         }
-        .quit-btn:hover { background: rgba(248,113,113,0.15); }
+        .quit-btn:hover { background: #FFC9C9; }
         .round-badge {
-            background: #7C3AED; color: #fff;
+            background: var(--purple); color: #fff;
+            font-family: 'Baloo 2', sans-serif;
             font-size: 12px; font-weight: 700;
-            padding: 5px 16px; border-radius: 20px;
+            padding: 6px 18px; border-radius: 20px;
+            box-shadow: 0 3px 0 rgba(0,0,0,.15);
         }
         .top-right { display: flex; align-items: center; gap: 12px; }
-        .hp-display { font-size: 13px; font-weight: 700; color: #FCA5A5; }
+        .hp-display { font-size: 13px; font-weight: 800; color: var(--gold-dark); font-family: 'Baloo 2', sans-serif; }
         .level-chip {
-            background: #7C3AED; color: #fff;
-            font-size: 11px; font-weight: 700;
-            padding: 4px 12px; border-radius: 20px;
+            background: var(--gold); color: #5A3E00;
+            font-family: 'Baloo 2', sans-serif;
+            font-size: 11px; font-weight: 800;
+            padding: 5px 14px; border-radius: 20px;
+            box-shadow: 0 3px 0 rgba(0,0,0,.12);
         }
 
         /* ── Arena ───────────────────────────── */
         .arena {
-            background: linear-gradient(180deg, #3B0764 0%, #1E0A3C 60%, #0F0520 100%);
+            background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 40%, var(--sky-bottom) 82%, #FFEBB0 100%);
             min-height: calc(100vh - 52px);
             display: flex; flex-direction: column;
             position: relative; overflow: hidden;
         }
         .stars { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-        .star  { position: absolute; background: #fff; border-radius: 50%; animation: twinkle 2s infinite alternate; }
+        .star  { position: absolute; background: #FFF6C9; border-radius: 50%; box-shadow: 0 0 6px 2px rgba(255,201,60,.5); animation: twinkle 2s infinite alternate; }
+        .sun {
+            position: absolute; top: 5%; right: 8%; width: 90px; height: 90px; border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #FFF6C9, var(--gold) 60%, var(--gold-dark) 100%);
+            box-shadow: 0 0 50px 16px rgba(255,201,60,0.5);
+            animation: sunPulse 4s ease-in-out infinite; z-index: 0;
+        }
+        @keyframes sunPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+        .cloud { position:absolute; opacity:.9; z-index:0; }
+        .cloud svg { display:block; }
+        .cloud.c1 { top:8%;  left:-10%; width:160px; animation:drift 42s linear infinite; }
+        .cloud.c2 { top:18%; left:-20%; width:120px; animation:drift 56s linear infinite; animation-delay:-12s; }
+        .cloud.c3 { top:4%;  left:-15%; width:95px;  animation:drift 34s linear infinite; animation-delay:-24s; }
+        @keyframes drift{from{transform:translateX(0);}to{transform:translateX(140vw);}}
+        .mountains{
+            position:absolute; bottom: 78px; left:0; width:100%; height:18%;
+            background:linear-gradient(180deg,#B79CE0,#8F72C4);
+            clip-path:polygon(0% 100%,8% 40%,18% 70%,30% 20%,42% 65%,55% 15%,68% 60%,80% 25%,92% 55%,100% 30%,100% 100%);
+            opacity:.5; z-index:0;
+        }
         .ground {
             position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
-            background: linear-gradient(180deg, #2D1B69 0%, #1A0F3C 100%);
-            border-top: 2px solid rgba(124,58,237,0.4); z-index: 1;
+            background: linear-gradient(180deg, var(--ground) 0%, var(--ground-dark) 100%);
+            border-top: 4px solid #4E9048; z-index: 1;
         }
 
         /* ── HP section ──────────────────────── */
@@ -68,26 +112,27 @@
             padding: 14px 24px 0;
             position: relative; z-index: 5;
         }
-        .hp-block { width: 200px; }
+        .hp-block { width: 200px; background: linear-gradient(180deg,var(--panel-light),var(--panel)); border: 3px solid #2A2050; border-radius: 16px; padding: 8px 12px; box-shadow: 0 4px 0 rgba(0,0,0,.15); }
         .hp-name {
             font-size: 13px; font-weight: 700; color: #fff;
+            font-family: 'Baloo 2', sans-serif;
             margin-bottom: 5px; display: flex; align-items: center; gap: 6px;
         }
         .hp-name .label {
-            font-size: 10px; background: rgba(255,255,255,0.15);
-            padding: 1px 8px; border-radius: 20px; font-weight: 500;
+            font-size: 10px; background: var(--gold); color:#5A3E00;
+            padding: 1px 8px; border-radius: 20px; font-weight: 700;
         }
         .hp-bar-bg {
-            background: rgba(0,0,0,0.4); border-radius: 8px; height: 14px;
-            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
+            background: #1F1738; border-radius: 8px; height: 14px;
+            overflow: hidden; border: 2px solid #14102A;
         }
         .hp-bar-bg.shake { animation: hpShake 0.4s ease; }
-        .hp-bar-fill { height: 14px; border-radius: 8px; transition: width 0.8s ease; }
-        .hp-bar-fill.student { background: linear-gradient(90deg,#4ADE80,#22C55E); }
-        .hp-bar-fill.enemy   { background: linear-gradient(90deg,#EF4444,#FCA5A5); }
+        .hp-bar-fill { height: 100%; border-radius: 6px; transition: width 0.8s ease; }
+        .hp-bar-fill.student { background: linear-gradient(180deg,#7CE79A,var(--hp-green)); }
+        .hp-bar-fill.enemy   { background: linear-gradient(180deg,#FF8A8A,var(--hp-red)); }
         .hp-text {
-            font-size: 10px; color: rgba(255,255,255,0.7);
-            margin-top: 3px; text-align: right;
+            font-size: 10px; color: rgba(255,255,255,0.85); font-weight:700;
+            margin-top: 4px; text-align: right;
         }
 
         /* ── Center info (VS + word card) ─────── */
@@ -101,38 +146,44 @@
             z-index: 5;
         }
         .vs-badge {
-            font-size: 20px; font-weight: 900; color: #FBBF24;
-            text-shadow: 0 0 20px rgba(251,191,36,0.6);
+            font-family: 'Baloo 2', sans-serif;
+            font-size: 20px; font-weight: 800; color: var(--gold-dark);
+            -webkit-text-stroke: 1px #fff;
+            text-shadow: 0 2px 0 rgba(0,0,0,.15);
             margin-bottom: 6px;
         }
         .rounds-left-pill {
-            font-size: 10px; padding: 2px 10px; border-radius: 20px;
-            font-weight: 600; margin-bottom: 8px;
+            font-family: 'Baloo 2', sans-serif;
+            font-size: 11px; padding: 4px 14px; border-radius: 20px;
+            font-weight: 700; margin-bottom: 8px;
             display: inline-block; transition: all 0.3s;
+            border: 2px solid var(--panel); background: var(--cream); color: var(--panel);
         }
 
         /* ── Center word card (between VS and characters) ── */
         #center-word-card {
             display: none;
-            background: rgba(255,255,255,0.1);
-            border: 2px solid rgba(167,139,250,0.7);
-            border-radius: 14px;
-            padding: 12px 20px;
+            background: var(--cream);
+            border: 4px solid var(--panel);
+            border-radius: 18px;
+            padding: 14px 22px;
             text-align: center;
             width: 100%;
             max-width: 420px;
-            backdrop-filter: blur(6px);
             position: relative;
             z-index: 10;
+            box-shadow: 0 6px 0 rgba(0,0,0,.15);
             animation: wordPumpIn 0.5s ease;
         }
         .cw-label {
-            font-size: 10px; color: #C4B5FD;
+            font-family: 'Baloo 2', sans-serif;
+            font-size: 11px; color: var(--panel-light);
             font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.1em; margin-bottom: 6px;
+            letter-spacing: 0.08em; margin-bottom: 6px;
         }
         #center-word-text {
-            font-size: 28px; font-weight: 800; color: #fff;
+            font-family: 'Baloo 2', sans-serif;
+            font-size: 28px; font-weight: 700; color: var(--ink);
             line-height: 1.4;
         }
         #center-word-text.paragraph { font-size: 15px; line-height: 1.7; }
@@ -141,7 +192,7 @@
         #countdown-overlay {
             display: none;
             position: fixed; inset: 0;
-            background: rgba(0,0,0,0.75);
+            background: rgba(20,15,40,0.72);
             z-index: 8888;
             align-items: center;
             justify-content: center;
@@ -149,21 +200,23 @@
             gap: 16px;
         }
         .countdown-number {
+            font-family: 'Baloo 2', sans-serif;
             font-size: 140px;
-            font-weight: 900;
+            font-weight: 800;
             color: #fff;
-            text-shadow: 0 0 60px rgba(124,58,237,0.9), 0 0 20px rgba(255,255,255,0.5);
+            text-shadow: 0 0 60px rgba(255,201,60,0.9), 0 0 20px rgba(255,255,255,0.5);
             animation: countPop 0.9s cubic-bezier(0.34,1.56,0.64,1) forwards;
             line-height: 1;
         }
         .countdown-label {
+            font-family: 'Baloo 2', sans-serif;
             font-size: 18px; font-weight: 700;
-            color: rgba(255,255,255,0.7);
+            color: var(--gold);
             letter-spacing: 0.15em;
             text-transform: uppercase;
         }
         .countdown-sub {
-            font-size: 13px; color: rgba(255,255,255,0.4);
+            font-size: 13px; color: rgba(255,255,255,0.6);
             margin-top: 4px;
         }
 
@@ -179,32 +232,40 @@
             align-items: center; gap: 8px; position: relative;
         }
         .character-label {
+            font-family: 'Baloo 2', sans-serif;
             font-size: 11px; font-weight: 700;
-            color: rgba(255,255,255,0.6);
-            text-transform: uppercase; letter-spacing: 0.08em;
+            color: var(--panel);
+            background: rgba(255,255,255,.55);
+            padding: 2px 10px; border-radius: 10px;
+            text-transform: uppercase; letter-spacing: 0.06em;
         }
-        .character-sprite {
-            font-size: 90px; line-height: 1;
-            filter: drop-shadow(0 0 16px rgba(124,58,237,0.6));
+        .char-platform{
+            position:absolute; bottom:-6px; left:50%; transform:translateX(-50%);
+            width:120px; height:20px; border-radius:50%;
+            background:radial-gradient(ellipse at center, rgba(0,0,0,.28), transparent 72%);
+            z-index: 0;
         }
-        .enemy-sprite {
-            font-size: 90px; line-height: 1;
-            filter: drop-shadow(0 0 16px rgba(239,68,68,0.6));
-            transition: transform 0.3s, filter 0.3s;
+        .character-sprite, .enemy-sprite {
+            width: 140px; height: 170px;
+            display: flex; align-items: flex-end; justify-content: center;
+            filter: drop-shadow(0 8px 6px rgba(0,0,0,.25));
+            transition: filter 0.3s;
+            position: relative; z-index: 1;
         }
+        .character-sprite svg, .enemy-sprite svg { width: 100%; height: 100%; display: block; }
 
         /* ── Enemy attack bubble ──────────────── */
         #enemy-attack-bubble {
             display: none;
             position: absolute; top: -60px; left: 50%;
             transform: translateX(-50%);
-            background: linear-gradient(135deg, #EF4444, #DC2626);
-            border: 2px solid #FCA5A5;
-            border-radius: 12px;
+            background: #fff;
+            border: 3px solid var(--panel);
+            border-radius: 14px;
             padding: 8px 16px;
-            font-size: 14px; font-weight: 800; color: #fff;
+            font-family: 'Baloo 2', sans-serif;
+            font-size: 14px; font-weight: 700; color: var(--ink);
             white-space: nowrap;
-            text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
             z-index: 30;
             animation: bubblePop 0.4s cubic-bezier(0.34,1.56,0.64,1);
         }
@@ -215,15 +276,15 @@
             width: 0; height: 0;
             border-left: 8px solid transparent;
             border-right: 8px solid transparent;
-            border-top: 10px solid #DC2626;
+            border-top: 10px solid var(--panel);
         }
 
         /* ── Student hit ──────────────────────── */
         #student-damage-indicator {
             position: absolute; top: -30px; left: 50%;
             transform: translateX(-50%);
-            font-size: 22px; font-weight: 900; color: #F87171;
-            text-shadow: 2px 2px 6px rgba(0,0,0,0.8);
+            font-size: 22px; font-weight: 900; color: #FF3B3B;
+            text-shadow: 2px 2px 0 #fff;
             pointer-events: none; display: none; z-index: 25;
         }
 
@@ -243,22 +304,23 @@
             animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
         }
         .score-reveal-inner {
-            background: rgba(0,0,0,0.85);
-            border: 2px solid rgba(124,58,237,0.6);
-            border-radius: 16px; padding: 14px 28px;
-            text-align: center; backdrop-filter: blur(8px);
+            background: var(--cream);
+            border: 5px solid var(--gold);
+            border-radius: 20px; padding: 16px 30px;
+            text-align: center; box-shadow: 0 8px 0 rgba(0,0,0,.18);
         }
-        .score-reveal-label     { font-size:11px; color:rgba(255,255,255,0.6); margin-bottom:4px; }
-        .score-reveal-value     { font-size:36px; font-weight:900; margin-bottom:4px; }
-        .score-reveal-damage    { font-size:14px; font-weight:700; color:#FCA5A5; }
-        .score-reveal-transcript{ font-size:11px; color:rgba(255,255,255,0.5); margin-top:4px; }
+        .score-reveal-label     { font-family:'Baloo 2',sans-serif; font-size:11px; color:var(--panel-light); font-weight:700; margin-bottom:4px; text-transform:uppercase; letter-spacing:.06em; }
+        .score-reveal-value     { font-family:'Baloo 2',sans-serif; font-size:36px; font-weight:800; margin-bottom:4px; }
+        .score-reveal-damage    { font-size:14px; font-weight:800; color:#E05B3C; }
+        .score-reveal-transcript{ font-size:11px; color:rgba(43,33,64,.55); margin-top:4px; }
 
         /* Damage floater */
         .damage-floater {
             position: absolute; top: -20px; left: 50%;
             transform: translateX(-50%);
-            font-size: 28px; font-weight: 900; color: #FBBF24;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+            font-family: 'Baloo 2', sans-serif;
+            font-size: 28px; font-weight: 800; color: var(--gold-dark);
+            text-shadow: 2px 2px 0 #fff;
             pointer-events: none;
             animation: floatUp 1.2s ease forwards;
             white-space: nowrap; z-index: 25;
@@ -271,14 +333,14 @@
             z-index: 10; white-space: nowrap;
         }
         .battle-msg {
-            background: rgba(0,0,0,0.6);
-            border: 1px solid rgba(124,58,237,0.5);
+            background: var(--cream);
+            border: 3px solid var(--panel);
             border-radius: 20px; padding: 8px 20px;
-            font-size: 13px; color: #fff; text-align: center;
-            backdrop-filter: blur(4px);
+            font-size: 13px; font-weight: 700; color: var(--ink); text-align: center;
+            box-shadow: 0 4px 0 rgba(0,0,0,.12);
         }
         .battle-transcript {
-            font-size: 11px; color: rgba(255,255,255,0.6);
+            font-size: 11px; color: rgba(43,33,64,.6);
             margin-top: 3px; display: none;
         }
 
@@ -286,22 +348,23 @@
         #done-reading-btn {
             display: none;
             margin-top: 8px;
-            padding: 7px 20px;
+            padding: 9px 22px;
             border-radius: 20px;
             border: none;
-            background: linear-gradient(135deg,#7C3AED,#4F46E5);
+            font-family: 'Baloo 2', sans-serif;
+            background: linear-gradient(180deg,#FF8FB8,var(--pink));
             color: #fff;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
             cursor: pointer;
+            box-shadow: 0 4px 0 rgba(0,0,0,.18);
             animation: pulse 1.5s infinite;
         }
 
         /* ── Recording panel (bottom) ─────────── */
         .bottom-panel {
-            background: rgba(0,0,0,0.5);
-            border-top: 1px solid rgba(124,58,237,0.3);
-            backdrop-filter: blur(8px);
+            background: var(--cream);
+            border-top: 4px solid var(--panel);
             padding: 12px 24px;
             position: relative; z-index: 10;
         }
@@ -317,33 +380,35 @@
             justify-content: center; gap: 4px;
         }
         .rec-info-title {
-            font-size: 11px; color: #A78BFA;
+            font-family: 'Baloo 2', sans-serif;
+            font-size: 11px; color: var(--purple);
             font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.08em;
         }
         .rec-info-sub {
-            font-size: 12px; color: rgba(255,255,255,0.6);
+            font-size: 12px; color: var(--ink); font-weight: 600;
         }
 
         .rec-panel { width: 320px; display: flex; flex-direction: column; gap: 8px; }
         .waveform-wrap {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: #fff;
+            border: 2px solid var(--panel);
             border-radius: 10px; padding: 8px 12px;
             display: flex; align-items: center; gap: 3px; height: 38px;
         }
         .wv {
             width: 4px; border-radius: 3px;
-            background: rgba(255,255,255,0.2); height: 6px; transition: height 0.08s;
+            background: #D9D0F2; height: 6px; transition: height 0.08s;
         }
         .rec-timer {
-            font-size: 13px; font-weight: 700; color: #fff;
+            font-family: 'Baloo 2', sans-serif;
+            font-size: 13px; font-weight: 700; color: var(--ink);
             margin-left: auto; flex-shrink: 0;
         }
         .rec-actions { display: flex; gap: 8px; align-items: center; }
         .rec-btn {
             width: 46px; height: 46px; border-radius: 50%;
-            background: #7C3AED; border: none; cursor: pointer;
+            background: var(--purple); border: none; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0; box-shadow: 0 0 0 6px rgba(124,58,237,0.2);
             transition: all 0.2s; animation: pulse 2s infinite;
@@ -356,21 +421,23 @@
         }
         .rec-btn:disabled { opacity: 0.4; cursor: not-allowed; animation: none; }
         .attack-btn {
-            flex: 1; padding: 10px; border-radius: 10px; border: none;
-            background: linear-gradient(135deg,#7C3AED,#4F46E5);
+            flex: 1; padding: 10px; border-radius: 12px; border: none;
+            font-family: 'Baloo 2', sans-serif;
+            background: linear-gradient(180deg,#FF8FB8,var(--pink));
             color: #fff; font-size: 13px; font-weight: 700;
             cursor: pointer; display: none;
+            box-shadow: 0 4px 0 rgba(0,0,0,.18);
         }
         .rerecord-btn {
-            padding: 8px 12px; border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: transparent; color: rgba(255,255,255,0.7);
-            font-size: 12px; cursor: pointer; display: none;
+            padding: 8px 12px; border-radius: 10px;
+            border: 2px solid var(--panel);
+            background: #fff; color: var(--panel);
+            font-size: 12px; font-weight:700; cursor: pointer; display: none;
         }
         .loading-wrap {
             display: none; align-items: center; gap: 8px; padding: 6px 0;
         }
-        .loading-wrap span { font-size: 12px; color: rgba(255,255,255,0.7); }
+        .loading-wrap span { font-size: 12px; color: var(--ink); font-weight:700; }
         .audio-preview { display: none; }
         .audio-preview audio { width: 100%; height: 28px; border-radius: 6px; }
 
@@ -380,17 +447,18 @@
             gap: 6px; overflow-y: auto; max-height: 110px;
         }
         .history-title {
-            font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5);
+            font-family: 'Baloo 2', sans-serif;
+            font-size: 10px; font-weight: 700; color: var(--panel-light);
             text-transform: uppercase; letter-spacing: 0.07em; flex-shrink: 0;
         }
         .history-item {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 6px; padding: 5px 8px; font-size: 10px;
-            color: rgba(255,255,255,0.8);
+            background: #fff;
+            border: 2px solid #E6DEFA;
+            border-radius: 8px; padding: 5px 8px; font-size: 10px;
+            color: var(--ink);
         }
-        .history-item .hi-score { font-weight: 700; }
-        .history-item .hi-dmg   { color: #FCA5A5; font-weight: 700; }
+        .history-item .hi-score { font-weight: 800; }
+        .history-item .hi-dmg   { color: #E05B3C; font-weight: 800; }
 
         /* dots */
         .dots-wrap { display:flex; justify-content:center; gap:5px; margin-bottom:8px; }
@@ -399,58 +467,63 @@
         /* ── Quit modal ────────────────────────── */
         .quit-modal {
             display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.85); z-index: 99999;
+            background: rgba(20,15,40,0.75); z-index: 99999;
             align-items: center; justify-content: center;
         }
         .quit-modal-card {
-            background: #1E0A3C;
-            border: 2px solid rgba(248,113,113,0.5);
-            border-radius: 20px; padding: 36px 32px;
+            background: var(--cream);
+            border: 5px solid var(--gold);
+            border-radius: 24px; padding: 36px 32px;
             text-align: center; max-width: 380px; width: 90%;
+            box-shadow: 0 10px 0 rgba(0,0,0,.18);
             animation: popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
         }
         .quit-modal-emoji  { font-size: 60px; margin-bottom: 12px; }
-        .quit-modal-title  { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 8px; }
-        .quit-modal-sub    { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5; margin-bottom: 10px; }
-        .quit-modal-note   { font-size: 11px; color: rgba(255,255,255,0.35); margin-bottom: 20px; font-style: italic; }
+        .quit-modal-title  { font-family:'Baloo 2',sans-serif; font-size: 22px; font-weight: 800; color: var(--panel); margin-bottom: 8px; }
+        .quit-modal-sub    { font-size: 13px; color: var(--ink); line-height: 1.5; margin-bottom: 10px; }
+        .quit-modal-note   { font-size: 11px; color: rgba(43,33,64,.55); margin-bottom: 20px; font-style: italic; }
         .quit-modal-btns   { display: flex; gap: 10px; justify-content: center; }
         .btn-stay {
-            padding: 10px 22px; border-radius: 10px;
-            background: linear-gradient(135deg,#7C3AED,#4F46E5);
+            padding: 11px 22px; border-radius: 14px;
+            font-family: 'Baloo 2', sans-serif;
+            background: linear-gradient(180deg,#8F7AD1,var(--purple));
             color: #fff; font-size: 13px; font-weight: 700; border: none; cursor: pointer;
+            box-shadow: 0 4px 0 rgba(0,0,0,.18);
         }
         .btn-quit-confirm {
-            padding: 10px 22px; border-radius: 10px;
-            background: rgba(239,68,68,0.15); color: #F87171;
-            font-size: 13px; font-weight: 600;
-            border: 1px solid rgba(239,68,68,0.4);
+            padding: 11px 22px; border-radius: 14px;
+            font-family: 'Baloo 2', sans-serif;
+            background: #FFE1E1; color: #B3261E;
+            font-size: 13px; font-weight: 700;
+            border: 2px solid #B3261E;
             cursor: pointer; text-decoration: none; display: inline-block;
         }
 
         /* ── Win / Lose overlays ─────────────── */
         .overlay {
             display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.85); z-index: 9999;
+            background: rgba(20,15,40,0.75); z-index: 9999;
             align-items: center; justify-content: center;
             animation: fadeIn 0.3s ease;
         }
         .overlay-card {
-            background: #1E0A3C;
-            border: 2px solid rgba(124,58,237,0.5);
-            border-radius: 24px; padding: 40px 36px;
+            background: var(--cream);
+            border: 5px solid var(--gold);
+            border-radius: 26px; padding: 40px 36px;
             text-align: center; max-width: 420px; width: 90%;
+            box-shadow: 0 10px 0 rgba(0,0,0,.18);
             animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
         }
-        .overlay-card.lose { border-color: rgba(239,68,68,0.5); }
+        .overlay-card.lose { border-color: #E05B3C; }
         .overlay-emoji { font-size: 80px; margin-bottom: 14px; }
-        .overlay-title { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 8px; }
-        .overlay-sub   { font-size: 14px; color: rgba(255,255,255,0.65); margin-bottom: 6px; }
-        .overlay-pts   { font-size: 28px; font-weight: 800; color: #FBBF24; margin: 10px 0 24px; }
+        .overlay-title { font-family:'Baloo 2',sans-serif; font-size: 26px; font-weight: 800; color: var(--panel); margin-bottom: 8px; }
+        .overlay-sub   { font-size: 14px; color: var(--ink); margin-bottom: 6px; }
+        .overlay-pts   { font-family:'Baloo 2',sans-serif; font-size: 28px; font-weight: 800; color: var(--gold-dark); margin: 10px 0 24px; }
         .overlay-btns  { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-        .btn-back  { padding:11px 22px; border-radius:12px; background:rgba(255,255,255,0.1); color:#fff; font-size:13px; font-weight:600; text-decoration:none; border:1px solid rgba(255,255,255,0.2); }
-        .btn-retry { padding:11px 22px; border-radius:12px; font-size:13px; font-weight:700; text-decoration:none; color:#fff; }
-        .btn-retry.win  { background: linear-gradient(135deg,#7C3AED,#4F46E5); }
-        .btn-retry.lose { background: linear-gradient(135deg,#EF4444,#DC2626); }
+        .btn-back  { padding:11px 22px; border-radius:14px; font-family:'Baloo 2',sans-serif; background:#fff; color:var(--panel); font-size:13px; font-weight:700; text-decoration:none; border:2px solid var(--panel); }
+        .btn-retry { padding:11px 22px; border-radius:14px; font-family:'Baloo 2',sans-serif; font-size:13px; font-weight:700; text-decoration:none; color:#fff; box-shadow:0 4px 0 rgba(0,0,0,.18); }
+        .btn-retry.win  { background: linear-gradient(180deg,#8F7AD1,var(--purple)); }
+        .btn-retry.lose { background: linear-gradient(180deg,#FF8F6B,#E05B3C); }
 
         /* ── Keyframes ────────────────────────── */
         @keyframes twinkle {
@@ -602,16 +675,16 @@
         }
 
         @keyframes auraExcellent {
-            0%,100% { filter:drop-shadow(0 0 16px #4ADE80) brightness(1.3); }
-            50%     { filter:drop-shadow(0 0 32px #4ADE80) brightness(1.6); }
+            0%,100% { filter:drop-shadow(0 0 16px #57D67B) brightness(1.3); }
+            50%     { filter:drop-shadow(0 0 32px #57D67B) brightness(1.6); }
         }
         @keyframes auraGood {
-            0%,100% { filter:drop-shadow(0 0 14px #60A5FA) brightness(1.2); }
-            50%     { filter:drop-shadow(0 0 28px #60A5FA) brightness(1.5); }
+            0%,100% { filter:drop-shadow(0 0 14px #5DA9FF) brightness(1.2); }
+            50%     { filter:drop-shadow(0 0 28px #5DA9FF) brightness(1.5); }
         }
         @keyframes auraWeak {
-            0%,100% { filter:drop-shadow(0 0 10px #F87171) brightness(1.1); }
-            50%     { filter:drop-shadow(0 0 20px #F87171) brightness(1.3); }
+            0%,100% { filter:drop-shadow(0 0 10px #FF5C5C) brightness(1.1); }
+            50%     { filter:drop-shadow(0 0 20px #FF5C5C) brightness(1.3); }
         }
         @keyframes popIn {
             0%   { transform:scale(0.5); opacity:0; }
@@ -655,6 +728,11 @@
 
 {{-- ── ARENA ─────────────────────────────────────────────── --}}
 <div class="arena">
+    <div class="sun"></div>
+    <div class="cloud c1"><svg viewBox="0 0 200 90"><path d="M20 70 Q0 70 0 50 Q0 30 25 32 Q28 8 58 12 Q80 -5 100 15 Q130 5 138 30 Q170 28 170 55 Q170 70 150 70 Z" fill="#fff"/></svg></div>
+    <div class="cloud c2"><svg viewBox="0 0 200 90"><path d="M20 70 Q0 70 0 50 Q0 30 25 32 Q28 8 58 12 Q80 -5 100 15 Q130 5 138 30 Q170 28 170 55 Q170 70 150 70 Z" fill="#fff"/></svg></div>
+    <div class="cloud c3"><svg viewBox="0 0 200 90"><path d="M20 70 Q0 70 0 50 Q0 30 25 32 Q28 8 58 12 Q80 -5 100 15 Q130 5 138 30 Q170 28 170 55 Q170 70 150 70 Z" fill="#fff"/></svg></div>
+    <div class="mountains"></div>
     <div class="stars" id="stars"></div>
     <div class="ground"></div>
 
@@ -675,9 +753,7 @@
         {{-- CENTER: VS + rounds pill + WORD CARD ─────────── --}}
         <div class="center-info">
             <div class="vs-badge">VS</div>
-            <div id="rounds-left-pill" class="rounds-left-pill"
-                 style="background:{{ $roundsLeft <= 2 ? 'rgba(239,68,68,0.3)' : 'rgba(124,58,237,0.3)' }};
-                        color:{{ $roundsLeft <= 2 ? '#FCA5A5' : '#C4B5FD' }};">
+            <div id="rounds-left-pill" class="rounds-left-pill">
                 {{ $roundsLeft }} round(s) left
             </div>
 
@@ -717,7 +793,30 @@
         {{-- Student character --}}
         <div class="character-wrap" id="student-wrap">
             <div class="character-label">{{ auth()->user()->student->firstname }}</div>
-            <div class="character-sprite" id="student-sprite">🧒</div>
+            <div class="char-platform"></div>
+            <div class="character-sprite" id="student-sprite">
+                <svg viewBox="0 0 200 240">
+                    <path d="M60 150 Q100 260 140 150 L150 100 Q100 80 50 100 Z" fill="#3B7DDB"/>
+                    <path d="M55 105 L40 150 Q45 165 60 155 Z" fill="#FF6FA5"/>
+                    <path d="M145 105 L160 150 Q155 165 140 155 Z" fill="#FF6FA5"/>
+                    <rect x="88" y="118" width="24" height="46" rx="8" fill="#FFC93C"/>
+                    <circle cx="100" cy="70" r="42" fill="#FFD9B0"/>
+                    <path d="M58 60 Q60 20 100 18 Q140 20 142 60 Q120 40 100 42 Q80 40 58 60Z" fill="#7A4A2A"/>
+                    <circle cx="84" cy="72" r="6" fill="#2B2140"/>
+                    <circle cx="116" cy="72" r="6" fill="#2B2140"/>
+                    <path d="M86 92 Q100 100 114 92" stroke="#2B2140" stroke-width="3" fill="none" stroke-linecap="round"/>
+                    <circle cx="76" cy="82" r="7" fill="#FF9EBB" opacity=".6"/>
+                    <circle cx="124" cy="82" r="7" fill="#FF9EBB" opacity=".6"/>
+                    <path d="M44 96 Q20 60 40 30" stroke="#FFD9B0" stroke-width="14" fill="none" stroke-linecap="round"/>
+                    <circle cx="38" cy="28" r="10" fill="#FFD9B0"/>
+                    <g transform="translate(6,-6) rotate(-18 38 28)">
+                        <rect x="30" y="-10" width="16" height="46" rx="6" fill="#FFC93C" stroke="#E0A11B" stroke-width="2"/>
+                        <circle cx="38" cy="-14" r="10" fill="#FFF6C9" stroke="#E0A11B" stroke-width="2"/>
+                    </g>
+                    <path d="M158 96 Q182 66 160 34" stroke="#FFD9B0" stroke-width="14" fill="none" stroke-linecap="round"/>
+                    <circle cx="162" cy="32" r="10" fill="#FFD9B0"/>
+                </svg>
+            </div>
             <div id="student-damage-indicator">💢</div>
         </div>
 
@@ -746,7 +845,50 @@
         <div class="character-wrap" id="enemy-wrap">
             <div class="character-label">{{ $session->enemy->name }}</div>
             <div id="enemy-attack-bubble"></div>
-            <div class="enemy-sprite" id="enemy-sprite">{{ $session->enemy->sprite }}</div>
+            <div class="char-platform"></div>
+            <div id="enemy-sprite" class="enemy-sprite">
+                @php $enemyName = trim($session->enemy->name); @endphp
+                @if($enemyName === 'Letter Goblin')
+                    <svg viewBox="0 0 200 240">
+                        <path d="M55 150 Q100 250 145 150 L150 110 Q100 90 50 110 Z" fill="#6FBF5A"/>
+                        <circle cx="100" cy="80" r="46" fill="#7ED45F"/>
+                        <path d="M52 60 Q30 30 44 10 Q60 24 62 46Z" fill="#5AA83F"/>
+                        <path d="M148 60 Q170 30 156 10 Q140 24 138 46Z" fill="#5AA83F"/>
+                        <circle cx="82" cy="82" r="9" fill="#fff"/><circle cx="118" cy="82" r="9" fill="#fff"/>
+                        <circle cx="84" cy="84" r="4" fill="#2B2140"/><circle cx="120" cy="84" r="4" fill="#2B2140"/>
+                        <path d="M78 104 Q100 118 122 104" stroke="#2B2140" stroke-width="4" fill="none" stroke-linecap="round"/>
+                        <rect x="20" y="140" width="46" height="54" rx="8" fill="#FFC93C" stroke="#5A3E00" stroke-width="3" transform="rotate(-8 43 167)"/>
+                        <text x="30" y="178" font-family="Baloo 2" font-size="34" font-weight="700" fill="#5A3E00" transform="rotate(-8 43 167)">A</text>
+                    </svg>
+                @elseif($enemyName === 'Word Witch')
+                    <svg viewBox="0 0 200 240">
+                        <path d="M55 145 Q100 250 145 145 L150 100 Q100 82 50 100 Z" fill="#7A56C9"/>
+                        <circle cx="100" cy="75" r="40" fill="#F3D9C4"/>
+                        <path d="M52 62 Q100 -10 148 62 Q130 50 100 52 Q70 50 52 62Z" fill="#3B2E63"/>
+                        <circle cx="130" cy="10" r="8" fill="#FFC93C"/>
+                        <circle cx="84" cy="78" r="6" fill="#2B2140"/><circle cx="116" cy="78" r="6" fill="#2B2140"/>
+                        <path d="M88 96 Q100 90 112 96" stroke="#2B2140" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <path d="M150 150 Q190 130 185 90" stroke="#3B2E63" stroke-width="10" fill="none" stroke-linecap="round"/>
+                        <circle cx="184" cy="86" r="7" fill="#FFC93C"/>
+                        <circle cx="200" cy="60" r="4" fill="#FFC93C"/><circle cx="192" cy="40" r="3" fill="#FF6FA5"/>
+                    </svg>
+                @elseif($enemyName === 'Story Dragon')
+                    <svg viewBox="0 0 200 240">
+                        <path d="M40 150 Q10 110 45 90 Q60 120 70 140Z" fill="#E0A24C"/>
+                        <path d="M160 150 Q190 110 155 90 Q140 120 130 140Z" fill="#E0A24C"/>
+                        <path d="M50 150 Q100 245 150 150 L155 105 Q100 85 45 105 Z" fill="#E07A4C"/>
+                        <circle cx="100" cy="78" r="44" fill="#EB8E5E"/>
+                        <path d="M70 45 L80 20 L90 48Z" fill="#B3502A"/>
+                        <path d="M110 48 L120 20 L130 45Z" fill="#B3502A"/>
+                        <circle cx="83" cy="82" r="8" fill="#FFE9A8"/><circle cx="117" cy="82" r="8" fill="#FFE9A8"/>
+                        <circle cx="85" cy="84" r="4" fill="#2B2140"/><circle cx="119" cy="84" r="4" fill="#2B2140"/>
+                        <path d="M85 104 Q100 96 115 104" stroke="#5A2E14" stroke-width="4" fill="none" stroke-linecap="round"/>
+                        <path d="M96 106 Q100 116 104 106" fill="#FF6F3C"/>
+                    </svg>
+                @else
+                    <div style="font-size:90px;line-height:1;">{{ $session->enemy->sprite }}</div>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -756,8 +898,8 @@
         <div class="dots-wrap">
             @foreach($allWords as $i => $w)
             <div id="dot-{{ $i }}" class="dot"
-                 style="background:{{ $i < $roundIndex ? '#22C55E' : ($i == $roundIndex ? '#A78BFA' : 'rgba(255,255,255,0.2)') }};
-                        {{ $i == $roundIndex ? 'box-shadow:0 0 0 3px rgba(167,139,250,0.4);' : '' }}">
+                 style="background:{{ $i < $roundIndex ? '#57D67B' : ($i == $roundIndex ? '#7C3AED' : '#E6DEFA') }};
+                        {{ $i == $roundIndex ? 'box-shadow:0 0 0 3px rgba(124,58,237,0.3);' : '' }}">
             </div>
             @endforeach
         </div>
@@ -791,7 +933,7 @@
                     <button class="attack-btn" id="attack-btn">⚔️ Submit!</button>
                 </div>
                 <div class="loading-wrap" id="loading-wrap">
-                    <div class="spinner-border text-light" style="width:16px;height:16px;"></div>
+                    <div class="spinner-border text-primary" style="width:16px;height:16px;"></div>
                     <span id="loading-text">🤖 AI analyzing your reading...</span>
                 </div>
             </div>
@@ -803,16 +945,16 @@
                     @forelse($session->rounds->sortByDesc('created_at') as $round)
                     <div class="history-item">
                         <span class="hi-score"
-                              style="color:{{ $round->ml_score >= 90 ? '#4ADE80' : ($round->ml_score >= 70 ? '#60A5FA' : ($round->ml_score >= 50 ? '#FBBF24' : '#F87171')) }}">
+                              style="color:{{ $round->ml_score >= 90 ? '#3FA86A' : ($round->ml_score >= 70 ? '#3D82D9' : ($round->ml_score >= 50 ? '#E0A11B' : '#E05B3C')) }}">
                             {{ $round->ml_score ?? '—' }}%
                         </span>
                         <span class="hi-dmg"> -{{ $round->damage_dealt }}HP</span>
-                        <div style="color:rgba(255,255,255,0.3);margin-top:2px;font-size:9px;">
+                        <div style="color:rgba(43,33,64,.45);margin-top:2px;font-size:9px;">
                             "{{ Str::limit($round->word_or_passage, 14) }}"
                         </div>
                     </div>
                     @empty
-                    <div style="font-size:10px;color:rgba(255,255,255,0.3);text-align:center;padding:8px;">
+                    <div style="font-size:10px;color:rgba(43,33,64,.4);text-align:center;padding:8px;">
                         No rounds yet. Start attacking! ⚔️
                     </div>
                     @endforelse
@@ -829,7 +971,7 @@
         <div class="quit-modal-title">Quit Battle?</div>
         <div class="quit-modal-sub">
             Are you sure you want to leave the battle against
-            <strong style="color:#FCA5A5;">{{ $session->enemy->name }}</strong>?
+            <strong style="color:#E05B3C;">{{ $session->enemy->name }}</strong>?
         </div>
         <div class="quit-modal-note">
             Your progress will be saved. You can continue this battle later from the Arena.
@@ -847,7 +989,7 @@
         <div class="overlay-emoji">🏆</div>
         <div class="overlay-title">Victory!</div>
         <div class="overlay-sub" id="win-msg"></div>
-        <div class="overlay-sub" style="font-size:12px;color:rgba(255,255,255,0.4);" id="win-transcript"></div>
+        <div class="overlay-sub" style="font-size:12px;color:rgba(43,33,64,.5);" id="win-transcript"></div>
         <div class="overlay-pts" id="win-pts"></div>
         <div class="overlay-btns">
             <a href="{{ route('student.game.index') }}" class="btn-back">🏰 Back to Arena</a>
@@ -862,8 +1004,8 @@
         <div class="overlay-emoji">💀</div>
         <div class="overlay-title" id="lose-title">You Lost!</div>
         <div class="overlay-sub" id="lose-msg"></div>
-        <div class="overlay-sub" style="font-size:12px;color:rgba(255,255,255,0.4);" id="lose-rounds"></div>
-        <div class="overlay-sub" style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:20px;" id="lose-hp"></div>
+        <div class="overlay-sub" style="font-size:12px;color:rgba(43,33,64,.5);" id="lose-rounds"></div>
+        <div class="overlay-sub" style="font-size:12px;color:rgba(43,33,64,.5);margin-bottom:20px;" id="lose-hp"></div>
         <div class="overlay-btns">
             <a href="{{ route('student.game.index') }}" class="btn-back">🏰 Back to Arena</a>
             <a href="{{ route('student.game.start', $session->activity_id) }}" class="btn-retry lose">⚔️ Try Again!</a>
@@ -885,12 +1027,12 @@
 // ── Stars ──────────────────────────────────────────────────────
 (function() {
     const c = document.getElementById('stars');
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 30; i++) {
         const s = document.createElement('div');
         s.className = 'star';
         const sz = Math.random() * 2.5 + 0.5;
         s.style.cssText = `width:${sz}px;height:${sz}px;
-            top:${Math.random()*70}%;left:${Math.random()*100}%;
+            top:${Math.random()*55}%;left:${Math.random()*100}%;
             animation-delay:${Math.random()*2}s;
             animation-duration:${1.5+Math.random()*2}s;`;
         c.appendChild(s);
@@ -919,17 +1061,17 @@ const ENEMY_ATTACK_POOL = [
     'Zippity Zap!','Hocus Pocus!','Wacka Wacka!',
 ];
 const ENEMY_ATTACK_STYLES = [
-    { anim:'enemyDash',  dur:900,  effect:'💨', color:'#F87171' },
-    { anim:'enemyLeap',  dur:1000, effect:'💥', color:'#FBBF24' },
-    { anim:'enemyZap',   dur:900,  effect:'⚡', color:'#60A5FA' },
-    { anim:'enemySwipe', dur:950,  effect:'🌀', color:'#C084FC' },
+    { anim:'enemyDash',  dur:900,  effect:'💨', color:'#FF5C5C' },
+    { anim:'enemyLeap',  dur:1000, effect:'💥', color:'#FFC93C' },
+    { anim:'enemyZap',   dur:900,  effect:'⚡', color:'#5DA9FF' },
+    { anim:'enemySwipe', dur:950,  effect:'🌀', color:'#B79CE0' },
 ];
 const ATTACK_STYLES = [
-    { name:'Dash Strike',  anim:'attackDash',   dur:900,  effect:'⚡', effectAnim:'effectSlash', effectDur:600, color:'#FBBF24' },
-    { name:'Jump Slam',    anim:'attackJump',   dur:1000, effect:'💥', effectAnim:'effectBoom',  effectDur:700, color:'#F87171' },
-    { name:'Spin Charge',  anim:'attackSpin',   dur:1100, effect:'🌀', effectAnim:'effectSpin',  effectDur:800, color:'#A78BFA' },
-    { name:'Blink Strike', anim:'attackBlink',  dur:900,  effect:'✨', effectAnim:'effectSlash', effectDur:500, color:'#60A5FA' },
-    { name:'Power Burst',  anim:'attackCharge', dur:1200, effect:'🔥', effectAnim:'effectBoom',  effectDur:900, color:'#4ADE80' },
+    { name:'Dash Strike',  anim:'attackDash',   dur:900,  effect:'⚡', effectAnim:'effectSlash', effectDur:600, color:'#FFC93C' },
+    { name:'Jump Slam',    anim:'attackJump',   dur:1000, effect:'💥', effectAnim:'effectBoom',  effectDur:700, color:'#FF5C5C' },
+    { name:'Spin Charge',  anim:'attackSpin',   dur:1100, effect:'🌀', effectAnim:'effectSpin',  effectDur:800, color:'#B79CE0' },
+    { name:'Blink Strike', anim:'attackBlink',  dur:900,  effect:'✨', effectAnim:'effectSlash', effectDur:500, color:'#5DA9FF' },
+    { name:'Power Burst',  anim:'attackCharge', dur:1200, effect:'🔥', effectAnim:'effectBoom',  effectDur:900, color:'#57D67B' },
 ];
 function pickAttackStyle(score) {
     if (score >= 90) return ATTACK_STYLES[4];
@@ -990,7 +1132,7 @@ function startCountdown() {
 
         if (count > 0) {
             numEl.textContent = count;
-            numEl.style.color = count === 3 ? '#60A5FA' : count === 2 ? '#FBBF24' : '#F87171';
+            numEl.style.color = count === 3 ? '#5DA9FF' : count === 2 ? '#FFC93C' : '#FF5C5C';
             lblEl.textContent = count === 3 ? 'GET READY!'
                               : count === 2 ? 'ALMOST…'
                               : 'GO!';
@@ -999,7 +1141,7 @@ function startCountdown() {
         } else {
             // Show GO!
             numEl.textContent = '⚔️';
-            numEl.style.color = '#4ADE80';
+            numEl.style.color = '#57D67B';
             lblEl.textContent = 'READ IT!';
             subEl.textContent = 'Read the passage aloud then press Done!';
 
@@ -1197,11 +1339,11 @@ function showScoreReveal(data) {
         const s = data.ml_score;
         let color = '#9CA3AF', label = '😐 Keep trying!';
         if      (s === null) { color = '#9CA3AF'; label = '⏳ Pending'; }
-        else if (s >= 90)    { color = '#4ADE80'; label = '🔥 Excellent!'; }
-        else if (s >= 75)    { color = '#60A5FA'; label = '⚔️ Great!'; }
-        else if (s >= 60)    { color = '#FBBF24'; label = '👍 Good!'; }
-        else if (s >= 40)    { color = '#F97316'; label = '💪 OK!'; }
-        else                 { color = '#F87171'; label = '😅 Try harder!'; }
+        else if (s >= 90)    { color = '#3FA86A'; label = '🔥 Excellent!'; }
+        else if (s >= 75)    { color = '#3D82D9'; label = '⚔️ Great!'; }
+        else if (s >= 60)    { color = '#E0A11B'; label = '👍 Good!'; }
+        else if (s >= 40)    { color = '#E07A2C'; label = '💪 OK!'; }
+        else                 { color = '#E05B3C'; label = '😅 Try harder!'; }
 
         valEl.style.color   = color;
         valEl.textContent   = s !== null ? `${s}% — ${label}` : '— Pending';
@@ -1235,7 +1377,7 @@ function playEnemyHit(damage, score, style) {
     sprite.style.animation = 'shakeEnemy 0.6s ease';
     sprite.style.filter    = 'brightness(4) saturate(0)';
     setTimeout(() => {
-        sprite.style.filter    = 'drop-shadow(0 0 16px rgba(239,68,68,0.6))';
+        sprite.style.filter    = 'drop-shadow(0 8px 6px rgba(0,0,0,.25))';
         sprite.style.animation = '';
     }, 600);
 
@@ -1305,7 +1447,7 @@ function playEnemyCounterAttack(isFinal = false) {
             dmgInd.style.animation = 'floatUp 1s ease forwards';
 
             setTimeout(() => {
-                studentSprite.style.filter    = 'drop-shadow(0 0 16px rgba(124,58,237,0.6))';
+                studentSprite.style.filter    = 'drop-shadow(0 8px 6px rgba(0,0,0,.25))';
                 studentSprite.style.animation = '';
                 hpBg.classList.remove('shake');
                 dmgInd.style.display = 'none';
@@ -1315,7 +1457,7 @@ function playEnemyCounterAttack(isFinal = false) {
         setTimeout(() => {
             // Step 4: Enemy retreats + bubble gone
             enemySprite.style.animation = '';
-            enemySprite.style.filter    = 'drop-shadow(0 0 16px rgba(239,68,68,0.6))';
+            enemySprite.style.filter    = 'drop-shadow(0 8px 6px rgba(0,0,0,.25))';
             bubble.style.display        = 'none';
             resolve();
         }, style.dur + 200);
@@ -1341,7 +1483,7 @@ function applyStudentAura(score) {
     else if (score !== null) sprite.style.animation = 'auraWeak 0.6s ease 2';
     setTimeout(() => {
         sprite.style.animation = '';
-        sprite.style.filter    = 'drop-shadow(0 0 16px rgba(124,58,237,0.6))';
+        sprite.style.filter    = 'drop-shadow(0 8px 6px rgba(0,0,0,.25))';
     }, 2000);
 }
 
@@ -1350,9 +1492,9 @@ function updateEnemyHpBar(newHp, hpPercent) {
     const bar = document.getElementById('hp-bar');
     bar.style.width = Math.max(0, hpPercent) + '%';
     document.getElementById('hp-current').textContent = newHp.toLocaleString();
-    if      (hpPercent <= 25) bar.style.background = '#EF4444';
-    else if (hpPercent <= 50) bar.style.background = 'linear-gradient(90deg,#F59E0B,#FCD34D)';
-    else                      bar.style.background = 'linear-gradient(90deg,#EF4444,#FCA5A5)';
+    if      (hpPercent <= 25) bar.style.background = 'linear-gradient(180deg,#FF8A8A,#FF5C5C)';
+    else if (hpPercent <= 50) bar.style.background = 'linear-gradient(180deg,#FFC57A,#FFA53C)';
+    else                      bar.style.background = 'linear-gradient(180deg,#FF8A8A,#FF5C5C)';
 }
 
 // ── Stats ───────────────────────────────────────────────────────
@@ -1367,11 +1509,13 @@ function updateRoundsLeft(left) {
     const pill = document.getElementById('rounds-left-pill');
     pill.textContent = `${left} round(s) left`;
     if (left <= 2) {
-        pill.style.background = 'rgba(239,68,68,0.3)';
-        pill.style.color      = '#FCA5A5';
+        pill.style.background = '#FFE1E1';
+        pill.style.color      = '#B3261E';
+        pill.style.borderColor= '#B3261E';
     } else if (left <= 4) {
-        pill.style.background = 'rgba(245,158,11,0.3)';
-        pill.style.color      = '#FCD34D';
+        pill.style.background = '#FFF1D6';
+        pill.style.color      = '#B3720A';
+        pill.style.borderColor= '#E0A11B';
     }
 }
 
@@ -1396,14 +1540,14 @@ function addHistory(data, word) {
     const empty = hist.querySelector('[style*="No rounds"]');
     if (empty) empty.remove();
     const sc = data.ml_score;
-    const c  = sc >= 90 ? '#4ADE80' : sc >= 70 ? '#60A5FA' : sc >= 50 ? '#FBBF24' : '#F87171';
+    const c  = sc >= 90 ? '#3FA86A' : sc >= 70 ? '#3D82D9' : sc >= 50 ? '#E0A11B' : '#E05B3C';
     const div = document.createElement('div');
     div.className = 'history-item';
     div.innerHTML = `
         <span class="hi-score" style="color:${c}">${sc !== null ? sc + '%' : '—'}</span>
         <span class="hi-dmg"> -${data.damage}HP</span>
-        ${data.transcript ? `<div style="color:rgba(255,255,255,0.4);margin-top:2px;font-size:9px;">🎙️ "${data.transcript.substring(0,16)}"</div>` : ''}
-        <div style="color:rgba(255,255,255,0.3);font-size:9px;">"${word.substring(0,14)}"</div>
+        ${data.transcript ? `<div style="color:rgba(43,33,64,.5);margin-top:2px;font-size:9px;">🎙️ "${data.transcript.substring(0,16)}"</div>` : ''}
+        <div style="color:rgba(43,33,64,.4);font-size:9px;">"${word.substring(0,14)}"</div>
     `;
     hist.insertBefore(div, hist.firstChild);
 }
@@ -1413,7 +1557,7 @@ function moveToNext() {
     // Mark current dot
     const idx = parseInt(document.getElementById('current-round-index').value);
     const dot  = document.getElementById(`dot-${idx}`);
-    if (dot) { dot.style.background = '#22C55E'; dot.style.boxShadow = 'none'; }
+    if (dot) { dot.style.background = '#57D67B'; dot.style.boxShadow = 'none'; }
 
     // Reload page — server picks next word and starts countdown again
     window.location.reload();
@@ -1457,7 +1601,7 @@ function animateWaveform() {
         wvBars.forEach((b,i) => {
             const h = Math.abs(Math.sin((t+i)*0.35))*28+4;
             b.style.height     = h + 'px';
-            b.style.background = '#A78BFA';
+            b.style.background = '#7C3AED';
         });
         t++;
     }, 80);
@@ -1466,7 +1610,7 @@ function stopWaveform() {
     if (waveInterval) clearInterval(waveInterval);
     wvBars.forEach(b => {
         b.style.height     = '6px';
-        b.style.background = 'rgba(255,255,255,0.2)';
+        b.style.background = '#D9D0F2';
     });
 }
 
