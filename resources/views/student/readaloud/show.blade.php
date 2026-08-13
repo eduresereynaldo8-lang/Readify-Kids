@@ -1,364 +1,487 @@
-@extends('layouts.student')
-@section('title', 'Read Aloud')
-@section('page-greet', '🎙️ ' . $activity->activity_name)
-@section('page-sub', 'Read the passage clearly and record yourself!')
-
-@section('content')
-
-@if(session('success'))
-<div class="alert alert-success alert-dismissible fade show mb-3">
-    {{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-@endif
-
-{{-- Step indicator --}}
-<div class="dash-card mb-3">
-    <div class="d-flex align-items-center gap-0">
-        @php
-            $steps = ['Read Passage', 'Record Yourself', 'Submit', 'Wait for Feedback'];
-            $current = $recordings->count() > 0 ? 3 : 1;
-        @endphp
-        @foreach($steps as $i => $step)
-        <div class="d-flex align-items-center" style="flex:1;">
-            <div class="d-flex flex-column align-items-center" style="min-width:60px;">
-                <div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
-                            justify-content:center;font-size:11px;font-weight:700;
-                            background:{{ $i < $current ? '#185FA5' : ($i == $current ? '#DBEAFE' : '#F3F4F6') }};
-                            color:{{ $i < $current ? '#fff' : ($i == $current ? '#185FA5' : '#9CA3AF') }};">
-                    {{ $i < $current ? '✓' : $i + 1 }}
-                </div>
-                <div style="font-size:10px;color:{{ $i == $current ? '#185FA5' : '#9CA3AF' }};
-                            font-weight:{{ $i == $current ? '600' : '400' }};margin-top:4px;text-align:center;">
-                    {{ $step }}
-                </div>
-            </div>
-            @if(!$loop->last)
-            <div style="flex:1;height:2px;background:{{ $i < $current ? '#185FA5' : '#E5E7EB' }};margin-bottom:18px;"></div>
-            @endif
-        </div>
-        @endforeach
-    </div>
-</div>
-
-<div class="row g-3">
-
-    {{-- Left: passage + recording --}}
-    <div class="col-md-7">
-
-        {{-- Activity info --}}
-        <div style="background:linear-gradient(135deg,#185FA5,#2563EB);border-radius:14px;padding:16px 20px;margin-bottom:12px;display:flex;align-items:center;gap:14px;">
-            <div style="font-size:40px;">🎙️</div>
-            <div>
-                <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:3px;">{{ $activity->activity_name }}</div>
-                <div style="font-size:11px;color:rgba(255,255,255,0.8);margin-bottom:8px;">{{ $activity->description }}</div>
-                <div class="d-flex gap-2 flex-wrap">
-                    <span style="font-size:10px;padding:2px 10px;border-radius:20px;background:rgba(255,255,255,0.2);color:#fff;">Level {{ $activity->level }}</span>
-                    <span style="font-size:10px;padding:2px 10px;border-radius:20px;background:rgba(255,255,255,0.2);color:#fff;">⏱ {{ $activity->duration_minutes }} min</span>
-                    <span style="font-size:10px;padding:2px 10px;border-radius:20px;background:#F59E0B;color:#fff;font-weight:600;">⭐ +{{ $activity->points_reward }} pts</span>
-                </div>
-            </div>
-        </div>
-
-        {{-- Reading passage --}}
-        <div class="dash-card mb-3">
-            <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:10px;">
-                📄 Reading Passage
-            </div>
-
-            @if($activity->readingMaterial && $activity->readingMaterial->content)
-            <div style="background:#F8FAFF;border:1px solid #DBEAFE;border-left:4px solid #185FA5;
-                        border-radius:8px;padding:16px;font-size:14px;line-height:2.2;
-                        color:#1E3A5F;letter-spacing:0.01em;">
-                {{ $activity->readingMaterial->content }}
-            </div>
-            <div class="d-flex gap-3 mt-2" style="font-size:11px;color:#9CA3AF;">
-                <span>📝 {{ str_word_count($activity->readingMaterial->content) }} words</span>
-                <span>⏱ Read slowly and clearly</span>
-                <span>🔊 Speak loud enough to be heard</span>
-            </div>
-            @else
-            <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:14px;font-size:13px;color:#92400E;">
-                ⚠️ No reading passage has been added to this activity yet. Ask your teacher to add one!
-            </div>
-            @endif
-        </div>
-
-        {{-- Recording section --}}
-        <div class="dash-card">
-            <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:12px;">
-                🎙️ Record Your Voice
-            </div>
-
-            {{-- Waveform display --}}
-            <div id="waveform-display" style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;
-                                              padding:16px;display:flex;flex-direction:column;
-                                              align-items:center;gap:12px;margin-bottom:14px;">
-                <div id="waveform-bars" style="display:flex;align-items:center;gap:3px;height:48px;">
-                    @for($i = 0; $i < 20; $i++)
-                    <div class="wv-bar" style="width:5px;border-radius:3px;background:#E5E7EB;height:10px;transition:height 0.1s;"></div>
-                    @endfor
-                </div>
-                <div id="rec-timer" style="font-size:28px;font-weight:700;color:#111827;font-variant-numeric:tabular-nums;">0:00</div>
-                <div id="rec-status" style="font-size:12px;color:#9CA3AF;">Tap the button below to start recording</div>
-            </div>
-
-            {{-- Record button --}}
-            <div class="text-center mb-3">
-                <button id="rec-btn" type="button"
-                        style="width:72px;height:72px;border-radius:50%;background:#EF4444;
-                               border:none;cursor:pointer;box-shadow:0 0 0 10px rgba(239,68,68,0.15);
-                               display:flex;align-items:center;justify-content:center;margin:0 auto;">
-                    <i class="ti ti-microphone" style="color:#fff;font-size:30px;"></i>
-                </button>
-                <div style="font-size:11px;color:#9CA3AF;margin-top:8px;" id="rec-btn-label">Tap to record</div>
-            </div>
-
-            {{-- Playback --}}
-            <div id="playback-section" style="display:none;margin-bottom:14px;">
-                <div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:6px;">Your recording</div>
-                <audio id="playback-audio" controls style="width:100%;border-radius:8px;"></audio>
-            </div>
-
-            {{-- Submit form --}}
-            <form id="upload-form" method="POST"
-                  action="{{ route('student.readaloud.upload', $activity->id) }}"
-                  enctype="multipart/form-data">
-                @csrf
-                <input type="file" name="recording" id="recording-file" style="display:none;" accept="audio/*">
-
-                <div class="d-flex gap-2 justify-content-end">
-                    <button type="button" id="re-record-btn"
-                            style="display:none;"
-                            class="btn btn-sm btn-outline-secondary">
-                        <i class="ti ti-refresh"></i> Re-record
-                    </button>
-                    <button type="submit" id="submit-btn"
-                            style="display:none;"
-                            class="btn btn-sm btn-primary">
-                        <i class="ti ti-send"></i> Submit to Teacher
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    {{-- Right: tips + previous attempts --}}
-    <div class="col-md-5">
-
-        {{-- Reading tips --}}
-        <div class="dash-card mb-3">
-            <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:10px;">💡 Reading Tips</div>
-            <div class="d-flex flex-column gap-2">
-                @foreach([
-                    ['🐢', 'Read slowly — don\'t rush through the words.'],
-                    ['🔊', 'Speak clearly and loudly so your teacher can hear you.'],
-                    ['✋', 'Pause at commas and full stops.'],
-                    ['👁️', 'Look at each word carefully before saying it.'],
-                    ['🔁', 'You can re-record as many times as you need before submitting!'],
-                ] as [$icon, $tip])
-                <div class="d-flex gap-2 align-items-start" style="font-size:12px;color:#6B7280;">
-                    <span style="font-size:16px;flex-shrink:0;">{{ $icon }}</span>
-                    <span>{{ $tip }}</span>
-                </div>
-                @endforeach
-            </div>
-        </div>
-
-        {{-- What you can earn --}}
-        <div class="dash-card mb-3" style="background:#FFFBF0;border-color:#FDE68A;">
-            <div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:10px;">🏆 What you can earn</div>
-            <div class="d-flex flex-column gap-2">
-                <div class="d-flex align-items-center gap-2" style="font-size:12px;color:#6B7280;">
-                    <span style="font-size:18px;">⭐</span> +{{ $activity->points_reward }} points on completion
-                </div>
-                <div class="d-flex align-items-center gap-2" style="font-size:12px;color:#6B7280;">
-                    <span style="font-size:18px;">🎙️</span> Badge for completing Read Aloud
-                </div>
-                <div class="d-flex align-items-center gap-2" style="font-size:12px;color:#6B7280;">
-                    <span style="font-size:18px;">📝</span> Personal feedback from your teacher
-                </div>
-            </div>
-        </div>
-
-        {{-- Previous attempts --}}
-        <div class="dash-card">
-            <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:10px;">
-                📋 Previous Attempts ({{ $recordings->count() }})
-            </div>
-            @forelse($recordings as $i => $rec)
-            <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;
-                        padding:10px 12px;margin-bottom:8px;">
-                <div class="d-flex align-items-center justify-content-between mb-1">
-                    <span style="font-size:11px;color:#6B7280;">Attempt {{ $rec->attempt_number }}</span>
-                    <span style="font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;
-                                 {{ $rec->status === 'evaluated' ? 'background:#DCFCE7;color:#166534;' : 'background:#FEF3C7;color:#92400E;' }}">
-                        {{ $rec->status === 'evaluated' ? 'Evaluated ✓' : 'Pending…' }}
-                    </span>
-                </div>
-                <div style="font-size:11px;color:#9CA3AF;margin-bottom:8px;">
-                    {{ \Carbon\Carbon::parse($rec->created_at)->format('M d, Y — g:i A') }}
-                </div>
-                <audio controls style="width:100%;height:32px;">
-                    <source src="{{ asset('storage/' . $rec->recording_path) }}" type="audio/webm">
-                </audio>
-
-                {{-- Teacher feedback --}}
-                @if($rec->evaluation)
-                <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;
-                            padding:10px;margin-top:8px;">
-                    <div style="font-size:11px;font-weight:700;color:#1E40AF;margin-bottom:4px;">
-                        📝 Teacher's Feedback
-                    </div>
-                    <div class="d-flex gap-3 mb-2 flex-wrap" style="font-size:10px;color:#6B7280;">
-                        <span>Pronunciation: {{ $rec->evaluation->pronunciation_score }}/5 ⭐</span>
-                        <span>Fluency: {{ $rec->evaluation->fluency_score }}/5 ⭐</span>
-                        <span>Accuracy: {{ $rec->evaluation->accuracy_score }}/5 ⭐</span>
-                        <span>Comprehension: {{ $rec->evaluation->comprehension_score }}/5 ⭐</span>
-                    </div>
-                    <div style="font-size:11px;color:#1E40AF;font-weight:600;margin-bottom:2px;">
-                        Level: {{ $rec->evaluation->proficiency_level }}
-                    </div>
-                    @if($rec->evaluation->feedback)
-                    <div style="font-size:12px;color:#374151;line-height:1.5;margin-top:4px;">
-                        "{{ $rec->evaluation->feedback }}"
-                    </div>
-                    @endif
-                </div>
-                @endif
-            </div>
-            @empty
-            <div class="text-center text-muted small py-3">No recordings yet. Record your first attempt!</div>
-            @endforelse
-        </div>
-
-    </div>
-</div>
-
-@endsection
-
-@push('scripts')
-<script>
-let mediaRecorder;
-let audioChunks = [];
-let isRecording = false;
-let timerInterval;
-let seconds = 0;
-let audioBlob;
-
-const recBtn      = document.getElementById('rec-btn');
-const recStatus   = document.getElementById('rec-status');
-const recTimer    = document.getElementById('rec-timer');
-const recBtnLabel = document.getElementById('rec-btn-label');
-const playbackSec = document.getElementById('playback-section');
-const playbackAudio = document.getElementById('playback-audio');
-const reRecordBtn = document.getElementById('re-record-btn');
-const submitBtn   = document.getElementById('submit-btn');
-const recFileInput= document.getElementById('recording-file');
-const wvBars      = document.querySelectorAll('.wv-bar');
-
-recBtn.addEventListener('click', async () => {
-    if (!isRecording) {
-        // Start recording
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
-
-            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-
-            mediaRecorder.onstop = () => {
-                audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                const url = URL.createObjectURL(audioBlob);
-                playbackAudio.src = url;
-                playbackSec.style.display = 'block';
-                reRecordBtn.style.display = 'inline-flex';
-                submitBtn.style.display   = 'inline-flex';
-
-                // Attach blob to file input
-                const file = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
-                const dt   = new DataTransfer();
-                dt.items.add(file);
-                recFileInput.files = dt.files;
-
-                stopWaveform();
-            };
-
-            mediaRecorder.start();
-            isRecording = true;
-
-            // Update UI
-            recBtn.style.background    = '#1E40AF';
-            recBtn.style.boxShadow     = '0 0 0 10px rgba(30,64,175,0.15)';
-            recBtn.innerHTML           = '<i class="ti ti-player-stop" style="color:#fff;font-size:28px;"></i>';
-            recBtnLabel.textContent    = 'Tap to stop';
-            recStatus.textContent      = '🔴 Recording…';
-            playbackSec.style.display  = 'none';
-            reRecordBtn.style.display  = 'none';
-            submitBtn.style.display    = 'none';
-
-            // Start timer
-            seconds = 0;
-            timerInterval = setInterval(() => {
-                seconds++;
-                const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-                const s = (seconds % 60).toString().padStart(2, '0');
-                recTimer.textContent = `${m}:${s}`;
-            }, 1000);
-
-            animateWaveform();
-
-        } catch(err) {
-            alert('Microphone access denied. Please allow microphone access to record.');
-        }
-    } else {
-        // Stop recording
-        mediaRecorder.stop();
-        mediaRecorder.stream.getTracks().forEach(t => t.stop());
-        isRecording = false;
-        clearInterval(timerInterval);
-
-        recBtn.style.background  = '#EF4444';
-        recBtn.style.boxShadow   = '0 0 0 10px rgba(239,68,68,0.15)';
-        recBtn.innerHTML         = '<i class="ti ti-microphone" style="color:#fff;font-size:30px;"></i>';
-        recBtnLabel.textContent  = 'Tap to record again';
-        recStatus.textContent    = '✅ Recording complete! Listen back or submit.';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Read Aloud — Readify Kids</title>
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<style>
+    :root{
+        --sky-top:#5FC0FF; --sky-mid:#8FD8FF; --sky-bottom:#FFDD8A;
+        --ground:#7BC96F; --ground-dark:#5AA652;
+        --panel:#3B2E63; --panel-light:#5B4696;
+        --gold:#FFC93C; --gold-dark:#E0A11B;
+        --ink:#2B2140; --cream:#FFF7E6; --pink:#FF6FA5; --purple:#7C3AED;
     }
-});
+    * { box-sizing:border-box; margin:0; padding:0; }
+    html,body{ height:100%; }
+    body{
+        font-family:'Nunito',sans-serif;
+        background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 40%,var(--sky-bottom) 82%,#FFEBB0 100%);
+        min-height:100vh; overflow-x:hidden; position:relative;
+    }
+    .sun{
+        position:absolute; top:5%; right:8%; width:100px; height:100px; border-radius:50%;
+        background:radial-gradient(circle at 35% 35%,#FFF6C9,var(--gold) 60%,var(--gold-dark) 100%);
+        box-shadow:0 0 50px 16px rgba(255,201,60,.5);
+        animation:sunPulse 4s ease-in-out infinite; z-index:0;
+    }
+    @keyframes sunPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+    .cloud{ position:absolute; opacity:.9; z-index:0; }
+    .cloud svg{ display:block; }
+    .cloud.c1{ top:8%;  left:-10%; width:170px; animation:drift 44s linear infinite; }
+    .cloud.c2{ top:18%; left:-20%; width:120px; animation:drift 58s linear infinite; animation-delay:-12s; }
+    .cloud.c3{ top:5%;  left:-15%; width:95px;  animation:drift 34s linear infinite; animation-delay:-24s; }
+    @keyframes drift{ from{transform:translateX(0);} to{transform:translateX(140vw);} }
+    .mountains{
+        position:absolute; bottom:80px; left:0; width:100%; height:18%;
+        background:linear-gradient(180deg,#B79CE0,#8F72C4);
+        clip-path:polygon(0% 100%,8% 40%,18% 70%,30% 20%,42% 65%,55% 15%,68% 60%,80% 25%,92% 55%,100% 30%,100% 100%);
+        opacity:.5; z-index:0;
+    }
+    .ground{
+        position:absolute; bottom:0; left:0; right:0; height:80px;
+        background:linear-gradient(180deg,var(--ground) 0%,var(--ground-dark) 100%);
+        border-top:4px solid #4E9048; z-index:0;
+    }
 
-// Re-record button
-reRecordBtn.addEventListener('click', () => {
-    audioBlob = null;
-    playbackSec.style.display = 'none';
-    reRecordBtn.style.display = 'none';
-    submitBtn.style.display   = 'none';
-    recTimer.textContent      = '0:00';
-    recStatus.textContent     = 'Tap the button below to start recording';
-    recBtnLabel.textContent   = 'Tap to record';
-    recBtn.innerHTML          = '<i class="ti ti-microphone" style="color:#fff;font-size:30px;"></i>';
-    stopWaveform();
-});
+    /* Quit button */
+    .quit-btn{
+        position:fixed; top:22px; left:24px; z-index:20;
+        display:flex; align-items:center; gap:6px;
+        color:#B3261E; font-family:'Baloo 2',sans-serif; font-size:15px; font-weight:700;
+        text-decoration:none; padding:9px 20px; border-radius:20px;
+        border:2px solid #B3261E; background:#FFE1E1; cursor:pointer; transition:all .2s;
+    }
+    .quit-btn:hover{ background:#FFC9C9; }
 
-// Waveform animation
-let waveInterval;
-function animateWaveform() {
-    const heights = [10,18,28,36,24,14,32,20,28,16,24,30,12,26,20,34,16,22,28,10];
-    let t = 0;
-    waveInterval = setInterval(() => {
-        wvBars.forEach((bar, i) => {
-            const h = Math.abs(Math.sin((t + i) * 0.4)) * 36 + 8;
-            bar.style.height = h + 'px';
-            bar.style.background = '#185FA5';
-        });
-        t++;
-    }, 100);
-}
+    /* Stage */
+    .stage{
+        position:relative; z-index:5; min-height:100vh;
+        display:flex; flex-direction:column; align-items:center;
+        justify-content:center; gap:22px; padding:100px 20px 60px;
+    }
 
-function stopWaveform() {
-    clearInterval(waveInterval);
-    wvBars.forEach(bar => {
-        bar.style.height = '10px';
-        bar.style.background = '#E5E7EB';
+    .title-card{
+        background:var(--cream); border:4px solid var(--panel); border-radius:18px;
+        padding:14px 34px; text-align:center; box-shadow:0 6px 0 rgba(0,0,0,.15);
+    }
+    .title-card .label{
+        font-family:'Baloo 2',sans-serif; font-size:11px; font-weight:700;
+        letter-spacing:.08em; text-transform:uppercase;
+        color:var(--panel-light); margin-bottom:4px;
+    }
+    .title-card .value{
+        font-family:'Baloo 2',sans-serif; font-size:22px; font-weight:800; color:var(--ink);
+    }
+
+    .passage-card{
+        background:var(--cream); border:5px solid var(--panel); border-radius:24px;
+        padding:26px 40px; max-width:640px; width:100%; text-align:center;
+        box-shadow:0 8px 0 rgba(0,0,0,.15);
+    }
+    .passage-card .label{
+        font-family:'Baloo 2',sans-serif; font-size:12px; font-weight:700;
+        letter-spacing:.1em; text-transform:uppercase;
+        color:var(--panel-light); margin-bottom:12px;
+    }
+    .passage-card .content{
+        font-family:'Baloo 2',sans-serif; font-weight:700; color:var(--ink);
+        font-size:clamp(20px,3.2vw,32px); line-height:1.5;
+    }
+    .passage-card .content.long{
+        font-size:16px; line-height:1.9;
+        font-family:'Nunito',sans-serif; font-weight:700; text-align:left;
+    }
+
+    /* Status text */
+    .rec-status-text{
+        font-family:'Baloo 2',sans-serif; font-size:14px; font-weight:700;
+        color:var(--panel); background:rgba(255,255,255,.6);
+        padding:6px 18px; border-radius:20px; text-align:center;
+    }
+
+    /* Waveform */
+    .waveform-wrap{
+        display:none; align-items:center; gap:3px; height:40px;
+        background:#fff; border:2px solid var(--panel); border-radius:10px; padding:8px 14px;
+    }
+    .wv{ width:4px; border-radius:3px; background:#D9D0F2; height:6px; transition:height .08s; }
+
+    /* Mic button */
+    .mic-wrap{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+    .mic-btn{
+        width:90px; height:90px; border-radius:50%; border:none; cursor:pointer;
+        background:linear-gradient(180deg,#FF8FB8,var(--pink));
+        display:flex; align-items:center; justify-content:center;
+        box-shadow:0 0 0 12px rgba(255,111,165,.18), 0 6px 0 rgba(0,0,0,.15);
+        animation:micPulse 2s infinite; transition:all .2s;
+        position:relative;
+    }
+    .mic-btn.recording{
+        background:linear-gradient(180deg,#8F7AD1,var(--purple));
+        box-shadow:0 0 0 12px rgba(124,58,237,.2), 0 6px 0 rgba(0,0,0,.15);
+        animation:recPulse 1s infinite;
+    }
+    .mic-btn.submitting{
+        background:linear-gradient(180deg,#FFC57A,var(--gold-dark));
+        animation:none; cursor:not-allowed;
+    }
+    .mic-btn i{ color:#fff; font-size:34px; pointer-events:none; }
+    @keyframes micPulse{
+        0%,100%{ box-shadow:0 0 0 12px rgba(255,111,165,.18), 0 6px 0 rgba(0,0,0,.15); }
+        50%{ box-shadow:0 0 0 20px rgba(255,111,165,.06), 0 6px 0 rgba(0,0,0,.15); }
+    }
+    @keyframes recPulse{
+        0%,100%{ box-shadow:0 0 0 12px rgba(124,58,237,.25), 0 6px 0 rgba(0,0,0,.15); }
+        50%{ box-shadow:0 0 0 22px rgba(124,58,237,.06), 0 6px 0 rgba(0,0,0,.15); }
+    }
+    .mic-timer{
+        font-family:'Baloo 2',sans-serif; font-size:24px; font-weight:800;
+        color:var(--panel); display:none;
+    }
+    .mic-hint{
+        font-family:'Baloo 2',sans-serif; font-size:12px; font-weight:600;
+        color:var(--panel-light); opacity:.7;
+    }
+
+    /* ── Success popup overlay ────────────────── */
+    #success-overlay{
+        display:none; position:fixed; inset:0;
+        background:rgba(20,15,40,0.72);
+        z-index:9999; align-items:center; justify-content:center;
+        animation:fadeIn 0.3s ease;
+    }
+    .success-card{
+        background:var(--cream); border:5px solid var(--gold);
+        border-radius:26px; padding:40px 36px; text-align:center;
+        max-width:400px; width:90%;
+        box-shadow:0 10px 0 rgba(0,0,0,.18);
+        animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .success-emoji{ font-size:72px; margin-bottom:12px; }
+    .success-title{
+        font-family:'Baloo 2',sans-serif; font-size:24px; font-weight:800;
+        color:var(--panel); margin-bottom:8px;
+    }
+    .success-sub{
+        font-family:'Baloo 2',sans-serif; font-size:14px; font-weight:600;
+        color:var(--panel-light); line-height:1.5; margin-bottom:16px;
+    }
+    .success-countdown{
+        font-family:'Baloo 2',sans-serif; font-size:13px; color:var(--panel-light);
+        opacity:.7;
+    }
+    .success-bar-wrap{
+        width:100%; background:rgba(0,0,0,.08); border-radius:8px;
+        height:8px; margin-top:12px; overflow:hidden;
+    }
+    .success-bar{
+        height:8px; border-radius:8px;
+        background:linear-gradient(90deg,var(--gold),var(--pink));
+        width:100%;
+        transition:width linear;
+    }
+
+    /* Uploading spinner overlay */
+    #uploading-overlay{
+        display:none; position:fixed; inset:0;
+        background:rgba(20,15,40,0.6);
+        z-index:9998; align-items:center; justify-content:center;
+        flex-direction:column; gap:14px;
+    }
+    .uploading-card{
+        background:var(--cream); border:4px solid var(--panel);
+        border-radius:20px; padding:28px 36px; text-align:center;
+        box-shadow:0 8px 0 rgba(0,0,0,.15);
+    }
+    .uploading-spinner{
+        width:48px; height:48px; border-radius:50%;
+        border:5px solid #E6DEFA;
+        border-top-color:var(--purple);
+        animation:spin 0.8s linear infinite; margin:0 auto 12px;
+    }
+    @keyframes spin{ to{transform:rotate(360deg);} }
+    .uploading-text{
+        font-family:'Baloo 2',sans-serif; font-size:15px;
+        font-weight:700; color:var(--panel);
+    }
+
+    @keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
+    @keyframes popIn{
+        0%{transform:scale(0.5);opacity:0;}
+        70%{transform:scale(1.05);}
+        100%{transform:scale(1);opacity:1;}
+    }
+</style>
+</head>
+<body>
+
+<div class="sun"></div>
+<div class="cloud c1"><svg viewBox="0 0 200 90"><path d="M20 70 Q0 70 0 50 Q0 30 25 32 Q28 8 58 12 Q80 -5 100 15 Q130 5 138 30 Q170 28 170 55 Q170 70 150 70 Z" fill="#fff"/></svg></div>
+<div class="cloud c2"><svg viewBox="0 0 200 90"><path d="M20 70 Q0 70 0 50 Q0 30 25 32 Q28 8 58 12 Q80 -5 100 15 Q130 5 138 30 Q170 28 170 55 Q170 70 150 70 Z" fill="#fff"/></svg></div>
+<div class="cloud c3"><svg viewBox="0 0 200 90"><path d="M20 70 Q0 70 0 50 Q0 30 25 32 Q28 8 58 12 Q80 -5 100 15 Q130 5 138 30 Q170 28 170 55 Q170 70 150 70 Z" fill="#fff"/></svg></div>
+<div class="mountains"></div>
+<div class="ground"></div>
+
+<a href="{{ route('student.readaloud.index') }}" class="quit-btn">
+    <i class="ti ti-arrow-left"></i> Back
+</a>
+
+{{-- Uploading overlay --}}
+<div id="uploading-overlay">
+    <div class="uploading-card">
+        <div class="uploading-spinner"></div>
+        <div class="uploading-text">📤 Submitting your recording…</div>
+    </div>
+</div>
+
+{{-- Success popup --}}
+<div id="success-overlay">
+    <div class="success-card">
+        <div class="success-emoji">🎉</div>
+        <div class="success-title">Nice Reading!</div>
+        <div class="success-sub">
+            Your recording has been sent to your teacher.<br>
+            Wait for their evaluation and feedback!
+        </div>
+        <div class="success-countdown" id="countdown-text">
+            Returning in <strong id="countdown-num">4</strong>…
+        </div>
+        <div class="success-bar-wrap">
+            <div class="success-bar" id="success-bar"></div>
+        </div>
+    </div>
+</div>
+
+<div class="stage">
+
+    {{-- Activity title --}}
+    <div class="title-card">
+        <div class="label">🎙️ Activity</div>
+        <div class="value">{{ $activity->activity_name }}</div>
+    </div>
+
+    {{-- Reading passage --}}
+    <div class="passage-card">
+        <div class="label">📖 Read this aloud:</div>
+        @if($activity->readingMaterial && $activity->readingMaterial->content)
+            @php $content = $activity->readingMaterial->content; @endphp
+            <div class="content {{ str_word_count($content) > 12 ? 'long' : '' }}">
+                {{ $content }}
+            </div>
+        @else
+            <div class="content">⚠️ No passage added yet.</div>
+        @endif
+    </div>
+
+    {{-- Status text --}}
+    <div class="rec-status-text" id="rec-status">
+        Press and hold the button below to start recording
+    </div>
+
+    {{-- Waveform --}}
+    <div class="waveform-wrap" id="waveform-wrap">
+        @for($i = 0; $i < 18; $i++)<div class="wv"></div>@endfor
+    </div>
+
+    {{-- Mic button --}}
+    <div class="mic-wrap">
+        <button type="button" id="mic-btn" class="mic-btn"
+                onmousedown="startRecording()"
+                onmouseup="stopRecording()"
+                ontouchstart="startRecording(event)"
+                ontouchend="stopRecording(event)">
+            <i class="ti ti-microphone" id="mic-icon"></i>
+        </button>
+        <div class="mic-timer" id="mic-timer">0:00</div>
+        <div class="mic-hint" id="mic-hint">Hold the button while reading</div>
+    </div>
+
+    {{-- Hidden form --}}
+    <form id="upload-form" method="POST"
+          action="{{ route('student.readaloud.upload', $activity->id) }}"
+          enctype="multipart/form-data" style="display:none;">
+        @csrf
+        <input type="file" name="recording" id="recording-file" accept="audio/*">
+    </form>
+
+</div>
+
+<script>
+let mediaRecorder, audioChunks = [], isRecording = false;
+let timerInterval, seconds = 0, waveInterval = null;
+
+const micBtn       = document.getElementById('mic-btn');
+const micIcon      = document.getElementById('mic-icon');
+const micTimer     = document.getElementById('mic-timer');
+const micHint      = document.getElementById('mic-hint');
+const recStatus    = document.getElementById('rec-status');
+const waveWrap     = document.getElementById('waveform-wrap');
+const wvBars       = document.querySelectorAll('.wv');
+const recFileInput = document.getElementById('recording-file');
+
+// ── Start recording ────────────────────────────────────────────
+function startRecording(e) {
+    if (e) e.preventDefault();
+    if (isRecording) return;
+
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks   = [];
+
+        mediaRecorder.ondataavailable = ev => {
+            if (ev.data.size > 0) audioChunks.push(ev.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            // Auto-submit right away
+            submitRecording();
+        };
+
+        mediaRecorder.start(100);
+        isRecording = true;
+
+        micBtn.classList.add('recording');
+        micIcon.className       = 'ti ti-player-stop';
+        recStatus.textContent   = '🔴 Recording… release when done!';
+        micHint.textContent     = 'Release the button when finished';
+        micTimer.style.display  = 'block';
+        waveWrap.style.display  = 'flex';
+
+        seconds = 0;
+        timerInterval = setInterval(() => {
+            seconds++;
+            micTimer.textContent =
+                Math.floor(seconds/60).toString().padStart(2,'0') + ':' +
+                (seconds%60).toString().padStart(2,'0');
+        }, 1000);
+
+        animateWaveform();
+
+    }).catch(() => {
+        alert('Microphone access denied! Please allow microphone access.');
     });
 }
+
+// ── Stop recording & auto-submit ───────────────────────────────
+function stopRecording(e) {
+    if (e) e.preventDefault();
+    if (!isRecording || !mediaRecorder) return;
+
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+    isRecording = false;
+    clearInterval(timerInterval);
+
+    micBtn.classList.remove('recording');
+    micBtn.classList.add('submitting');
+    micIcon.className     = 'ti ti-loader';
+    micTimer.style.display = 'none';
+    waveWrap.style.display = 'none';
+    recStatus.textContent  = '📤 Submitting your recording…';
+    micHint.textContent    = 'Please wait…';
+    micBtn.disabled        = true;
+
+    stopWaveform();
+}
+
+// ── Submit via fetch (no page reload) ─────────────────────────
+async function submitRecording() {
+    if (!audioChunks.length) return;
+
+    // Show uploading overlay
+    document.getElementById('uploading-overlay').style.display = 'flex';
+
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    const formData  = new FormData();
+
+    const file = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
+    formData.append('recording', file);
+    formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+
+    try {
+        const res = await fetch('{{ route("student.readaloud.upload", $activity->id) }}', {
+            method: 'POST',
+            body  : formData,
+        });
+
+        // Hide uploading overlay
+        document.getElementById('uploading-overlay').style.display = 'none';
+
+        if (res.ok || res.redirected) {
+            showSuccessPopup();
+        } else {
+            recStatus.textContent = '❌ Upload failed. Please try again.';
+            micBtn.classList.remove('submitting');
+            micBtn.disabled = false;
+            micIcon.className = 'ti ti-microphone';
+            micHint.textContent = 'Hold the button while reading';
+        }
+
+    } catch(err) {
+        document.getElementById('uploading-overlay').style.display = 'none';
+        recStatus.textContent = '❌ Something went wrong. Please try again.';
+        micBtn.classList.remove('submitting');
+        micBtn.disabled = false;
+        micIcon.className = 'ti ti-microphone';
+        micHint.textContent = 'Hold the button while reading';
+    }
+}
+
+// ── Success popup + countdown ──────────────────────────────────
+function showSuccessPopup() {
+    const overlay    = document.getElementById('success-overlay');
+    const bar        = document.getElementById('success-bar');
+    const numEl      = document.getElementById('countdown-num');
+    const totalSecs  = 4;
+    let   remaining  = totalSecs;
+
+    overlay.style.display = 'flex';
+
+    // Animate bar shrinking
+    bar.style.transition = `width ${totalSecs}s linear`;
+    // Force reflow before starting animation
+    void bar.offsetWidth;
+    bar.style.width = '0%';
+
+    // Countdown
+    const countInterval = setInterval(() => {
+        remaining--;
+        numEl.textContent = remaining;
+        if (remaining <= 0) {
+            clearInterval(countInterval);
+            // Redirect to index
+            window.location.href = '{{ route("student.readaloud.index") }}';
+        }
+    }, 1000);
+}
+
+// ── Waveform animation ─────────────────────────────────────────
+function animateWaveform() {
+    let t = 0;
+    waveInterval = setInterval(() => {
+        wvBars.forEach((b,i) => {
+            const h = Math.abs(Math.sin((t+i)*0.35))*28+4;
+            b.style.height     = h + 'px';
+            b.style.background = '#7C3AED';
+        });
+        t++;
+    }, 80);
+}
+function stopWaveform() {
+    if (waveInterval) clearInterval(waveInterval);
+    wvBars.forEach(b => {
+        b.style.height     = '6px';
+        b.style.background = '#D9D0F2';
+    });
+}
+
+// Prevent context menu on long press (mobile)
+document.getElementById('mic-btn').addEventListener('contextmenu', e => e.preventDefault());
 </script>
-@endpush
+</body>
+</html>

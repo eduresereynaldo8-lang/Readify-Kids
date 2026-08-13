@@ -9,15 +9,33 @@ use App\Http\Controllers\VoiceRecordingController;
 use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\GameController;
+use App\Http\Controllers\AdminController;
 
 // ── Public routes (no login needed) ──────────────────────────
 Route::get('/',        [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login',  [AuthController::class, 'login'])->name('login.post');
-Route::get('/logout',  [AuthController::class, 'logout'])->name('logout');
+Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Teacher registration
 Route::get('/register',  [AuthController::class, 'showTeacherRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'registerTeacher'])->name('register.post');
+
+
+// ── Admin routes ─────────────────────────────────────────────
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/dashboard',             [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/teachers',              [AdminController::class, 'teachers'])->name('teachers');
+    Route::get('/students',              [AdminController::class, 'students'])->name('students');
+    Route::get('/activities',            [AdminController::class, 'activities'])->name('activities');
+    Route::post('/teachers/{id}/toggle', [AdminController::class, 'toggleTeacher'])->name('teachers.toggle');
+    Route::delete('/teachers/{id}',      [AdminController::class, 'deleteTeacher'])->name('teachers.delete');
+    Route::delete('/students/{id}',      [AdminController::class, 'deleteStudent'])->name('students.delete');
+    Route::delete('/activities/{id}',    [AdminController::class, 'deleteActivity'])->name('activities.delete');
+    Route::get('/evaluations', [AdminController::class, 'evaluations'])->name('evaluations');
+    Route::get('/reports',     [AdminController::class, 'reports'])->name('reports');
+    Route::get('/teachers/create',  [AdminController::class, 'createTeacher'])->name('teachers.create');
+Route::post('/teachers/create', [AdminController::class, 'storeTeacher'])->name('teachers.store');
+});
 
 // ── Teacher routes (must be logged in as teacher) ─────────────
 Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')->group(function () {

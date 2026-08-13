@@ -17,27 +17,32 @@ class AuthController extends Controller
     }
 
     // Handle login
-    public function login(Request $request)
-    {
-        $request->validate([
-            'username' => 'required|string',
-            'password' => 'required|string',
+   public function login(Request $request)
+{
+    $request->validate([
+        'username' => 'required|string',
+        'password' => 'required|string',
+    ]);
+
+    $user = User::where('username', $request->username)->first();
+
+    if (!$user || !Hash::check($request->password, $user->password)) {
+        return back()->withErrors([
+            'username' => 'Invalid username or password.'
         ]);
+    }
 
-        $user = User::where('username', $request->username)->first();
+    Auth::login($user);
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return back()->withErrors(['username' => 'Invalid username or password.']);
-        }
-
-        Auth::login($user);
-
-        if ($user->role === 'teacher') {
-            return redirect()->route('teacher.dashboard');
-        }
-
+    // Redirect based on user role
+    if ($user->role === 'admin') {
+        return redirect()->route('admin.dashboard');
+    } elseif ($user->role === 'teacher') {
+        return redirect()->route('teacher.dashboard');
+    } else {
         return redirect()->route('student.dashboard');
     }
+}
 
     // Show teacher registration page
     public function showTeacherRegister()

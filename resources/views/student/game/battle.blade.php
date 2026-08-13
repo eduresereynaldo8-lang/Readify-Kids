@@ -11,47 +11,28 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         :root{
-            --sky-top:#5FC0FF;
-            --sky-mid:#8FD8FF;
-            --sky-bottom:#FFDD8A;
-            --ground:#7BC96F;
-            --ground-dark:#5AA652;
-            --panel:#3B2E63;
-            --panel-light:#5B4696;
-            --gold:#FFC93C;
-            --gold-dark:#E0A11B;
-            --hp-green:#57D67B;
-            --hp-orange:#FFA53C;
-            --hp-red:#FF5C5C;
-            --ink:#2B2140;
-            --cream:#FFF7E6;
-            --pink:#FF6FA5;
-            --purple:#7C3AED;
+            --sky-top:#5FC0FF; --sky-mid:#8FD8FF; --sky-bottom:#FFDD8A;
+            --ground:#7BC96F; --ground-dark:#5AA652;
+            --panel:#3B2E63; --panel-light:#5B4696;
+            --gold:#FFC93C; --gold-dark:#E0A11B;
+            --hp-green:#57D67B; --hp-orange:#FFA53C; --hp-red:#FF5C5C;
+            --ink:#2B2140; --cream:#FFF7E6; --pink:#FF6FA5; --purple:#7C3AED;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Nunito', sans-serif;
-            background: var(--sky-top);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
+        body { font-family: 'Nunito', sans-serif; background: var(--sky-top); min-height: 100vh; overflow-x: hidden; }
 
         /* ── Top bar ─────────────────────────── */
         .top-bar {
-            display: flex; align-items: center;
-            justify-content: space-between;
-            padding: 10px 20px;
-            background: var(--cream);
-            border-bottom: 3px solid var(--panel);
-            position: relative; z-index: 10;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 20px; background: var(--cream);
+            border-bottom: 3px solid var(--panel); position: relative; z-index: 10;
         }
         .quit-btn {
             display: flex; align-items: center; gap: 6px;
             color: #B3261E; font-size: 13px; font-weight: 800;
             font-family: 'Baloo 2', sans-serif;
-            text-decoration: none; padding: 6px 16px;
-            border-radius: 20px; border: 2px solid #B3261E;
-            cursor: pointer; background: #FFE1E1; transition: all 0.2s;
+            text-decoration: none; padding: 6px 16px; border-radius: 20px;
+            border: 2px solid #B3261E; cursor: pointer; background: #FFE1E1; transition: all 0.2s;
         }
         .quit-btn:hover { background: #FFC9C9; }
         .round-badge {
@@ -89,614 +70,471 @@
         @keyframes sunPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
         .cloud { position:absolute; opacity:.9; z-index:0; }
         .cloud svg { display:block; }
-        .cloud.c1 { top:8%;  left:-10%; width:160px; animation:drift 42s linear infinite; }
+        .cloud.c1 { top:8%; left:-10%; width:160px; animation:drift 42s linear infinite; }
         .cloud.c2 { top:18%; left:-20%; width:120px; animation:drift 56s linear infinite; animation-delay:-12s; }
-        .cloud.c3 { top:4%;  left:-15%; width:95px;  animation:drift 34s linear infinite; animation-delay:-24s; }
+        .cloud.c3 { top:4%; left:-15%; width:95px; animation:drift 34s linear infinite; animation-delay:-24s; }
         @keyframes drift{from{transform:translateX(0);}to{transform:translateX(140vw);}}
         .mountains{
-            position:absolute; bottom: 78px; left:0; width:100%; height:18%;
+            position:absolute; bottom:78px; left:0; width:100%; height:18%;
             background:linear-gradient(180deg,#B79CE0,#8F72C4);
             clip-path:polygon(0% 100%,8% 40%,18% 70%,30% 20%,42% 65%,55% 15%,68% 60%,80% 25%,92% 55%,100% 30%,100% 100%);
             opacity:.5; z-index:0;
         }
         .ground {
-            position: absolute; bottom: 0; left: 0; right: 0; height: 80px;
-            background: linear-gradient(180deg, var(--ground) 0%, var(--ground-dark) 100%);
-            border-top: 4px solid #4E9048; z-index: 1;
+            position:absolute; bottom:0; left:0; right:0; height:80px;
+            background:linear-gradient(180deg,var(--ground) 0%,var(--ground-dark) 100%);
+            border-top:4px solid #4E9048; z-index:1;
         }
 
         /* ── HP section ──────────────────────── */
         .hp-section {
-            display: flex; align-items: flex-start;
-            justify-content: space-between;
-            padding: 14px 24px 0;
-            position: relative; z-index: 5;
+            display:flex; align-items:flex-start; justify-content:space-between;
+            padding:14px 24px 0; position:relative; z-index:5;
         }
-        .hp-block { width: 200px; background: linear-gradient(180deg,var(--panel-light),var(--panel)); border: 3px solid #2A2050; border-radius: 16px; padding: 8px 12px; box-shadow: 0 4px 0 rgba(0,0,0,.15); }
+        .hp-block {
+            width:200px; background:linear-gradient(180deg,var(--panel-light),var(--panel));
+            border:3px solid #2A2050; border-radius:16px; padding:8px 12px;
+            box-shadow:0 4px 0 rgba(0,0,0,.15);
+        }
         .hp-name {
-            font-size: 13px; font-weight: 700; color: #fff;
-            font-family: 'Baloo 2', sans-serif;
-            margin-bottom: 5px; display: flex; align-items: center; gap: 6px;
+            font-size:13px; font-weight:700; color:#fff;
+            font-family:'Baloo 2',sans-serif;
+            margin-bottom:5px; display:flex; align-items:center; gap:6px;
         }
         .hp-name .label {
-            font-size: 10px; background: var(--gold); color:#5A3E00;
-            padding: 1px 8px; border-radius: 20px; font-weight: 700;
+            font-size:10px; background:var(--gold); color:#5A3E00;
+            padding:1px 8px; border-radius:20px; font-weight:700;
         }
         .hp-bar-bg {
-            background: #1F1738; border-radius: 8px; height: 14px;
-            overflow: hidden; border: 2px solid #14102A;
+            background:#1F1738; border-radius:8px; height:14px;
+            overflow:hidden; border:2px solid #14102A;
         }
-        .hp-bar-bg.shake { animation: hpShake 0.4s ease; }
-        .hp-bar-fill { height: 100%; border-radius: 6px; transition: width 0.8s ease; }
-        .hp-bar-fill.student { background: linear-gradient(180deg,#7CE79A,var(--hp-green)); }
-        .hp-bar-fill.enemy   { background: linear-gradient(180deg,#FF8A8A,var(--hp-red)); }
-        .hp-text {
-            font-size: 10px; color: rgba(255,255,255,0.85); font-weight:700;
-            margin-top: 4px; text-align: right;
-        }
+        .hp-bar-bg.shake { animation:hpShake 0.4s ease; }
+        .hp-bar-fill { height:100%; border-radius:6px; transition:width 0.8s ease; }
+        .hp-bar-fill.student { background:linear-gradient(180deg,#7CE79A,var(--hp-green)); }
+        .hp-bar-fill.enemy   { background:linear-gradient(180deg,#FF8A8A,var(--hp-red)); }
+        .hp-text { font-size:10px; color:rgba(255,255,255,0.85); font-weight:700; margin-top:4px; text-align:right; }
 
-        /* ── Center info (VS + word card) ─────── */
+        /* ── Center info ─────────────────────── */
         .center-info {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 0 16px;
-            position: relative;
-            z-index: 5;
+            flex:1; display:flex; flex-direction:column;
+            align-items:center; padding:0 16px; position:relative; z-index:5;
         }
         .vs-badge {
-            font-family: 'Baloo 2', sans-serif;
-            font-size: 20px; font-weight: 800; color: var(--gold-dark);
-            -webkit-text-stroke: 1px #fff;
-            text-shadow: 0 2px 0 rgba(0,0,0,.15);
-            margin-bottom: 6px;
+            font-family:'Baloo 2',sans-serif;
+            font-size:20px; font-weight:800; color:var(--gold-dark);
+            -webkit-text-stroke:1px #fff;
+            text-shadow:0 2px 0 rgba(0,0,0,.15); margin-bottom:6px;
         }
         .rounds-left-pill {
-            font-family: 'Baloo 2', sans-serif;
-            font-size: 11px; padding: 4px 14px; border-radius: 20px;
-            font-weight: 700; margin-bottom: 8px;
-            display: inline-block; transition: all 0.3s;
-            border: 2px solid var(--panel); background: var(--cream); color: var(--panel);
+            font-family:'Baloo 2',sans-serif;
+            font-size:11px; padding:4px 14px; border-radius:20px;
+            font-weight:700; margin-bottom:8px;
+            display:inline-block; transition:all 0.3s;
+            border:2px solid var(--panel); background:var(--cream); color:var(--panel);
         }
 
-        /* ── Center word card (between VS and characters) ── */
+        /* ── Center word card ────────────────── */
         #center-word-card {
-            display: none;
-            background: var(--cream);
-            border: 4px solid var(--panel);
-            border-radius: 18px;
-            padding: 14px 22px;
-            text-align: center;
-            width: 100%;
-            max-width: 420px;
-            position: relative;
-            z-index: 10;
-            box-shadow: 0 6px 0 rgba(0,0,0,.15);
-            animation: wordPumpIn 0.5s ease;
+            display:none; background:var(--cream);
+            border:4px solid var(--panel); border-radius:18px;
+            padding:14px 22px; text-align:center; width:100%; max-width:420px;
+            position:relative; z-index:10;
+            box-shadow:0 6px 0 rgba(0,0,0,.15); animation:wordPumpIn 0.5s ease;
         }
         .cw-label {
-            font-family: 'Baloo 2', sans-serif;
-            font-size: 11px; color: var(--panel-light);
-            font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.08em; margin-bottom: 6px;
+            font-family:'Baloo 2',sans-serif;
+            font-size:11px; color:var(--panel-light);
+            font-weight:700; text-transform:uppercase;
+            letter-spacing:0.08em; margin-bottom:6px;
         }
         #center-word-text {
-            font-family: 'Baloo 2', sans-serif;
-            font-size: 28px; font-weight: 700; color: var(--ink);
-            line-height: 1.4;
+            font-family:'Baloo 2',sans-serif;
+            font-size:28px; font-weight:700; color:var(--ink); line-height:1.4;
         }
-        #center-word-text.paragraph { font-size: 15px; line-height: 1.7; }
+        #center-word-text.paragraph { font-size:15px; line-height:1.7; }
 
-        /* ── Countdown overlay ─────────────────── */
+        /* ── Countdown overlay ───────────────── */
         #countdown-overlay {
-            display: none;
-            position: fixed; inset: 0;
-            background: rgba(20,15,40,0.72);
-            z-index: 8888;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 16px;
+            display:none; position:fixed; inset:0;
+            background:rgba(20,15,40,0.72); z-index:8888;
+            align-items:center; justify-content:center;
+            flex-direction:column; gap:16px;
         }
         .countdown-number {
-            font-family: 'Baloo 2', sans-serif;
-            font-size: 140px;
-            font-weight: 800;
-            color: #fff;
-            text-shadow: 0 0 60px rgba(255,201,60,0.9), 0 0 20px rgba(255,255,255,0.5);
-            animation: countPop 0.9s cubic-bezier(0.34,1.56,0.64,1) forwards;
-            line-height: 1;
+            font-family:'Baloo 2',sans-serif;
+            font-size:140px; font-weight:800; color:#fff;
+            text-shadow:0 0 60px rgba(255,201,60,0.9),0 0 20px rgba(255,255,255,0.5);
+            animation:countPop 0.9s cubic-bezier(0.34,1.56,0.64,1) forwards; line-height:1;
         }
         .countdown-label {
-            font-family: 'Baloo 2', sans-serif;
-            font-size: 18px; font-weight: 700;
-            color: var(--gold);
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
+            font-family:'Baloo 2',sans-serif;
+            font-size:18px; font-weight:700; color:var(--gold);
+            letter-spacing:0.15em; text-transform:uppercase;
         }
-        .countdown-sub {
-            font-size: 13px; color: rgba(255,255,255,0.6);
-            margin-top: 4px;
-        }
+        .countdown-sub { font-size:13px; color:rgba(255,255,255,0.6); margin-top:4px; }
 
         /* ── Battlefield ─────────────────────── */
         .battlefield {
-            flex: 1; display: flex; align-items: flex-end;
-            justify-content: space-between;
-            padding: 0 80px 90px;
-            position: relative; z-index: 2;
+            flex:1; display:flex; align-items:flex-end;
+            justify-content:space-between; padding:0 80px 90px;
+            position:relative; z-index:2;
         }
         .character-wrap {
-            display: flex; flex-direction: column;
-            align-items: center; gap: 8px; position: relative;
+            display:flex; flex-direction:column;
+            align-items:center; gap:8px; position:relative;
         }
         .character-label {
-            font-family: 'Baloo 2', sans-serif;
-            font-size: 11px; font-weight: 700;
-            color: var(--panel);
-            background: rgba(255,255,255,.55);
-            padding: 2px 10px; border-radius: 10px;
-            text-transform: uppercase; letter-spacing: 0.06em;
+            font-family:'Baloo 2',sans-serif; font-size:11px; font-weight:700;
+            color:var(--panel); background:rgba(255,255,255,.55);
+            padding:2px 10px; border-radius:10px;
+            text-transform:uppercase; letter-spacing:0.06em;
         }
-        .char-platform{
+        .char-platform {
             position:absolute; bottom:-6px; left:50%; transform:translateX(-50%);
             width:120px; height:20px; border-radius:50%;
-            background:radial-gradient(ellipse at center, rgba(0,0,0,.28), transparent 72%);
-            z-index: 0;
+            background:radial-gradient(ellipse at center,rgba(0,0,0,.28),transparent 72%); z-index:0;
         }
-        .character-sprite, .enemy-sprite {
-            width: 140px; height: 170px;
-            display: flex; align-items: flex-end; justify-content: center;
-            filter: drop-shadow(0 8px 6px rgba(0,0,0,.25));
-            transition: filter 0.3s;
-            position: relative; z-index: 1;
+        .character-sprite,.enemy-sprite {
+            width:140px; height:170px;
+            display:flex; align-items:flex-end; justify-content:center;
+            filter:drop-shadow(0 8px 6px rgba(0,0,0,.25)); transition:filter 0.3s;
+            position:relative; z-index:1;
         }
-        .character-sprite svg, .enemy-sprite svg { width: 100%; height: 100%; display: block; }
+        .character-sprite svg,.enemy-sprite svg { width:100%; height:100%; display:block; }
 
-        /* ── Enemy attack bubble ──────────────── */
+        /* ── Enemy attack bubble ─────────────── */
         #enemy-attack-bubble {
-            display: none;
-            position: absolute; top: -60px; left: 50%;
-            transform: translateX(-50%);
-            background: #fff;
-            border: 3px solid var(--panel);
-            border-radius: 14px;
-            padding: 8px 16px;
-            font-family: 'Baloo 2', sans-serif;
-            font-size: 14px; font-weight: 700; color: var(--ink);
-            white-space: nowrap;
-            z-index: 30;
-            animation: bubblePop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            display:none; position:absolute; top:-60px; left:50%;
+            transform:translateX(-50%);
+            background:#fff; border:3px solid var(--panel); border-radius:14px;
+            padding:8px 16px; font-family:'Baloo 2',sans-serif;
+            font-size:14px; font-weight:700; color:var(--ink);
+            white-space:nowrap; z-index:30;
+            animation:bubblePop 0.4s cubic-bezier(0.34,1.56,0.64,1);
         }
         #enemy-attack-bubble::after {
-            content: '';
-            position: absolute; bottom: -10px; left: 50%;
-            transform: translateX(-50%);
-            width: 0; height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 10px solid var(--panel);
+            content:''; position:absolute; bottom:-10px; left:50%;
+            transform:translateX(-50%); width:0; height:0;
+            border-left:8px solid transparent; border-right:8px solid transparent;
+            border-top:10px solid var(--panel);
         }
 
         /* ── Student hit ──────────────────────── */
         #student-damage-indicator {
-            position: absolute; top: -30px; left: 50%;
-            transform: translateX(-50%);
-            font-size: 22px; font-weight: 900; color: #FF3B3B;
-            text-shadow: 2px 2px 0 #fff;
-            pointer-events: none; display: none; z-index: 25;
+            position:absolute; top:-30px; left:50%;
+            transform:translateX(-50%);
+            font-size:22px; font-weight:900; color:#FF3B3B;
+            text-shadow:2px 2px 0 #fff;
+            pointer-events:none; display:none; z-index:25;
         }
 
         /* ── Attack effect ───────────────────── */
         #attack-effect {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%,-50%);
-            font-size: 60px; pointer-events: none;
-            opacity: 0; z-index: 20;
+            position:absolute; top:50%; left:50%;
+            transform:translate(-50%,-50%);
+            font-size:60px; pointer-events:none; opacity:0; z-index:20;
         }
 
         /* ── Score reveal ────────────────────── */
         #score-reveal {
-            position: absolute; top: 20%; left: 50%;
-            transform: translateX(-50%);
-            z-index: 30; text-align: center; display: none;
-            animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            position:absolute; top:20%; left:50%;
+            transform:translateX(-50%);
+            z-index:30; text-align:center; display:none;
+            animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
         }
         .score-reveal-inner {
-            background: var(--cream);
-            border: 5px solid var(--gold);
-            border-radius: 20px; padding: 16px 30px;
-            text-align: center; box-shadow: 0 8px 0 rgba(0,0,0,.18);
+            background:var(--cream); border:5px solid var(--gold);
+            border-radius:20px; padding:16px 30px;
+            text-align:center; box-shadow:0 8px 0 rgba(0,0,0,.18);
         }
-        .score-reveal-label     { font-family:'Baloo 2',sans-serif; font-size:11px; color:var(--panel-light); font-weight:700; margin-bottom:4px; text-transform:uppercase; letter-spacing:.06em; }
-        .score-reveal-value     { font-family:'Baloo 2',sans-serif; font-size:36px; font-weight:800; margin-bottom:4px; }
-        .score-reveal-damage    { font-size:14px; font-weight:800; color:#E05B3C; }
-        .score-reveal-transcript{ font-size:11px; color:rgba(43,33,64,.55); margin-top:4px; }
+        .score-reveal-label { font-family:'Baloo 2',sans-serif; font-size:11px; color:var(--panel-light); font-weight:700; margin-bottom:4px; text-transform:uppercase; letter-spacing:.06em; }
+        .score-reveal-value { font-family:'Baloo 2',sans-serif; font-size:36px; font-weight:800; margin-bottom:4px; }
+        .score-reveal-damage { font-size:14px; font-weight:800; color:#E05B3C; }
+        .score-reveal-transcript { font-size:11px; color:rgba(43,33,64,.55); margin-top:4px; }
 
         /* Damage floater */
         .damage-floater {
-            position: absolute; top: -20px; left: 50%;
-            transform: translateX(-50%);
-            font-family: 'Baloo 2', sans-serif;
-            font-size: 28px; font-weight: 800; color: var(--gold-dark);
-            text-shadow: 2px 2px 0 #fff;
-            pointer-events: none;
-            animation: floatUp 1.2s ease forwards;
-            white-space: nowrap; z-index: 25;
+            position:absolute; top:-20px; left:50%;
+            transform:translateX(-50%);
+            font-family:'Baloo 2',sans-serif;
+            font-size:28px; font-weight:800; color:var(--gold-dark);
+            text-shadow:2px 2px 0 #fff; pointer-events:none;
+            animation:floatUp 1.2s ease forwards;
+            white-space:nowrap; z-index:25;
         }
 
-        /* ── Battle message (bottom center) ──── */
+        /* ── Battle message ──────────────────── */
         .battle-msg-wrap {
-            position: absolute; bottom: 92px; left: 50%;
-            transform: translateX(-50%);
-            z-index: 10; white-space: nowrap;
+            position:absolute; bottom:92px; left:50%;
+            transform:translateX(-50%); z-index:10; white-space:nowrap;
         }
         .battle-msg {
-            background: var(--cream);
-            border: 3px solid var(--panel);
-            border-radius: 20px; padding: 8px 20px;
-            font-size: 13px; font-weight: 700; color: var(--ink); text-align: center;
-            box-shadow: 0 4px 0 rgba(0,0,0,.12);
+            background:var(--cream); border:3px solid var(--panel);
+            border-radius:20px; padding:8px 20px;
+            font-size:13px; font-weight:700; color:var(--ink); text-align:center;
+            box-shadow:0 4px 0 rgba(0,0,0,.12);
         }
-        .battle-transcript {
-            font-size: 11px; color: rgba(43,33,64,.6);
-            margin-top: 3px; display: none;
-        }
+        .battle-transcript { font-size:11px; color:rgba(43,33,64,.6); margin-top:3px; display:none; }
 
-        /* ── Done reading button ──────────────── */
+        /* ── Done reading button ─────────────── */
         #done-reading-btn {
-            display: none;
-            margin-top: 8px;
-            padding: 9px 22px;
-            border-radius: 20px;
-            border: none;
-            font-family: 'Baloo 2', sans-serif;
-            background: linear-gradient(180deg,#FF8FB8,var(--pink));
-            color: #fff;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 4px 0 rgba(0,0,0,.18);
-            animation: pulse 1.5s infinite;
+            display:none; margin-top:8px; padding:9px 22px;
+            border-radius:20px; border:none;
+            font-family:'Baloo 2',sans-serif;
+            background:linear-gradient(180deg,#FF8FB8,var(--pink));
+            color:#fff; font-size:13px; font-weight:700;
+            cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.18);
+            animation:pulse 1.5s infinite;
         }
 
-        /* ── Recording panel (bottom) ─────────── */
+        /* ── Bottom panel ────────────────────── */
         .bottom-panel {
-            background: var(--cream);
-            border-top: 4px solid var(--panel);
-            padding: 12px 24px;
-            position: relative; z-index: 10;
+            background:var(--cream); border-top:4px solid var(--panel);
+            padding:12px 24px; position:relative; z-index:10;
         }
         .bottom-inner {
-            display: flex; align-items: stretch; gap: 16px;
-            max-width: 900px; margin: 0 auto;
+            display:flex; align-items:center; gap:16px;
+            max-width:900px; margin:0 auto; justify-content:center;
         }
 
-        /* recording left info */
-        .rec-info {
-            flex: 1;
-            display: flex; flex-direction: column;
-            justify-content: center; gap: 4px;
+        /* ── Recording hold button ───────────── */
+        .hold-rec-wrap {
+            display:flex; flex-direction:column; align-items:center; gap:8px;
         }
-        .rec-info-title {
-            font-family: 'Baloo 2', sans-serif;
-            font-size: 11px; color: var(--purple);
-            font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.08em;
+        .hold-rec-btn {
+            width:72px; height:72px; border-radius:50%;
+            background:linear-gradient(180deg,#FF8FB8,var(--pink));
+            border:none; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 0 0 8px rgba(255,111,165,.2), 0 5px 0 rgba(0,0,0,.15);
+            transition:all 0.15s; animation:micPulse 2s infinite;
+            position:relative;
         }
-        .rec-info-sub {
-            font-size: 12px; color: var(--ink); font-weight: 600;
+        .hold-rec-btn.active {
+            background:linear-gradient(180deg,#8F7AD1,var(--purple));
+            box-shadow:0 0 0 12px rgba(124,58,237,.2),0 5px 0 rgba(0,0,0,.15);
+            animation:none; transform:scale(1.08);
+        }
+        .hold-rec-btn.loading {
+            background:linear-gradient(180deg,#FFA53C,var(--gold-dark));
+            animation:none;
+        }
+        .hold-rec-btn i { color:#fff; font-size:28px; pointer-events:none; }
+        .hold-rec-label {
+            font-family:'Baloo 2',sans-serif;
+            font-size:11px; font-weight:700; color:var(--panel);
+            text-align:center;
+        }
+        .hold-rec-timer {
+            font-family:'Baloo 2',sans-serif;
+            font-size:18px; font-weight:800; color:var(--panel);
+            display:none;
         }
 
-        .rec-panel { width: 320px; display: flex; flex-direction: column; gap: 8px; }
+        /* Waveform */
         .waveform-wrap {
-            background: #fff;
-            border: 2px solid var(--panel);
-            border-radius: 10px; padding: 8px 12px;
-            display: flex; align-items: center; gap: 3px; height: 38px;
+            background:#fff; border:2px solid var(--panel);
+            border-radius:10px; padding:8px 12px;
+            display:none; align-items:center; gap:3px; height:38px;
         }
-        .wv {
-            width: 4px; border-radius: 3px;
-            background: #D9D0F2; height: 6px; transition: height 0.08s;
-        }
-        .rec-timer {
-            font-family: 'Baloo 2', sans-serif;
-            font-size: 13px; font-weight: 700; color: var(--ink);
-            margin-left: auto; flex-shrink: 0;
-        }
-        .rec-actions { display: flex; gap: 8px; align-items: center; }
-        .rec-btn {
-            width: 46px; height: 46px; border-radius: 50%;
-            background: var(--purple); border: none; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; box-shadow: 0 0 0 6px rgba(124,58,237,0.2);
-            transition: all 0.2s; animation: pulse 2s infinite;
-        }
-        .rec-btn i { color: #fff; font-size: 20px; }
-        .rec-btn.recording {
-            background: #EF4444;
-            box-shadow: 0 0 0 6px rgba(239,68,68,0.25);
-            animation: none;
-        }
-        .rec-btn:disabled { opacity: 0.4; cursor: not-allowed; animation: none; }
-        .attack-btn {
-            flex: 1; padding: 10px; border-radius: 12px; border: none;
-            font-family: 'Baloo 2', sans-serif;
-            background: linear-gradient(180deg,#FF8FB8,var(--pink));
-            color: #fff; font-size: 13px; font-weight: 700;
-            cursor: pointer; display: none;
-            box-shadow: 0 4px 0 rgba(0,0,0,.18);
-        }
-        .rerecord-btn {
-            padding: 8px 12px; border-radius: 10px;
-            border: 2px solid var(--panel);
-            background: #fff; color: var(--panel);
-            font-size: 12px; font-weight:700; cursor: pointer; display: none;
-        }
-        .loading-wrap {
-            display: none; align-items: center; gap: 8px; padding: 6px 0;
-        }
-        .loading-wrap span { font-size: 12px; color: var(--ink); font-weight:700; }
-        .audio-preview { display: none; }
-        .audio-preview audio { width: 100%; height: 28px; border-radius: 6px; }
+        .wv { width:4px; border-radius:3px; background:#D9D0F2; height:6px; transition:height 0.08s; }
 
-        /* history */
+        /* Loading state */
+        .loading-wrap { display:none; align-items:center; gap:8px; }
+        .loading-wrap span { font-size:12px; color:var(--ink); font-weight:700; font-family:'Baloo 2',sans-serif; }
+
+        /* History */
         .history-panel {
-            width: 200px; display: flex; flex-direction: column;
-            gap: 6px; overflow-y: auto; max-height: 110px;
+            width:200px; display:flex; flex-direction:column;
+            gap:6px; overflow-y:auto; max-height:110px;
         }
         .history-title {
-            font-family: 'Baloo 2', sans-serif;
-            font-size: 10px; font-weight: 700; color: var(--panel-light);
-            text-transform: uppercase; letter-spacing: 0.07em; flex-shrink: 0;
+            font-family:'Baloo 2',sans-serif;
+            font-size:10px; font-weight:700; color:var(--panel-light);
+            text-transform:uppercase; letter-spacing:0.07em; flex-shrink:0;
         }
         .history-item {
-            background: #fff;
-            border: 2px solid #E6DEFA;
-            border-radius: 8px; padding: 5px 8px; font-size: 10px;
-            color: var(--ink);
+            background:#fff; border:2px solid #E6DEFA;
+            border-radius:8px; padding:5px 8px; font-size:10px; color:var(--ink);
         }
-        .history-item .hi-score { font-weight: 800; }
-        .history-item .hi-dmg   { color: #E05B3C; font-weight: 800; }
+        .history-item .hi-score { font-weight:800; }
+        .history-item .hi-dmg { color:#E05B3C; font-weight:800; }
 
-        /* dots */
+        /* Dots */
         .dots-wrap { display:flex; justify-content:center; gap:5px; margin-bottom:8px; }
         .dot { width:10px; height:10px; border-radius:50%; transition:all 0.3s; }
 
         /* ── Quit modal ────────────────────────── */
         .quit-modal {
-            display: none; position: fixed; inset: 0;
-            background: rgba(20,15,40,0.75); z-index: 99999;
-            align-items: center; justify-content: center;
+            display:none; position:fixed; inset:0;
+            background:rgba(20,15,40,0.75); z-index:99999;
+            align-items:center; justify-content:center;
         }
         .quit-modal-card {
-            background: var(--cream);
-            border: 5px solid var(--gold);
-            border-radius: 24px; padding: 36px 32px;
-            text-align: center; max-width: 380px; width: 90%;
-            box-shadow: 0 10px 0 rgba(0,0,0,.18);
-            animation: popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            background:var(--cream); border:5px solid var(--gold);
+            border-radius:24px; padding:36px 32px; text-align:center;
+            max-width:380px; width:90%; box-shadow:0 10px 0 rgba(0,0,0,.18);
+            animation:popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
         }
-        .quit-modal-emoji  { font-size: 60px; margin-bottom: 12px; }
-        .quit-modal-title  { font-family:'Baloo 2',sans-serif; font-size: 22px; font-weight: 800; color: var(--panel); margin-bottom: 8px; }
-        .quit-modal-sub    { font-size: 13px; color: var(--ink); line-height: 1.5; margin-bottom: 10px; }
-        .quit-modal-note   { font-size: 11px; color: rgba(43,33,64,.55); margin-bottom: 20px; font-style: italic; }
-        .quit-modal-btns   { display: flex; gap: 10px; justify-content: center; }
-        .btn-stay {
-            padding: 11px 22px; border-radius: 14px;
-            font-family: 'Baloo 2', sans-serif;
-            background: linear-gradient(180deg,#8F7AD1,var(--purple));
-            color: #fff; font-size: 13px; font-weight: 700; border: none; cursor: pointer;
-            box-shadow: 0 4px 0 rgba(0,0,0,.18);
-        }
-        .btn-quit-confirm {
-            padding: 11px 22px; border-radius: 14px;
-            font-family: 'Baloo 2', sans-serif;
-            background: #FFE1E1; color: #B3261E;
-            font-size: 13px; font-weight: 700;
-            border: 2px solid #B3261E;
-            cursor: pointer; text-decoration: none; display: inline-block;
-        }
+        .quit-modal-emoji { font-size:60px; margin-bottom:12px; }
+        .quit-modal-title { font-family:'Baloo 2',sans-serif; font-size:22px; font-weight:800; color:var(--panel); margin-bottom:8px; }
+        .quit-modal-sub { font-size:13px; color:var(--ink); line-height:1.5; margin-bottom:10px; }
+        .quit-modal-note { font-size:11px; color:rgba(43,33,64,.55); margin-bottom:20px; font-style:italic; }
+        .quit-modal-btns { display:flex; gap:10px; justify-content:center; }
+        .btn-stay { padding:11px 22px; border-radius:14px; font-family:'Baloo 2',sans-serif; background:linear-gradient(180deg,#8F7AD1,var(--purple)); color:#fff; font-size:13px; font-weight:700; border:none; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.18); }
+        .btn-quit-confirm { padding:11px 22px; border-radius:14px; font-family:'Baloo 2',sans-serif; background:#FFE1E1; color:#B3261E; font-size:13px; font-weight:700; border:2px solid #B3261E; cursor:pointer; text-decoration:none; display:inline-block; }
 
-        /* ── Win / Lose overlays ─────────────── */
+        /* ── Overlays ────────────────────────── */
         .overlay {
-            display: none; position: fixed; inset: 0;
-            background: rgba(20,15,40,0.75); z-index: 9999;
-            align-items: center; justify-content: center;
-            animation: fadeIn 0.3s ease;
+            display:none; position:fixed; inset:0;
+            background:rgba(20,15,40,0.75); z-index:9999;
+            align-items:center; justify-content:center; animation:fadeIn 0.3s ease;
         }
         .overlay-card {
-            background: var(--cream);
-            border: 5px solid var(--gold);
-            border-radius: 26px; padding: 40px 36px;
-            text-align: center; max-width: 420px; width: 90%;
-            box-shadow: 0 10px 0 rgba(0,0,0,.18);
-            animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            background:var(--cream); border:5px solid var(--gold);
+            border-radius:26px; padding:40px 36px; text-align:center;
+            max-width:420px; width:90%; box-shadow:0 10px 0 rgba(0,0,0,.18);
+            animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
         }
-        .overlay-card.lose { border-color: #E05B3C; }
-        .overlay-emoji { font-size: 80px; margin-bottom: 14px; }
-        .overlay-title { font-family:'Baloo 2',sans-serif; font-size: 26px; font-weight: 800; color: var(--panel); margin-bottom: 8px; }
-        .overlay-sub   { font-size: 14px; color: var(--ink); margin-bottom: 6px; }
-        .overlay-pts   { font-family:'Baloo 2',sans-serif; font-size: 28px; font-weight: 800; color: var(--gold-dark); margin: 10px 0 24px; }
-        .overlay-btns  { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-        .btn-back  { padding:11px 22px; border-radius:14px; font-family:'Baloo 2',sans-serif; background:#fff; color:var(--panel); font-size:13px; font-weight:700; text-decoration:none; border:2px solid var(--panel); }
+        .overlay-card.lose { border-color:#E05B3C; }
+        .overlay-emoji { font-size:80px; margin-bottom:14px; }
+        .overlay-title { font-family:'Baloo 2',sans-serif; font-size:26px; font-weight:800; color:var(--panel); margin-bottom:8px; }
+        .overlay-sub { font-size:14px; color:var(--ink); margin-bottom:6px; }
+        .overlay-pts { font-family:'Baloo 2',sans-serif; font-size:28px; font-weight:800; color:var(--gold-dark); margin:10px 0 24px; }
+        .overlay-btns { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+        .btn-back { padding:11px 22px; border-radius:14px; font-family:'Baloo 2',sans-serif; background:#fff; color:var(--panel); font-size:13px; font-weight:700; text-decoration:none; border:2px solid var(--panel); }
         .btn-retry { padding:11px 22px; border-radius:14px; font-family:'Baloo 2',sans-serif; font-size:13px; font-weight:700; text-decoration:none; color:#fff; box-shadow:0 4px 0 rgba(0,0,0,.18); }
-        .btn-retry.win  { background: linear-gradient(180deg,#8F7AD1,var(--purple)); }
-        .btn-retry.lose { background: linear-gradient(180deg,#FF8F6B,#E05B3C); }
+        .btn-retry.win  { background:linear-gradient(180deg,#8F7AD1,var(--purple)); }
+        .btn-retry.lose { background:linear-gradient(180deg,#FF8F6B,#E05B3C); }
 
         /* ── Keyframes ────────────────────────── */
-        @keyframes twinkle {
-            from { opacity:0.3; } to { opacity:1; }
-        }
+        @keyframes twinkle { from{opacity:0.3;} to{opacity:1;} }
         @keyframes countPop {
-            0%   { opacity:0; transform:scale(0.3); }
-            60%  { opacity:1; transform:scale(1.15); }
-            80%  { transform:scale(0.95); }
-            100% { opacity:1; transform:scale(1); }
+            0%{opacity:0;transform:scale(0.3);} 60%{opacity:1;transform:scale(1.15);}
+            80%{transform:scale(0.95);} 100%{opacity:1;transform:scale(1);}
         }
         @keyframes wordPumpIn {
-            0%   { opacity:0; transform:scale(0.6) translateY(16px); }
-            70%  { transform:scale(1.06) translateY(-4px); }
-            100% { opacity:1; transform:scale(1) translateY(0); }
+            0%{opacity:0;transform:scale(0.6) translateY(16px);}
+            70%{transform:scale(1.06) translateY(-4px);}
+            100%{opacity:1;transform:scale(1) translateY(0);}
         }
         @keyframes wordPumpOut {
-            0%   { opacity:1; transform:scale(1) translateY(0); }
-            100% { opacity:0; transform:scale(0.7) translateY(-20px); }
+            0%{opacity:1;transform:scale(1) translateY(0);}
+            100%{opacity:0;transform:scale(0.7) translateY(-20px);}
         }
         @keyframes floatUp {
-            0%   { opacity:1; transform:translateX(-50%) translateY(0); }
-            100% { opacity:0; transform:translateX(-50%) translateY(-70px); }
+            0%{opacity:1;transform:translateX(-50%) translateY(0);}
+            100%{opacity:0;transform:translateX(-50%) translateY(-70px);}
         }
         @keyframes bubblePop {
-            0%   { opacity:0; transform:translateX(-50%) scale(0.5); }
-            70%  { transform:translateX(-50%) scale(1.1); }
-            100% { opacity:1; transform:translateX(-50%) scale(1); }
+            0%{opacity:0;transform:translateX(-50%) scale(0.5);}
+            70%{transform:translateX(-50%) scale(1.1);}
+            100%{opacity:1;transform:translateX(-50%) scale(1);}
         }
         @keyframes hpShake {
-            0%,100% { transform:translateX(0); }
-            20%     { transform:translateX(-6px); }
-            40%     { transform:translateX(5px); }
-            60%     { transform:translateX(-4px); }
-            80%     { transform:translateX(3px); }
+            0%,100%{transform:translateX(0);} 20%{transform:translateX(-6px);}
+            40%{transform:translateX(5px);} 60%{transform:translateX(-4px);}
+            80%{transform:translateX(3px);}
         }
         @keyframes studentHit {
-            0%,100% { transform:translateX(0); }
-            20%     { transform:translateX(10px) rotate(3deg); }
-            40%     { transform:translateX(-8px) rotate(-2deg); }
-            60%     { transform:translateX(6px); }
-            80%     { transform:translateX(-4px); }
+            0%,100%{transform:translateX(0);} 20%{transform:translateX(10px) rotate(3deg);}
+            40%{transform:translateX(-8px) rotate(-2deg);} 60%{transform:translateX(6px);}
+            80%{transform:translateX(-4px);}
         }
-
-        /* ── Student attacks ──────────────────── */
         @keyframes attackDash {
-            0%   { transform:translateX(0) scaleX(1); }
-            30%  { transform:translateX(200px) scaleX(1.15); }
-            55%  { transform:translateX(190px) scaleX(0.9) rotate(-8deg); }
-            80%  { transform:translateX(200px) scaleX(1); }
-            100% { transform:translateX(0) scaleX(1); }
+            0%{transform:translateX(0) scaleX(1);} 30%{transform:translateX(200px) scaleX(1.15);}
+            55%{transform:translateX(190px) scaleX(0.9) rotate(-8deg);} 80%{transform:translateX(200px) scaleX(1);}
+            100%{transform:translateX(0) scaleX(1);}
         }
         @keyframes attackJump {
-            0%   { transform:translateX(0) translateY(0); }
-            25%  { transform:translateX(80px) translateY(-80px) rotate(10deg); }
-            50%  { transform:translateX(190px) translateY(0) scaleX(1.2); }
-            65%  { transform:translateX(185px) translateY(10px) scaleX(0.9); }
-            80%  { transform:translateX(190px) translateY(0); }
-            100% { transform:translateX(0) translateY(0); }
+            0%{transform:translateX(0) translateY(0);} 25%{transform:translateX(80px) translateY(-80px) rotate(10deg);}
+            50%{transform:translateX(190px) translateY(0) scaleX(1.2);} 65%{transform:translateX(185px) translateY(10px) scaleX(0.9);}
+            80%{transform:translateX(190px) translateY(0);} 100%{transform:translateX(0) translateY(0);}
         }
         @keyframes attackSpin {
-            0%   { transform:translateX(0) rotate(0deg) scale(1); }
-            30%  { transform:translateX(100px) rotate(360deg) scale(1.2); }
-            55%  { transform:translateX(190px) rotate(720deg) scale(1.1); }
-            75%  { transform:translateX(190px) rotate(720deg); }
-            100% { transform:translateX(0) rotate(0deg) scale(1); }
+            0%{transform:translateX(0) rotate(0deg) scale(1);} 30%{transform:translateX(100px) rotate(360deg) scale(1.2);}
+            55%{transform:translateX(190px) rotate(720deg) scale(1.1);} 75%{transform:translateX(190px) rotate(720deg);}
+            100%{transform:translateX(0) rotate(0deg) scale(1);}
         }
         @keyframes attackBlink {
-            0%   { transform:translateX(0); opacity:1; }
-            25%  { transform:translateX(0); opacity:0; }
-            26%  { transform:translateX(190px); opacity:0; }
-            45%  { transform:translateX(190px) scaleX(1.2); opacity:1; }
-            70%  { transform:translateX(190px); opacity:1; }
-            85%  { transform:translateX(0); opacity:0; }
-            100% { transform:translateX(0); opacity:1; }
+            0%{transform:translateX(0);opacity:1;} 25%{transform:translateX(0);opacity:0;}
+            26%{transform:translateX(190px);opacity:0;} 45%{transform:translateX(190px) scaleX(1.2);opacity:1;}
+            70%{transform:translateX(190px);opacity:1;} 85%{transform:translateX(0);opacity:0;}
+            100%{transform:translateX(0);opacity:1;}
         }
         @keyframes attackCharge {
-            0%   { transform:translateX(0) scale(1); filter:brightness(1); }
-            20%  { transform:translateX(-20px) scale(0.85); filter:brightness(2) hue-rotate(60deg); }
-            40%  { transform:translateX(-20px) scale(1.3); filter:brightness(3) hue-rotate(120deg); }
-            60%  { transform:translateX(200px) scale(1.1); filter:brightness(2); }
-            75%  { transform:translateX(190px) scale(0.9); filter:brightness(1.5); }
-            90%  { transform:translateX(190px); filter:brightness(1); }
-            100% { transform:translateX(0) scale(1); filter:brightness(1); }
+            0%{transform:translateX(0) scale(1);filter:brightness(1);}
+            20%{transform:translateX(-20px) scale(0.85);filter:brightness(2) hue-rotate(60deg);}
+            40%{transform:translateX(-20px) scale(1.3);filter:brightness(3) hue-rotate(120deg);}
+            60%{transform:translateX(200px) scale(1.1);filter:brightness(2);}
+            75%{transform:translateX(190px) scale(0.9);filter:brightness(1.5);}
+            90%{transform:translateX(190px);filter:brightness(1);}
+            100%{transform:translateX(0) scale(1);filter:brightness(1);}
         }
-
-        /* ── Enemy attacks ────────────────────── */
         @keyframes enemyDash {
-            0%   { transform:translateX(0); }
-            30%  { transform:translateX(-180px) scaleX(1.1); }
-            55%  { transform:translateX(-170px) scaleX(0.9); }
-            80%  { transform:translateX(-180px); }
-            100% { transform:translateX(0); }
+            0%{transform:translateX(0);} 30%{transform:translateX(-180px) scaleX(1.1);}
+            55%{transform:translateX(-170px) scaleX(0.9);} 80%{transform:translateX(-180px);}
+            100%{transform:translateX(0);}
         }
         @keyframes enemyLeap {
-            0%   { transform:translateX(0) translateY(0); }
-            25%  { transform:translateX(-80px) translateY(-70px) rotate(-10deg); }
-            50%  { transform:translateX(-180px) translateY(0); }
-            65%  { transform:translateX(-175px) translateY(8px); }
-            80%  { transform:translateX(-180px) translateY(0); }
-            100% { transform:translateX(0) translateY(0); }
+            0%{transform:translateX(0) translateY(0);} 25%{transform:translateX(-80px) translateY(-70px) rotate(-10deg);}
+            50%{transform:translateX(-180px) translateY(0);} 65%{transform:translateX(-175px) translateY(8px);}
+            80%{transform:translateX(-180px) translateY(0);} 100%{transform:translateX(0) translateY(0);}
         }
         @keyframes enemyZap {
-            0%   { transform:translateX(0); filter:brightness(1); }
-            15%  { filter:brightness(3) hue-rotate(120deg); }
-            30%  { transform:translateX(-160px); filter:brightness(2); }
-            50%  { transform:translateX(-180px) scaleX(1.15); filter:brightness(1.5); }
-            70%  { transform:translateX(-180px); filter:brightness(1); }
-            100% { transform:translateX(0); filter:brightness(1); }
+            0%{transform:translateX(0);filter:brightness(1);} 15%{filter:brightness(3) hue-rotate(120deg);}
+            30%{transform:translateX(-160px);filter:brightness(2);}
+            50%{transform:translateX(-180px) scaleX(1.15);filter:brightness(1.5);}
+            70%{transform:translateX(-180px);filter:brightness(1);}
+            100%{transform:translateX(0);filter:brightness(1);}
         }
         @keyframes enemySwipe {
-            0%   { transform:translateX(0) rotate(0); }
-            20%  { transform:translateX(-60px) rotate(-15deg); }
-            45%  { transform:translateX(-180px) rotate(5deg); }
-            65%  { transform:translateX(-170px) rotate(-5deg) scaleX(1.1); }
-            80%  { transform:translateX(-180px) rotate(0); }
-            100% { transform:translateX(0) rotate(0); }
+            0%{transform:translateX(0) rotate(0);} 20%{transform:translateX(-60px) rotate(-15deg);}
+            45%{transform:translateX(-180px) rotate(5deg);} 65%{transform:translateX(-170px) rotate(-5deg) scaleX(1.1);}
+            80%{transform:translateX(-180px) rotate(0);} 100%{transform:translateX(0) rotate(0);}
         }
-
         @keyframes shakeEnemy {
-            0%,100% { transform:translateX(0) rotate(0); }
-            15%     { transform:translateX(-14px) rotate(-4deg); }
-            35%     { transform:translateX(12px) rotate(3deg); }
-            55%     { transform:translateX(-8px) rotate(-2deg); }
-            75%     { transform:translateX(6px) rotate(1deg); }
+            0%,100%{transform:translateX(0) rotate(0);} 15%{transform:translateX(-14px) rotate(-4deg);}
+            35%{transform:translateX(12px) rotate(3deg);} 55%{transform:translateX(-8px) rotate(-2deg);}
+            75%{transform:translateX(6px) rotate(1deg);}
         }
         @keyframes enemyDefeat {
-            0%   { transform:scale(1) rotate(0); opacity:1; filter:brightness(1); }
-            30%  { transform:scale(1.4) rotate(10deg); filter:brightness(4) saturate(0); }
-            60%  { transform:scale(1.2) rotate(20deg); filter:brightness(2); }
-            100% { transform:scale(0) rotate(40deg); opacity:0; }
+            0%{transform:scale(1) rotate(0);opacity:1;filter:brightness(1);}
+            30%{transform:scale(1.4) rotate(10deg);filter:brightness(4) saturate(0);}
+            60%{transform:scale(1.2) rotate(20deg);filter:brightness(2);}
+            100%{transform:scale(0) rotate(40deg);opacity:0;}
         }
-
-        /* ── Effect animations ────────────────── */
         @keyframes effectSlash {
-            0%   { opacity:0; transform:translate(-50%,-50%) scale(0.5) rotate(-30deg); }
-            40%  { opacity:1; transform:translate(-50%,-50%) scale(1.4) rotate(10deg); }
-            100% { opacity:0; transform:translate(-50%,-50%) scale(0.8) rotate(20deg); }
+            0%{opacity:0;transform:translate(-50%,-50%) scale(0.5) rotate(-30deg);}
+            40%{opacity:1;transform:translate(-50%,-50%) scale(1.4) rotate(10deg);}
+            100%{opacity:0;transform:translate(-50%,-50%) scale(0.8) rotate(20deg);}
         }
         @keyframes effectBoom {
-            0%   { opacity:0; transform:translate(-50%,-50%) scale(0.2); }
-            40%  { opacity:1; transform:translate(-50%,-50%) scale(1.6); }
-            100% { opacity:0; transform:translate(-50%,-50%) scale(1); }
+            0%{opacity:0;transform:translate(-50%,-50%) scale(0.2);}
+            40%{opacity:1;transform:translate(-50%,-50%) scale(1.6);}
+            100%{opacity:0;transform:translate(-50%,-50%) scale(1);}
         }
         @keyframes effectSpin {
-            0%   { opacity:0; transform:translate(-50%,-50%) scale(0.5) rotate(0deg); }
-            50%  { opacity:1; transform:translate(-50%,-50%) scale(1.3) rotate(180deg); }
-            100% { opacity:0; transform:translate(-50%,-50%) scale(0.8) rotate(360deg); }
+            0%{opacity:0;transform:translate(-50%,-50%) scale(0.5) rotate(0deg);}
+            50%{opacity:1;transform:translate(-50%,-50%) scale(1.3) rotate(180deg);}
+            100%{opacity:0;transform:translate(-50%,-50%) scale(0.8) rotate(360deg);}
         }
-
-        @keyframes auraExcellent {
-            0%,100% { filter:drop-shadow(0 0 16px #57D67B) brightness(1.3); }
-            50%     { filter:drop-shadow(0 0 32px #57D67B) brightness(1.6); }
-        }
-        @keyframes auraGood {
-            0%,100% { filter:drop-shadow(0 0 14px #5DA9FF) brightness(1.2); }
-            50%     { filter:drop-shadow(0 0 28px #5DA9FF) brightness(1.5); }
-        }
-        @keyframes auraWeak {
-            0%,100% { filter:drop-shadow(0 0 10px #FF5C5C) brightness(1.1); }
-            50%     { filter:drop-shadow(0 0 20px #FF5C5C) brightness(1.3); }
-        }
-        @keyframes popIn {
-            0%   { transform:scale(0.5); opacity:0; }
-            70%  { transform:scale(1.05); }
-            100% { transform:scale(1); opacity:1; }
-        }
-        @keyframes fadeIn {
-            from { opacity:0; } to { opacity:1; }
+        @keyframes auraExcellent { 0%,100%{filter:drop-shadow(0 0 16px #57D67B) brightness(1.3);} 50%{filter:drop-shadow(0 0 32px #57D67B) brightness(1.6);} }
+        @keyframes auraGood { 0%,100%{filter:drop-shadow(0 0 14px #5DA9FF) brightness(1.2);} 50%{filter:drop-shadow(0 0 28px #5DA9FF) brightness(1.5);} }
+        @keyframes auraWeak { 0%,100%{filter:drop-shadow(0 0 10px #FF5C5C) brightness(1.1);} 50%{filter:drop-shadow(0 0 20px #FF5C5C) brightness(1.3);} }
+        @keyframes popIn { 0%{transform:scale(0.5);opacity:0;} 70%{transform:scale(1.05);} 100%{transform:scale(1);opacity:1;} }
+        @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+        @keyframes micPulse {
+            0%,100%{box-shadow:0 0 0 8px rgba(255,111,165,.2),0 5px 0 rgba(0,0,0,.15);}
+            50%{box-shadow:0 0 0 14px rgba(255,111,165,.08),0 5px 0 rgba(0,0,0,.15);}
         }
         @keyframes pulse {
-            0%,100% { box-shadow:0 0 0 6px rgba(124,58,237,0.2); }
-            50%     { box-shadow:0 0 0 12px rgba(124,58,237,0.08); }
+            0%,100%{box-shadow:0 0 0 8px rgba(255,111,165,.2),0 4px 0 rgba(0,0,0,.18);}
+            50%{box-shadow:0 0 0 14px rgba(255,111,165,.06),0 4px 0 rgba(0,0,0,.18);}
+        }
+        @keyframes lowHpFlash {
+            0%,100%{border-color:#FF5C5C;} 50%{border-color:#FFE1E1;}
         }
     </style>
 </head>
@@ -712,9 +550,7 @@
         of {{ $totalWords }}
     </div>
     <div class="top-right">
-        <span class="hp-display">
-            💥 <span id="top-damage">{{ number_format($session->total_damage) }}</span>
-        </span>
+        <span class="hp-display">💥 <span id="top-damage">{{ number_format($session->total_damage) }}</span></span>
         <span class="level-chip">⭐ Level {{ auth()->user()->student->current_level }}</span>
     </div>
 </div>
@@ -738,8 +574,7 @@
 
     {{-- HP section --}}
     <div class="hp-section">
-        {{-- Student HP --}}
-        <div class="hp-block">
+        <div class="hp-block" id="student-hp-block">
             <div class="hp-name">
                 <span>{{ auth()->user()->student->firstname }}</span>
                 <span class="label">YOU</span>
@@ -747,21 +582,20 @@
             <div class="hp-bar-bg" id="student-hp-bg">
                 <div class="hp-bar-fill student" id="student-hp-bar" style="width:100%;"></div>
             </div>
-            <div class="hp-text">⭐ {{ number_format(auth()->user()->student->total_points) }} pts</div>
+            <div class="hp-text">
+                ❤️ <span id="student-hp-current">{{ $session->enemy_max_hp }}</span>
+                / <span id="student-hp-max">{{ $session->enemy_max_hp }}</span>
+            </div>
         </div>
 
-        {{-- CENTER: VS + rounds pill + WORD CARD ─────────── --}}
         <div class="center-info">
             <div class="vs-badge">VS</div>
             <div id="rounds-left-pill" class="rounds-left-pill">
                 {{ $roundsLeft }} round(s) left
             </div>
-
-            {{-- ★ Word card lives here now ★ --}}
             <div id="center-word-card">
                 <div class="cw-label">📖 Read this aloud:</div>
-                <div id="center-word-text"
-                     class="{{ $session->activity->level == 3 ? 'paragraph' : '' }}">
+                <div id="center-word-text" class="{{ $session->activity->level == 3 ? 'paragraph' : '' }}">
                     {{ $currentWord }}
                 </div>
                 <button id="done-reading-btn" onclick="onDoneReading()">
@@ -770,15 +604,13 @@
             </div>
         </div>
 
-        {{-- Enemy HP --}}
         <div class="hp-block" style="text-align:right;">
             <div class="hp-name" style="justify-content:flex-end;">
                 <span class="label">ENEMY</span>
                 <span>{{ $session->enemy->name }}</span>
             </div>
             <div class="hp-bar-bg">
-                <div id="hp-bar" class="hp-bar-fill enemy"
-                     style="width:{{ $hpPercent }}%;margin-left:auto;"></div>
+                <div id="hp-bar" class="hp-bar-fill enemy" style="width:{{ $hpPercent }}%;margin-left:auto;"></div>
             </div>
             <div class="hp-text">
                 ❤️ <span id="hp-current">{{ number_format($session->enemy_current_hp) }}</span>
@@ -789,8 +621,6 @@
 
     {{-- Battlefield --}}
     <div class="battlefield">
-
-        {{-- Student character --}}
         <div class="character-wrap" id="student-wrap">
             <div class="character-label">{{ auth()->user()->student->firstname }}</div>
             <div class="char-platform"></div>
@@ -820,20 +650,17 @@
             <div id="student-damage-indicator">💢</div>
         </div>
 
-        {{-- Score reveal --}}
         <div id="score-reveal">
             <div class="score-reveal-inner">
                 <div class="score-reveal-label">🤖 AI Score</div>
-                <div class="score-reveal-value"       id="score-reveal-value"></div>
-                <div class="score-reveal-damage"      id="score-reveal-damage"></div>
-                <div class="score-reveal-transcript"  id="score-reveal-transcript"></div>
+                <div class="score-reveal-value"      id="score-reveal-value"></div>
+                <div class="score-reveal-damage"     id="score-reveal-damage"></div>
+                <div class="score-reveal-transcript" id="score-reveal-transcript"></div>
             </div>
         </div>
 
-        {{-- Attack effect --}}
         <div id="attack-effect"></div>
 
-        {{-- Battle message --}}
         <div class="battle-msg-wrap">
             <div class="battle-msg" id="battle-msg">
                 ⏳ Get ready… countdown starting!
@@ -841,7 +668,6 @@
             </div>
         </div>
 
-        {{-- Enemy --}}
         <div class="character-wrap" id="enemy-wrap">
             <div class="character-label">{{ $session->enemy->name }}</div>
             <div id="enemy-attack-bubble"></div>
@@ -849,44 +675,44 @@
             <div id="enemy-sprite" class="enemy-sprite">
                 @php $enemyName = trim($session->enemy->name); @endphp
                 @if($enemyName === 'Letter Goblin')
-                    <svg viewBox="0 0 200 240">
-                        <path d="M55 150 Q100 250 145 150 L150 110 Q100 90 50 110 Z" fill="#6FBF5A"/>
-                        <circle cx="100" cy="80" r="46" fill="#7ED45F"/>
-                        <path d="M52 60 Q30 30 44 10 Q60 24 62 46Z" fill="#5AA83F"/>
-                        <path d="M148 60 Q170 30 156 10 Q140 24 138 46Z" fill="#5AA83F"/>
-                        <circle cx="82" cy="82" r="9" fill="#fff"/><circle cx="118" cy="82" r="9" fill="#fff"/>
-                        <circle cx="84" cy="84" r="4" fill="#2B2140"/><circle cx="120" cy="84" r="4" fill="#2B2140"/>
-                        <path d="M78 104 Q100 118 122 104" stroke="#2B2140" stroke-width="4" fill="none" stroke-linecap="round"/>
-                        <rect x="20" y="140" width="46" height="54" rx="8" fill="#FFC93C" stroke="#5A3E00" stroke-width="3" transform="rotate(-8 43 167)"/>
-                        <text x="30" y="178" font-family="Baloo 2" font-size="34" font-weight="700" fill="#5A3E00" transform="rotate(-8 43 167)">A</text>
-                    </svg>
+                <svg viewBox="0 0 200 240">
+                    <path d="M55 150 Q100 250 145 150 L150 110 Q100 90 50 110 Z" fill="#6FBF5A"/>
+                    <circle cx="100" cy="80" r="46" fill="#7ED45F"/>
+                    <path d="M52 60 Q30 30 44 10 Q60 24 62 46Z" fill="#5AA83F"/>
+                    <path d="M148 60 Q170 30 156 10 Q140 24 138 46Z" fill="#5AA83F"/>
+                    <circle cx="82" cy="82" r="9" fill="#fff"/><circle cx="118" cy="82" r="9" fill="#fff"/>
+                    <circle cx="84" cy="84" r="4" fill="#2B2140"/><circle cx="120" cy="84" r="4" fill="#2B2140"/>
+                    <path d="M78 104 Q100 118 122 104" stroke="#2B2140" stroke-width="4" fill="none" stroke-linecap="round"/>
+                    <rect x="20" y="140" width="46" height="54" rx="8" fill="#FFC93C" stroke="#5A3E00" stroke-width="3" transform="rotate(-8 43 167)"/>
+                    <text x="30" y="178" font-family="Baloo 2" font-size="34" font-weight="700" fill="#5A3E00" transform="rotate(-8 43 167)">A</text>
+                </svg>
                 @elseif($enemyName === 'Word Witch')
-                    <svg viewBox="0 0 200 240">
-                        <path d="M55 145 Q100 250 145 145 L150 100 Q100 82 50 100 Z" fill="#7A56C9"/>
-                        <circle cx="100" cy="75" r="40" fill="#F3D9C4"/>
-                        <path d="M52 62 Q100 -10 148 62 Q130 50 100 52 Q70 50 52 62Z" fill="#3B2E63"/>
-                        <circle cx="130" cy="10" r="8" fill="#FFC93C"/>
-                        <circle cx="84" cy="78" r="6" fill="#2B2140"/><circle cx="116" cy="78" r="6" fill="#2B2140"/>
-                        <path d="M88 96 Q100 90 112 96" stroke="#2B2140" stroke-width="3" fill="none" stroke-linecap="round"/>
-                        <path d="M150 150 Q190 130 185 90" stroke="#3B2E63" stroke-width="10" fill="none" stroke-linecap="round"/>
-                        <circle cx="184" cy="86" r="7" fill="#FFC93C"/>
-                        <circle cx="200" cy="60" r="4" fill="#FFC93C"/><circle cx="192" cy="40" r="3" fill="#FF6FA5"/>
-                    </svg>
+                <svg viewBox="0 0 200 240">
+                    <path d="M55 145 Q100 250 145 145 L150 100 Q100 82 50 100 Z" fill="#7A56C9"/>
+                    <circle cx="100" cy="75" r="40" fill="#F3D9C4"/>
+                    <path d="M52 62 Q100 -10 148 62 Q130 50 100 52 Q70 50 52 62Z" fill="#3B2E63"/>
+                    <circle cx="130" cy="10" r="8" fill="#FFC93C"/>
+                    <circle cx="84" cy="78" r="6" fill="#2B2140"/><circle cx="116" cy="78" r="6" fill="#2B2140"/>
+                    <path d="M88 96 Q100 90 112 96" stroke="#2B2140" stroke-width="3" fill="none" stroke-linecap="round"/>
+                    <path d="M150 150 Q190 130 185 90" stroke="#3B2E63" stroke-width="10" fill="none" stroke-linecap="round"/>
+                    <circle cx="184" cy="86" r="7" fill="#FFC93C"/>
+                    <circle cx="200" cy="60" r="4" fill="#FFC93C"/><circle cx="192" cy="40" r="3" fill="#FF6FA5"/>
+                </svg>
                 @elseif($enemyName === 'Story Dragon')
-                    <svg viewBox="0 0 200 240">
-                        <path d="M40 150 Q10 110 45 90 Q60 120 70 140Z" fill="#E0A24C"/>
-                        <path d="M160 150 Q190 110 155 90 Q140 120 130 140Z" fill="#E0A24C"/>
-                        <path d="M50 150 Q100 245 150 150 L155 105 Q100 85 45 105 Z" fill="#E07A4C"/>
-                        <circle cx="100" cy="78" r="44" fill="#EB8E5E"/>
-                        <path d="M70 45 L80 20 L90 48Z" fill="#B3502A"/>
-                        <path d="M110 48 L120 20 L130 45Z" fill="#B3502A"/>
-                        <circle cx="83" cy="82" r="8" fill="#FFE9A8"/><circle cx="117" cy="82" r="8" fill="#FFE9A8"/>
-                        <circle cx="85" cy="84" r="4" fill="#2B2140"/><circle cx="119" cy="84" r="4" fill="#2B2140"/>
-                        <path d="M85 104 Q100 96 115 104" stroke="#5A2E14" stroke-width="4" fill="none" stroke-linecap="round"/>
-                        <path d="M96 106 Q100 116 104 106" fill="#FF6F3C"/>
-                    </svg>
+                <svg viewBox="0 0 200 240">
+                    <path d="M40 150 Q10 110 45 90 Q60 120 70 140Z" fill="#E0A24C"/>
+                    <path d="M160 150 Q190 110 155 90 Q140 120 130 140Z" fill="#E0A24C"/>
+                    <path d="M50 150 Q100 245 150 150 L155 105 Q100 85 45 105 Z" fill="#E07A4C"/>
+                    <circle cx="100" cy="78" r="44" fill="#EB8E5E"/>
+                    <path d="M70 45 L80 20 L90 48Z" fill="#B3502A"/>
+                    <path d="M110 48 L120 20 L130 45Z" fill="#B3502A"/>
+                    <circle cx="83" cy="82" r="8" fill="#FFE9A8"/><circle cx="117" cy="82" r="8" fill="#FFE9A8"/>
+                    <circle cx="85" cy="84" r="4" fill="#2B2140"/><circle cx="119" cy="84" r="4" fill="#2B2140"/>
+                    <path d="M85 104 Q100 96 115 104" stroke="#5A2E14" stroke-width="4" fill="none" stroke-linecap="round"/>
+                    <path d="M96 106 Q100 116 104 106" fill="#FF6F3C"/>
+                </svg>
                 @else
-                    <div style="font-size:90px;line-height:1;">{{ $session->enemy->sprite }}</div>
+                <div style="font-size:90px;line-height:1;">{{ $session->enemy->sprite }}</div>
                 @endif
             </div>
         </div>
@@ -894,7 +720,6 @@
 
     {{-- ── BOTTOM PANEL ──────────────────────────────────── --}}
     <div class="bottom-panel">
-
         <div class="dots-wrap">
             @foreach($allWords as $i => $w)
             <div id="dot-{{ $i }}" class="dot"
@@ -906,36 +731,28 @@
 
         <div class="bottom-inner">
 
-            {{-- Recording info --}}
-            <div class="rec-info">
-                <div class="rec-info-title">🎙️ Voice Recording</div>
-                <div class="rec-info-sub" id="rec-status">
-                    Waiting for countdown…
-                </div>
+            {{-- Waveform --}}
+            <div class="waveform-wrap" id="waveform-wrap">
+                @for($i = 0; $i < 18; $i++)<div class="wv"></div>@endfor
             </div>
 
-            {{-- Recording panel --}}
-            <div class="rec-panel">
-                <div class="waveform-wrap">
-                    @for($i = 0; $i < 18; $i++)<div class="wv"></div>@endfor
-                    <span class="rec-timer" id="rec-timer">0:00</span>
-                </div>
-                <div class="audio-preview" id="audio-preview">
-                    <audio id="playback-audio" controls></audio>
-                </div>
-                <div class="rec-actions">
-                    <button class="rec-btn" id="rec-btn" type="button" disabled>
-                        <i class="ti ti-microphone" id="rec-icon"></i>
-                    </button>
-                    <button class="rerecord-btn" id="rerecord-btn">
-                        <i class="ti ti-refresh"></i> Redo
-                    </button>
-                    <button class="attack-btn" id="attack-btn">⚔️ Submit!</button>
-                </div>
-                <div class="loading-wrap" id="loading-wrap">
-                    <div class="spinner-border text-primary" style="width:16px;height:16px;"></div>
-                    <span id="loading-text">🤖 AI analyzing your reading...</span>
-                </div>
+            {{-- Hold to record button --}}
+            <div class="hold-rec-wrap">
+                <button class="hold-rec-btn" id="hold-rec-btn" disabled
+                        onmousedown="startRecording()"
+                        onmouseup="stopRecording()"
+                        ontouchstart="startRecording(event)"
+                        ontouchend="stopRecording(event)">
+                    <i class="ti ti-microphone" id="hold-rec-icon"></i>
+                </button>
+                <div class="hold-rec-timer" id="hold-timer">0:00</div>
+                <div class="hold-rec-label" id="hold-label">Hold to record</div>
+            </div>
+
+            {{-- Loading state --}}
+            <div class="loading-wrap" id="loading-wrap">
+                <div class="spinner-border" style="width:20px;height:20px;border-color:var(--purple);border-right-color:transparent;"></div>
+                <span id="loading-text">🤖 AI analyzing…</span>
             </div>
 
             {{-- History --}}
@@ -973,9 +790,7 @@
             Are you sure you want to leave the battle against
             <strong style="color:#E05B3C;">{{ $session->enemy->name }}</strong>?
         </div>
-        <div class="quit-modal-note">
-            Your progress will be saved. You can continue this battle later from the Arena.
-        </div>
+        <div class="quit-modal-note">Your progress will be saved. You can continue this battle later.</div>
         <div class="quit-modal-btns">
             <button class="btn-stay" onclick="hideQuitModal()">⚔️ Stay & Fight!</button>
             <a href="{{ route('student.game.index') }}" class="btn-quit-confirm">🚪 Yes, Quit</a>
@@ -1024,6 +839,150 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// ── Audio context for sound effects ────────────────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function getAudioCtx() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+    return audioCtx;
+}
+
+// Generate a simple synthesized sound
+function playSound(type) {
+    try {
+        const ctx = getAudioCtx();
+
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const now = ctx.currentTime;
+
+        if (type === 'excellent') {
+            // Power burst — rising triumphant chord
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+            osc.frequency.exponentialRampToValueAtTime(1320, now + 0.3);
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+            osc.start(now); osc.stop(now + 0.6);
+
+            // Second oscillator for harmony
+            const osc2 = ctx.createOscillator();
+            const g2   = ctx.createGain();
+            osc2.connect(g2); g2.connect(ctx.destination);
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(440, now);
+            osc2.frequency.exponentialRampToValueAtTime(1760, now + 0.4);
+            g2.gain.setValueAtTime(0.25, now);
+            g2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc2.start(now); osc2.stop(now + 0.5);
+
+        } else if (type === 'great') {
+            // Spin charge — swirling whoosh
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(900, now + 0.2);
+            osc.frequency.exponentialRampToValueAtTime(600, now + 0.4);
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc.start(now); osc.stop(now + 0.5);
+
+        } else if (type === 'good') {
+            // Jump slam — thud
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(180, now);
+            osc.frequency.exponentialRampToValueAtTime(60, now + 0.25);
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            osc.start(now); osc.stop(now + 0.35);
+
+        } else if (type === 'ok') {
+            // Blink strike — quick zap
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+
+        } else if (type === 'weak') {
+            // Dash strike — soft thwack
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(120, now);
+            osc.frequency.exponentialRampToValueAtTime(80, now + 0.2);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            osc.start(now); osc.stop(now + 0.25);
+
+        } else if (type === 'enemy_hit') {
+            // Student gets hit — low thud + noise
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(80, now);
+            osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            osc.start(now); osc.stop(now + 0.4);
+
+        } else if (type === 'countdown') {
+            // Countdown beep
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(660, now);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            osc.start(now); osc.stop(now + 0.15);
+
+        } else if (type === 'go') {
+            // GO! — fanfare
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(523, now);
+            osc.frequency.setValueAtTime(659, now + 0.1);
+            osc.frequency.setValueAtTime(784, now + 0.2);
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc.start(now); osc.stop(now + 0.5);
+
+        } else if (type === 'win') {
+            // Victory fanfare
+            const notes = [523, 659, 784, 1047];
+            notes.forEach((freq, i) => {
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.connect(g); g.connect(ctx.destination);
+                o.type = 'sawtooth';
+                o.frequency.setValueAtTime(freq, now + i * 0.12);
+                g.gain.setValueAtTime(0.3, now + i * 0.12);
+                g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.4);
+                o.start(now + i * 0.12); o.stop(now + i * 0.12 + 0.4);
+            });
+            return;
+
+        } else if (type === 'lose') {
+            // Sad descend
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.8);
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+            osc.start(now); osc.stop(now + 0.9);
+        }
+
+    } catch(e) { /* audio context blocked */ }
+}
+
+// Pick sound based on score
+function soundForScore(score) {
+    if (score === null) return 'weak';
+    if (score >= 90) return 'excellent';
+    if (score >= 75) return 'great';
+    if (score >= 60) return 'good';
+    if (score >= 40) return 'ok';
+    return 'weak';
+}
+
 // ── Stars ──────────────────────────────────────────────────────
 (function() {
     const c = document.getElementById('stars');
@@ -1052,13 +1011,10 @@ document.getElementById('quit-modal').addEventListener('click', function(e) {
 
 // ── Attack pools ───────────────────────────────────────────────
 const ENEMY_ATTACK_POOL = [
-    'Mumbo Jumbo!','Abra Kadabra!','Fizzle Wizzle!',
-    'Blunder Blitz!','Snazzle Frazzle!','Kerplunk!',
-    'Boo!','Ugh!','Grrr!','Roooaar!','Bwahahaha!','Zap!',
-    '📖 Garble!','🌀 Confuse!','🔥 Burn!',
-    '💨 Whoosh!','⚡ Shock!','🌊 Splash!',
-    'Flibbertigibbet!','Supercalifragilistic!','Bibbidi Bobbidi!',
-    'Zippity Zap!','Hocus Pocus!','Wacka Wacka!',
+    'Mumbo Jumbo!','Abra Kadabra!','Fizzle Wizzle!','Blunder Blitz!',
+    'Kerplunk!','Boo!','Grrr!','Roooaar!','Bwahahaha!','Zap!',
+    '📖 Garble!','🌀 Confuse!','🔥 Burn!','💨 Whoosh!','⚡ Shock!',
+    'Flibbertigibbet!','Zippity Zap!','Hocus Pocus!','Wacka Wacka!',
 ];
 const ENEMY_ATTACK_STYLES = [
     { anim:'enemyDash',  dur:900,  effect:'💨', color:'#FF5C5C' },
@@ -1082,38 +1038,63 @@ function pickAttackStyle(score) {
 }
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
+// ── Student HP state ───────────────────────────────────────────
+const studentMaxHp   = parseInt(document.getElementById('enemy-max-hp').value);
+let   studentCurrentHp = studentMaxHp;
+
+function updateStudentHpBar(newHp) {
+    studentCurrentHp = Math.max(0, newHp);
+    const pct = Math.round((studentCurrentHp / studentMaxHp) * 100);
+    const bar = document.getElementById('student-hp-bar');
+    const bg  = document.getElementById('student-hp-bg');
+    const blk = document.getElementById('student-hp-block');
+
+    bar.style.width = pct + '%';
+    document.getElementById('student-hp-current').textContent = studentCurrentHp;
+
+    if (pct <= 25) {
+        bar.style.background = 'linear-gradient(180deg,#FF8A8A,#FF5C5C)';
+        blk.style.animation = 'lowHpFlash 0.5s infinite';
+    } else if (pct <= 50) {
+        bar.style.background = 'linear-gradient(180deg,#FFC57A,#FFA53C)';
+        blk.style.animation = '';
+    } else {
+        bar.style.background = 'linear-gradient(180deg,#7CE79A,#57D67B)';
+        blk.style.animation = '';
+    }
+}
+
+// Enemy damage to student = random 8–15% of student max HP per hit
+function calcEnemyDamage() {
+    const pct = 0.08 + Math.random() * 0.07; // 8–15%
+    return Math.max(1, Math.round(studentMaxHp * pct));
+}
+
 // ── State ──────────────────────────────────────────────────────
-let mediaRecorder, audioChunks=[], isRecording=false;
-let timerInterval, seconds=0, audioBlob=null, waveInterval=null;
+let mediaRecorder, audioChunks = [], isRecording = false;
+let timerInterval, seconds = 0, waveInterval = null;
 let battleLocked = false;
-// Track flow phase:
-// 'countdown' → 'reading' → 'recording' → 'submitted' → 'enemy_attack' → 'next'
-let gamePhase = 'countdown';
+let gamePhase    = 'countdown';
 
 // ── DOM refs ───────────────────────────────────────────────────
-const recBtn        = document.getElementById('rec-btn');
-const recIcon       = document.getElementById('rec-icon');
-const recStatus     = document.getElementById('rec-status');
-const recTimer      = document.getElementById('rec-timer');
-const rerecordBtn   = document.getElementById('rerecord-btn');
-const attackBtn     = document.getElementById('attack-btn');
-const loadingWrap   = document.getElementById('loading-wrap');
-const loadingText   = document.getElementById('loading-text');
-const audioPreview  = document.getElementById('audio-preview');
-const playbackAud   = document.getElementById('playback-audio');
-const wvBars        = document.querySelectorAll('.wv');
-const sessionId     = document.getElementById('session-id').value;
-const csrfToken     = document.querySelector('meta[name="csrf-token"]').content;
-const enemyMaxHp    = parseInt(document.getElementById('enemy-max-hp').value);
-const enemyName     = '{{ $session->enemy->name }}';
-const totalWords    = parseInt(document.getElementById('total-words').value);
-const wordCard      = document.getElementById('center-word-card');
-const wordText      = document.getElementById('center-word-text');
-const doneBtn       = document.getElementById('done-reading-btn');
-const currentWord   = document.getElementById('current-word-value').value;
-const isParagraph   = document.getElementById('is-paragraph').value === '1';
+const holdBtn     = document.getElementById('hold-rec-btn');
+const holdIcon    = document.getElementById('hold-rec-icon');
+const holdLabel   = document.getElementById('hold-label');
+const holdTimer   = document.getElementById('hold-timer');
+const loadingWrap = document.getElementById('loading-wrap');
+const loadingText = document.getElementById('loading-text');
+const waveWrap    = document.getElementById('waveform-wrap');
+const wvBars      = document.querySelectorAll('.wv');
+const sessionId   = document.getElementById('session-id').value;
+const csrfToken   = document.querySelector('meta[name="csrf-token"]').content;
+const enemyMaxHp  = parseInt(document.getElementById('enemy-max-hp').value);
+const enemyName   = '{{ $session->enemy->name }}';
+const totalWords  = parseInt(document.getElementById('total-words').value);
+const wordCard    = document.getElementById('center-word-card');
+const doneBtn     = document.getElementById('done-reading-btn');
+const currentWord = document.getElementById('current-word-value').value;
 
-// ── COUNTDOWN → show word ──────────────────────────────────────
+// ── COUNTDOWN ──────────────────────────────────────────────────
 function startCountdown() {
     const overlay = document.getElementById('countdown-overlay');
     const numEl   = document.getElementById('countdown-number');
@@ -1122,7 +1103,6 @@ function startCountdown() {
 
     overlay.style.display = 'flex';
     setBattleMsg('⏳ Get ready…');
-
     let count = 3;
 
     function tick() {
@@ -1131,31 +1111,24 @@ function startCountdown() {
         numEl.style.animation = 'countPop 0.9s cubic-bezier(0.34,1.56,0.64,1) forwards';
 
         if (count > 0) {
+            playSound('countdown');
             numEl.textContent = count;
             numEl.style.color = count === 3 ? '#5DA9FF' : count === 2 ? '#FFC93C' : '#FF5C5C';
-            lblEl.textContent = count === 3 ? 'GET READY!'
-                              : count === 2 ? 'ALMOST…'
-                              : 'GO!';
+            lblEl.textContent = count === 3 ? 'GET READY!' : count === 2 ? 'ALMOST…' : 'GO!';
             count--;
             setTimeout(tick, 950);
         } else {
-            // Show GO!
+            playSound('go');
             numEl.textContent = '⚔️';
             numEl.style.color = '#57D67B';
             lblEl.textContent = 'READ IT!';
             subEl.textContent = 'Read the passage aloud then press Done!';
-
-            setTimeout(() => {
-                overlay.style.display = 'none';
-                // Reveal the word card
-                showWordCard();
-            }, 900);
+            setTimeout(() => { overlay.style.display = 'none'; showWordCard(); }, 900);
         }
     }
     tick();
 }
 
-// ── Show word card in center ───────────────────────────────────
 function showWordCard() {
     gamePhase = 'reading';
     wordCard.style.animation = 'none';
@@ -1163,16 +1136,11 @@ function showWordCard() {
     wordCard.style.animation = 'wordPumpIn 0.5s ease forwards';
     wordCard.style.display   = 'block';
     doneBtn.style.display    = 'inline-block';
-
     setBattleMsg('📖 Read the passage above, then press Done Reading!');
-    recStatus.textContent = '📖 Read the word/passage above first…';
-
-    // Enable mic after word appears
-    recBtn.disabled = false;
-    recStatus.textContent = '🎙️ Record yourself reading the word above, then press Done!';
+    holdBtn.disabled = false;
+    holdLabel.textContent = 'Hold to record';
 }
 
-// ── Hide word card (animate out) ──────────────────────────────
 function hideWordCard(callback) {
     wordCard.style.animation = 'wordPumpOut 0.4s ease forwards';
     setTimeout(() => {
@@ -1182,83 +1150,79 @@ function hideWordCard(callback) {
     }, 400);
 }
 
-// ── Student presses "Done Reading" ────────────────────────────
 function onDoneReading() {
     if (gamePhase !== 'reading') return;
     gamePhase = 'recording';
     doneBtn.style.display = 'none';
-
-    // Slide the word card out
     hideWordCard(() => {
-        setBattleMsg('🎙️ Now record yourself and press Submit!');
-        recStatus.textContent = '🎙️ Press the mic button to record your reading!';
+        setBattleMsg('🎙️ Hold the mic button and read aloud!');
+        holdLabel.textContent = 'Hold to record';
     });
 }
 
-// ── Record button ──────────────────────────────────────────────
-recBtn.addEventListener('click', async () => {
-    if (battleLocked || recBtn.disabled) return;
-    if (!isRecording) {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks   = [];
-            mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-            mediaRecorder.onstop = () => {
-                audioBlob                  = new Blob(audioChunks, { type: 'audio/webm' });
-                playbackAud.src            = URL.createObjectURL(audioBlob);
-                audioPreview.style.display = 'block';
-                rerecordBtn.style.display  = 'inline-block';
-                attackBtn.style.display    = 'block';
-                stopWaveform();
-                recStatus.textContent = '✅ Recording done! Press Submit to attack!';
-            };
-            mediaRecorder.start(100);
-            isRecording = true;
-            recBtn.classList.add('recording');
-            recIcon.className          = 'ti ti-player-stop';
-            recStatus.textContent      = '🔴 Recording… Tap again to stop.';
-            audioPreview.style.display = 'none';
-            rerecordBtn.style.display  = 'none';
-            attackBtn.style.display    = 'none';
-            seconds = 0;
-            timerInterval = setInterval(() => {
-                seconds++;
-                recTimer.textContent =
-                    Math.floor(seconds/60).toString().padStart(2,'0') + ':' +
-                    (seconds%60).toString().padStart(2,'0');
-            }, 1000);
-            animateWaveform();
-        } catch(e) {
-            alert('Microphone access denied! Please allow microphone access.');
-        }
-    } else {
-        mediaRecorder.stop();
-        mediaRecorder.stream.getTracks().forEach(t => t.stop());
-        isRecording = false;
-        clearInterval(timerInterval);
-        recBtn.classList.remove('recording');
-        recIcon.className = 'ti ti-microphone';
-    }
-});
+// ── Hold-to-record ─────────────────────────────────────────────
+function startRecording(e) {
+    if (e) e.preventDefault();
+    if (battleLocked || holdBtn.disabled || isRecording) return;
 
-rerecordBtn.addEventListener('click', resetRec);
+    // Unlock audio context on user gesture
+    getAudioCtx();
 
-// ── Submit / Attack button ─────────────────────────────────────
-attackBtn.addEventListener('click', async () => {
-    if (!audioBlob || battleLocked) return;
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        mediaRecorder  = new MediaRecorder(stream);
+        audioChunks    = [];
+        mediaRecorder.ondataavailable = ev => { if (ev.data.size > 0) audioChunks.push(ev.data); };
+        mediaRecorder.onstop = () => submitRecording();
+        mediaRecorder.start(100);
+        isRecording = true;
+
+        holdBtn.classList.add('active');
+        holdIcon.className    = 'ti ti-player-stop';
+        holdLabel.textContent = 'Release to stop';
+        holdTimer.style.display = 'block';
+        waveWrap.style.display  = 'flex';
+
+        seconds = 0;
+        timerInterval = setInterval(() => {
+            seconds++;
+            holdTimer.textContent =
+                Math.floor(seconds/60).toString().padStart(2,'0') + ':' +
+                (seconds%60).toString().padStart(2,'0');
+        }, 1000);
+        animateWaveform();
+
+    }).catch(() => alert('Microphone access denied! Please allow microphone access.'));
+}
+
+function stopRecording(e) {
+    if (e) e.preventDefault();
+    if (!isRecording || !mediaRecorder) return;
+
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+    isRecording = false;
+    clearInterval(timerInterval);
+
+    holdBtn.classList.remove('active');
+    holdBtn.classList.add('loading');
+    holdBtn.disabled      = true;
+    holdIcon.className    = 'ti ti-loader';
+    holdLabel.textContent = 'Analyzing…';
+    holdTimer.style.display = 'none';
+    waveWrap.style.display  = 'none';
+    stopWaveform();
+}
+
+// ── Submit recording automatically ────────────────────────────
+async function submitRecording() {
+    if (!audioChunks.length) return;
 
     battleLocked = true;
-    gamePhase    = 'submitted';
-    attackBtn.style.display    = 'none';
-    rerecordBtn.style.display  = 'none';
-    audioPreview.style.display = 'none';
-    loadingWrap.style.display  = 'flex';
-    loadingText.textContent    = '🤖 AI is analyzing your reading…';
-    recBtn.disabled            = true;
-    recStatus.textContent      = '';
+    loadingWrap.style.display = 'flex';
+    loadingText.textContent   = '🤖 AI is analyzing your reading…';
 
-    const formData = new FormData();
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    const formData  = new FormData();
     formData.append('recording', new File([audioBlob], 'attack.webm', { type: 'audio/webm' }));
     formData.append('word_or_passage', currentWord);
     formData.append('_token', csrfToken);
@@ -1271,29 +1235,32 @@ attackBtn.addEventListener('click', async () => {
         const data = await res.json();
 
         loadingWrap.style.display = 'none';
+        holdBtn.classList.remove('loading');
 
-        // ── 1. Show AI score reveal ────────────────────────
+        // 1. Play score sound
+        playSound(soundForScore(data.ml_score));
+
+        // 2. Show score reveal
         await showScoreReveal(data);
 
-        // ── 2. Student aura ────────────────────────────────
+        // 3. Student aura
         applyStudentAura(data.ml_score);
 
-        // ── 3. Student attacks ─────────────────────────────
-        const style = data.ml_score !== null
-            ? pickAttackStyle(data.ml_score)
-            : pickRandom(ATTACK_STYLES);
+        // 4. Student attacks
+        const style = data.ml_score !== null ? pickAttackStyle(data.ml_score) : pickRandom(ATTACK_STYLES);
         await playStudentAttack(style);
 
-        // ── 4. Enemy gets hit ──────────────────────────────
+        // 5. Enemy gets hit
         playEnemyHit(data.damage, data.ml_score, style);
         updateEnemyHpBar(data.enemy_hp ?? 0, data.hp_percent ?? 0);
         updateStats(data);
         addHistory(data, currentWord);
         if (data.rounds_left !== undefined) updateRoundsLeft(data.rounds_left);
 
-        // ── 5. Win / Lose / Ongoing ────────────────────────
+        // 6. Win / Lose / Ongoing
         if (data.status === 'won') {
             setBattleMsg('🎉 Final blow landed!');
+            playSound('win');
             await delay(600);
             await playEnemyDefeat();
             setTimeout(() => showWin(data), 400);
@@ -1301,32 +1268,32 @@ attackBtn.addEventListener('click', async () => {
         } else if (data.status === 'lost') {
             showBattleMsg(data);
             await delay(600);
-            await playEnemyCounterAttack(true);
-            setTimeout(() => showLose(data), 800);
+            // Enemy does FINAL attack — depletes student HP fully
+            await playEnemyFinalBlow();
+            setTimeout(() => { playSound('lose'); showLose(data); }, 800);
 
         } else if (data.status === 'ongoing') {
             showBattleMsg(data);
             await delay(600);
-            // ── 6. Enemy counterattacks ────────────────────
+            // 7. Enemy counterattack with HP damage to student
             await playEnemyCounterAttack(false);
             await delay(400);
-            // ── 7. New word pumps up after enemy attacks ───
             moveToNext();
         } else {
             setBattleMsg('⏳ Recording submitted! Waiting for AI scoring…');
             battleLocked = false;
-            setTimeout(resetRec, 1500);
+            resetHoldBtn();
         }
 
     } catch(err) {
         loadingWrap.style.display = 'none';
+        holdBtn.classList.remove('loading');
         console.error(err);
         setBattleMsg('❌ Something went wrong. Try again!');
         battleLocked = false;
-        recBtn.disabled = false;
-        setTimeout(resetRec, 2000);
+        resetHoldBtn();
     }
-});
+}
 
 // ── Score reveal ───────────────────────────────────────────────
 function showScoreReveal(data) {
@@ -1355,14 +1322,14 @@ function showScoreReveal(data) {
     });
 }
 
-// ── Student attack animation ───────────────────────────────────
+// ── Student attack ─────────────────────────────────────────────
 function playStudentAttack(style) {
     return new Promise(resolve => {
         const wrap = document.getElementById('student-wrap');
         wrap.style.animation = 'none';
         void wrap.offsetWidth;
         wrap.style.animation = `${style.anim} ${style.dur}ms cubic-bezier(0.34,1.56,0.64,1) forwards`;
-        recStatus.textContent = `⚔️ ${style.name}!`;
+        setBattleMsg(`⚔️ ${style.name}!`);
         setTimeout(() => { wrap.style.animation = ''; resolve(); }, style.dur);
     });
 }
@@ -1403,7 +1370,7 @@ function playEnemyHit(damage, score, style) {
     setTimeout(() => floater.remove(), 1300);
 }
 
-// ── Enemy counterattack ────────────────────────────────────────
+// ── Enemy counterattack (mid-battle) ──────────────────────────
 function playEnemyCounterAttack(isFinal = false) {
     return new Promise(resolve => {
         const enemySprite   = document.getElementById('enemy-sprite');
@@ -1416,12 +1383,13 @@ function playEnemyCounterAttack(isFinal = false) {
         const word    = pickRandom(ENEMY_ATTACK_POOL);
         const dmgText = ['💢','😵','💫','🌀','😤'][Math.floor(Math.random()*5)];
 
-        // Step 1: Show enemy word bubble
-        bubble.textContent   = isFinal ? '🔥 FINAL BLOW!' : word;
+        // Enemy damage to student
+        const enemyDmg = calcEnemyDamage();
+
+        bubble.textContent   = word;
         bubble.style.display = 'block';
 
         setTimeout(() => {
-            // Step 2: Enemy charges
             enemySprite.style.animation = 'none';
             void enemySprite.offsetWidth;
             enemySprite.style.animation = `${style.anim} ${style.dur}ms cubic-bezier(0.34,1.56,0.64,1) forwards`;
@@ -1430,7 +1398,8 @@ function playEnemyCounterAttack(isFinal = false) {
         }, 300);
 
         setTimeout(() => {
-            // Step 3: Student takes hit
+            // Student takes damage
+            playSound('enemy_hit');
             studentSprite.style.animation = 'none';
             void studentSprite.offsetWidth;
             studentSprite.style.animation = 'studentHit 0.5s ease';
@@ -1440,8 +1409,12 @@ function playEnemyCounterAttack(isFinal = false) {
             void hpBg.offsetWidth;
             hpBg.classList.add('shake');
 
-            dmgInd.textContent   = dmgText;
-            dmgInd.style.display = 'block';
+            // Update student HP
+            updateStudentHpBar(studentCurrentHp - enemyDmg);
+
+            // Damage indicator on student
+            dmgInd.textContent     = `-${enemyDmg} ${dmgText}`;
+            dmgInd.style.display   = 'block';
             dmgInd.style.animation = 'none';
             void dmgInd.offsetWidth;
             dmgInd.style.animation = 'floatUp 1s ease forwards';
@@ -1455,12 +1428,74 @@ function playEnemyCounterAttack(isFinal = false) {
         }, style.dur * 0.55);
 
         setTimeout(() => {
-            // Step 4: Enemy retreats + bubble gone
             enemySprite.style.animation = '';
             enemySprite.style.filter    = 'drop-shadow(0 8px 6px rgba(0,0,0,.25))';
             bubble.style.display        = 'none';
             resolve();
         }, style.dur + 200);
+    });
+}
+
+// ── Enemy FINAL blow — depletes student HP fully ───────────────
+function playEnemyFinalBlow() {
+    return new Promise(async resolve => {
+        const enemySprite   = document.getElementById('enemy-sprite');
+        const studentSprite = document.getElementById('student-sprite');
+        const bubble        = document.getElementById('enemy-attack-bubble');
+        const hpBg          = document.getElementById('student-hp-bg');
+        const dmgInd        = document.getElementById('student-damage-indicator');
+
+        const style = pickRandom(ENEMY_ATTACK_STYLES);
+
+        bubble.textContent   = '🔥 FINAL BLOW!';
+        bubble.style.display = 'block';
+
+        await delay(400);
+
+        // Enemy charges with all styles back to back
+        for (let i = 0; i < 2; i++) {
+            const s = ENEMY_ATTACK_STYLES[i];
+            enemySprite.style.animation = 'none';
+            void enemySprite.offsetWidth;
+            enemySprite.style.animation = `${s.anim} ${s.dur}ms cubic-bezier(0.34,1.56,0.64,1) forwards`;
+            enemySprite.style.filter    = `drop-shadow(0 0 30px #FF5C5C)`;
+            await delay(s.dur * 0.5);
+        }
+
+        // Student takes full HP damage
+        playSound('enemy_hit');
+        studentSprite.style.animation = 'none';
+        void studentSprite.offsetWidth;
+        studentSprite.style.animation = 'studentHit 0.6s ease';
+        studentSprite.style.filter    = 'brightness(4) saturate(0)';
+
+        hpBg.classList.remove('shake');
+        void hpBg.offsetWidth;
+        hpBg.classList.add('shake');
+
+        // Drain HP to 0
+        const startHp = studentCurrentHp;
+        const steps   = 12;
+        for (let i = 1; i <= steps; i++) {
+            await delay(60);
+            updateStudentHpBar(Math.round(startHp * (1 - i / steps)));
+        }
+
+        dmgInd.textContent     = `💀 KO!`;
+        dmgInd.style.display   = 'block';
+        dmgInd.style.animation = 'none';
+        void dmgInd.offsetWidth;
+        dmgInd.style.animation = 'floatUp 1.2s ease forwards';
+
+        setTimeout(() => {
+            bubble.style.display        = 'none';
+            enemySprite.style.animation = '';
+            enemySprite.style.filter    = 'drop-shadow(0 8px 6px rgba(0,0,0,.25))';
+            studentSprite.style.filter  = 'drop-shadow(0 8px 6px rgba(0,0,0,.25))';
+            studentSprite.style.animation = '';
+            dmgInd.style.display = 'none';
+            resolve();
+        }, 1200);
     });
 }
 
@@ -1497,7 +1532,6 @@ function updateEnemyHpBar(newHp, hpPercent) {
     else                      bar.style.background = 'linear-gradient(180deg,#FF8A8A,#FF5C5C)';
 }
 
-// ── Stats ───────────────────────────────────────────────────────
 function updateStats(data) {
     const oldDmg = parseInt(document.getElementById('top-damage').textContent.replace(/,/g,''));
     const oldRnd = parseInt(document.getElementById('round-num').textContent);
@@ -1552,14 +1586,10 @@ function addHistory(data, word) {
     hist.insertBefore(div, hist.firstChild);
 }
 
-// ── Move to next round — NEW WORD PUMPS UP after enemy attack ──
 function moveToNext() {
-    // Mark current dot
     const idx = parseInt(document.getElementById('current-round-index').value);
     const dot  = document.getElementById(`dot-${idx}`);
     if (dot) { dot.style.background = '#57D67B'; dot.style.boxShadow = 'none'; }
-
-    // Reload page — server picks next word and starts countdown again
     window.location.reload();
 }
 
@@ -1579,20 +1609,13 @@ function showLose(data) {
     document.getElementById('lose-overlay').style.display = 'flex';
 }
 
-function resetRec() {
-    audioBlob                  = null;
-    battleLocked               = false;
-    recBtn.disabled            = false;
-    audioPreview.style.display = 'none';
-    rerecordBtn.style.display  = 'none';
-    attackBtn.style.display    = 'none';
-    recTimer.textContent       = '0:00';
-    recBtn.classList.remove('recording');
-    recIcon.className = 'ti ti-microphone';
-    stopWaveform();
+function resetHoldBtn() {
+    holdBtn.disabled      = false;
+    holdBtn.classList.remove('active','loading');
+    holdIcon.className    = 'ti ti-microphone';
+    holdLabel.textContent = 'Hold to record';
+    holdTimer.style.display = 'none';
 }
-
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ── Waveform ────────────────────────────────────────────────────
 function animateWaveform() {
@@ -1608,16 +1631,14 @@ function animateWaveform() {
 }
 function stopWaveform() {
     if (waveInterval) clearInterval(waveInterval);
-    wvBars.forEach(b => {
-        b.style.height     = '6px';
-        b.style.background = '#D9D0F2';
-    });
+    wvBars.forEach(b => { b.style.height = '6px'; b.style.background = '#D9D0F2'; });
 }
 
-// ── Auto-start countdown on page load ──────────────────────────
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Auto-start countdown ────────────────────────────────────────
 window.addEventListener('load', () => {
-    // Disable mic until countdown finishes
-    recBtn.disabled = true;
+    holdBtn.disabled = true;
     setTimeout(startCountdown, 600);
 });
 </script>

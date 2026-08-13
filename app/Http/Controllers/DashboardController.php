@@ -8,41 +8,54 @@ use App\Models\VoiceRecording;
 
 class DashboardController extends Controller
 {
-    public function teacherDashboard()
-    {
-        $teacher = auth()->user()->teacher;
+  public function teacherDashboard()
+{
+    $teacher  = auth()->user()->teacher;
+    $students = \App\Models\Student::where('teacher_id', $teacher->id)
+                ->with('activityResults')->get();
+    $total    = $students->count();
 
-        $totalStudents   = Student::where('teacher_id', $teacher->id)->count();
-        $activeToday     = Student::where('teacher_id', $teacher->id)
-                            ->whereDate('updated_at', today())->count();
-        $activitiesDone  = ActivityResult::whereHas('student', function($q) use ($teacher) {
-                            $q->where('teacher_id', $teacher->id);
-                           })->whereBetween('completed_at', [now()->startOfWeek(), now()->endOfWeek()])->count();
-        $pendingReviews  = VoiceRecording::where('status', 'pending')
-                            ->whereHas('student', function($q) use ($teacher) {
-                                $q->where('teacher_id', $teacher->id);
-                            })->count();
+    // Metric cards
+    $activeToday    = 0; // update if you track logins
+    $activitiesDone = \App\Models\ActivityResult::whereHas('student',
+                      fn($q) => $q->where('teacher_id', $teacher->id))
+                      ->whereBetween('completed_at', [now()->startOfWeek(), now()->endOfWeek()])
+                      ->count();
+    $pendingReviews = \App\Models\VoiceRecording::whereHas('student',
+                      fn($q) => $q->where('teacher_id', $teacher->id))
+                      ->where('status', 'pending')->count();
 
-        $students = Student::where('teacher_id', $teacher->id)
-                    ->with('activityResults')
-                    ->latest()->take(5)->get();
+    // Status breakdown
+    $onTrack   = $students->filter(fn($s) =>
+                     ($s->activityResults->avg('score') ?? 0) >= 75)->count();
+    $needsHelp = $students->filter(fn($s) =>
+                     ($s->activityResults->avg('score') ?? 0) >= 50 &&
+                     ($s->activityResults->avg('score') ?? 0) < 75)->count();
+    $struggling= $students->filter(fn($s) =>
+                     ($s->activityResults->avg('score') ?? 0) < 50)->count();
 
-        $recentActivity = ActivityResult::with(['student', 'activity'])
-                    ->whereHas('student', function($q) use ($teacher) {
-                        $q->where('teacher_id', $teacher->id);
-                    })->latest('completed_at')->take(5)->get();
+    // Skill breakdown
+    $evaluations = \App\Models\Evaluation::whereHas('voiceRecording',
+                   fn($q) => $q->whereHas('student',
+                       fn($q2) => $q2->where('teacher_id', $teacher->id)))->get();
 
-        $pendingRecordings = VoiceRecording::with(['student', 'activity'])
-                    ->where('status', 'pending')
-                    ->whereHas('student', function($q) use ($teacher) {
-                        $q->where('teacher_id', $teacher->id);
-                    })->latest()->take(5)->get();
+    $skills = [
+        'Pronunciation' => round($evaluations->avg('pronunciation_score') * 20 ?? 0, 1),
+        'Fluency'       => round($evaluations->avg('fluency_score')       * 20 ?? 0, 1),
+        'Accuracy'      => round($evaluations->avg('accuracy_score')      * 20 ?? 0, 1),
+        'Comprehension' => round($evaluations->avg('comprehension_score') * 20 ?? 0, 1),
+    ];
 
-        return view('teacher.dashboard', compact(
-            'totalStudents', 'activeToday', 'activitiesDone',
-            'pendingReviews', 'students', 'recentActivity', 'pendingRecordings'
-        ));
-    }
+    // Top students
+    $topStudents = $students->sortByDesc('total_points')->take(5);
+
+    return view('teacher.dashboard', compact(
+        'teacher', 'students', 'total',
+        'activeToday', 'activitiesDone', 'pendingReviews',
+        'onTrack', 'needsHelp', 'struggling',
+        'skills', 'topStudents'
+    ));
+}
 
     public function studentDashboard()
 {

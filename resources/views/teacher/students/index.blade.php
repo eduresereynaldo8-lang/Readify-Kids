@@ -176,10 +176,21 @@
         </tbody>
     </table>
 
-    {{-- Row count --}}
-    <div class="d-flex justify-content-between align-items-center mt-2"
-         style="font-size:11px;color:#9CA3AF;">
-        <span id="row-count">Showing {{ $students->count() }} students</span>
+{{-- Pagination footer --}}
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3">
+        <div class="d-flex align-items-center gap-2" style="font-size:12px;color:#6b7280;">
+            <span>Rows per page:</span>
+            <select id="perPage" class="form-select form-select-sm" style="width:70px;" onchange="changePerPage(this.value)">
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+            <span id="pageInfo">Showing 0–0 of 0</span>
+        </div>
+        <nav aria-label="Student table pagination">
+            <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+        </nav>
     </div>
 </div>
 
@@ -187,15 +198,18 @@
 
 @push('scripts')
 <script>
-function filterTable() {
+let currentPage = 1;
+let perPage = 10;
+
+function getVisibleRows() {
     const search  = document.getElementById('searchInput').value.toLowerCase();
     const section = document.getElementById('sectionFilter').value;
     const level   = document.getElementById('levelFilter').value;
     const status  = document.getElementById('statusFilter').value;
-    const rows    = document.querySelectorAll('#studentTable tbody tr');
 
-    let visible = 0;
-    rows.forEach(row => {
+    const rows = [];
+    document.querySelectorAll('#studentTable tbody tr').forEach(row => {
+        if (row.id === 'noResultsRow') return;
         const name    = row.cells[0]?.textContent.toLowerCase() ?? '';
         const id      = row.cells[1]?.textContent.toLowerCase() ?? '';
         const rowSec  = row.dataset.section ?? '';
@@ -207,13 +221,93 @@ function filterTable() {
         const matchLevel   = level   === '' || rowLvl === level;
         const matchStatus  = status  === '' || rowStat === status;
 
-        const show = matchSearch && matchSection && matchLevel && matchStatus;
-        row.style.display = show ? '' : 'none';
-        if (show) visible++;
+        if (matchSearch && matchSection && matchLevel && matchStatus) rows.push(row);
+    });
+    return rows;
+}
+
+function filterTable() {
+    currentPage = 1;
+    paginate();
+}
+
+function changePerPage(value) {
+    perPage = parseInt(value, 10) || 10;
+    currentPage = 1;
+    paginate();
+}
+
+function paginate() {
+    const rows = getVisibleRows();
+    const tbody = document.querySelector('#studentTable tbody');
+    const total = rows.length;
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const start = (currentPage - 1) * perPage;
+    const end = Math.min(start + perPage, total);
+
+    // Hide all rows first
+    tbody.querySelectorAll('tr').forEach(row => {
+        row.style.display = 'none';
     });
 
-    document.getElementById('row-count').textContent =
-        `Showing ${visible} student${visible !== 1 ? 's' : ''}`;
+    // Show rows for the current page
+    for (let i = start; i < end; i++) {
+        rows[i].style.display = '';
+    }
+
+    // Handle no-results message
+    let noResults = tbody.querySelector('#noResultsRow');
+    if (total === 0) {
+        if (!noResults) {
+            noResults = document.createElement('tr');
+            noResults.id = 'noResultsRow';
+            noResults.innerHTML = '<td colspan="8" class="text-center text-muted py-4">No students match your filters.</td>';
+            tbody.appendChild(noResults);
+        }
+        noResults.style.display = '';
+    } else if (noResults) {
+        noResults.style.display = 'none';
+    }
+
+    // Update info text
+    document.getElementById('pageInfo').textContent =
+        total === 0 ? 'Showing 0–0 of 0' : `Showing ${start + 1}–${end} of ${total}`;
+
+    renderPaginationButtons(totalPages, total);
 }
+
+function renderPaginationButtons(totalPages, total) {
+    const ul = document.getElementById('pagination');
+    ul.innerHTML = '';
+    if (total === 0) return;
+
+    // Prev button
+    const prev = document.createElement('li');
+    prev.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+    prev.innerHTML = `<a class="page-link" href="#">«</a>`;
+    prev.onclick = (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; paginate(); } };
+    ul.appendChild(prev);
+
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = 'page-item' + (i === currentPage ? ' active' : '');
+        li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+        li.onclick = (e) => { e.preventDefault(); currentPage = i; paginate(); };
+        ul.appendChild(li);
+    }
+
+    // Next button
+    const next = document.createElement('li');
+    next.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+    next.innerHTML = `<a class="page-link" href="#">»</a>`;
+    next.onclick = (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; paginate(); } };
+    ul.appendChild(next);
+}
+
+// Initial render
+paginate();
 </script>
 @endpush

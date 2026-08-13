@@ -44,9 +44,9 @@
     <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <div class="d-flex gap-2 flex-wrap">
             <button class="btn btn-sm btn-primary tab-btn" data-type="">All</button>
-            <button class="btn btn-sm btn-outline-secondary tab-btn" data-type="Phonics">Phonics</button>
+            
             <button class="btn btn-sm btn-outline-secondary tab-btn" data-type="Read Aloud">Read Aloud</button>
-            <button class="btn btn-sm btn-outline-secondary tab-btn" data-type="Vocabulary">Vocabulary</button>
+            
             <button class="btn btn-sm btn-outline-secondary tab-btn" data-type="Word Game">Word Game</button>
         </div>
         <div class="d-flex gap-2 align-items-center">
@@ -142,7 +142,7 @@
                     </div>
                 </td>
             </tr>
-            @empty
+@empty
             <tr>
                 <td colspan="9" class="text-center text-muted py-4">
                     No activities yet. <a href="{{ route('teacher.activities.create') }}">Create your first activity →</a>
@@ -151,12 +151,31 @@
             @endforelse
         </tbody>
     </table>
+
+    {{-- Pagination footer --}}
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3">
+        <div class="d-flex align-items-center gap-2" style="font-size:12px;color:#6b7280;">
+            <span>Rows per page:</span>
+            <select id="perPage" class="form-select form-select-sm" style="width:70px;" onchange="changePerPage(this.value)">
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+            <span id="pageInfo">Showing 0–0 of 0</span>
+        </div>
+        <nav aria-label="Activity table pagination">
+            <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+        </nav>
+    </div>
 </div>
 @endsection
 
 @push('scripts')
 <script>
 let activeType = '';
+let currentPage = 1;
+let perPage = 10;
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -171,11 +190,14 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
-function filterTable() {
+function getVisibleRows() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const level  = document.getElementById('levelFilter').value;
     const diff   = document.getElementById('diffFilter').value;
+
+    const rows = [];
     document.querySelectorAll('#activityTable tbody tr').forEach(row => {
+        if (row.id === 'noResultsRow') return;
         const title = row.cells[0]?.textContent.toLowerCase() ?? '';
         const type  = row.dataset.type ?? '';
         const lvl   = row.cells[2]?.textContent.trim() ?? '';
@@ -184,8 +206,93 @@ function filterTable() {
         const matchType   = activeType === '' || type === activeType;
         const matchLevel  = level === '' || lvl.includes(level);
         const matchDiff   = diff === '' || d.includes(diff);
-        row.style.display = matchSearch && matchType && matchLevel && matchDiff ? '' : 'none';
+        if (matchSearch && matchType && matchLevel && matchDiff) rows.push(row);
     });
+    return rows;
 }
+
+function filterTable() {
+    currentPage = 1;
+    paginate();
+}
+
+function changePerPage(value) {
+    perPage = parseInt(value, 10) || 10;
+    currentPage = 1;
+    paginate();
+}
+
+function paginate() {
+    const rows = getVisibleRows();
+    const tbody = document.querySelector('#activityTable tbody');
+    const total = rows.length;
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const start = (currentPage - 1) * perPage;
+    const end = Math.min(start + perPage, total);
+
+    // Hide all rows first
+    tbody.querySelectorAll('tr').forEach(row => {
+        row.style.display = 'none';
+    });
+
+    // Show rows for the current page
+    for (let i = start; i < end; i++) {
+        rows[i].style.display = '';
+    }
+
+    // Handle no-results message
+    let noResults = tbody.querySelector('#noResultsRow');
+    if (total === 0) {
+        if (!noResults) {
+            noResults = document.createElement('tr');
+            noResults.id = 'noResultsRow';
+            noResults.innerHTML = '<td colspan="9" class="text-center text-muted py-4">No activities match your filters.</td>';
+            tbody.appendChild(noResults);
+        }
+        noResults.style.display = '';
+    } else if (noResults) {
+        noResults.style.display = 'none';
+    }
+
+    // Update info text
+    document.getElementById('pageInfo').textContent =
+        total === 0 ? 'Showing 0–0 of 0' : `Showing ${start + 1}–${end} of ${total}`;
+
+    renderPaginationButtons(totalPages, total);
+}
+
+function renderPaginationButtons(totalPages, total) {
+    const ul = document.getElementById('pagination');
+    ul.innerHTML = '';
+    if (total === 0) return;
+
+    // Prev button
+    const prev = document.createElement('li');
+    prev.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+    prev.innerHTML = `<a class="page-link" href="#">«</a>`;
+    prev.onclick = (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; paginate(); } };
+    ul.appendChild(prev);
+
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = 'page-item' + (i === currentPage ? ' active' : '');
+        li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+        li.onclick = (e) => { e.preventDefault(); currentPage = i; paginate(); };
+        ul.appendChild(li);
+    }
+
+    // Next button
+    const next = document.createElement('li');
+    next.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+    next.innerHTML = `<a class="page-link" href="#">»</a>`;
+    next.onclick = (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; paginate(); } };
+    ul.appendChild(next);
+}
+
+// Initial render
+paginate();
 </script>
 @endpush
