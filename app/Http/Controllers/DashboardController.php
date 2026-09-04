@@ -57,11 +57,11 @@ class DashboardController extends Controller
     ));
 }
 
-    public function studentDashboard()
+   public function studentDashboard()
 {
     $student = auth()->user()->student;
 
-    // Activities assigned to student's level that are published (scoped to student's teacher)
+    // Activities assigned to student's level that are published
     $activities = \App\Models\Activity::where('is_published', true)
                   ->where('teacher_id', $student->teacher_id)
                   ->where('level', '<=', $student->current_level)
@@ -77,31 +77,70 @@ class DashboardController extends Controller
 
     $badgesEarned = \App\Models\StudentBadge::where('student_id', $student->id)->count();
 
-    // Leaderboard — classmates ranked by points
+    // Leaderboard
     $leaderboard = \App\Models\Student::where('teacher_id', $student->teacher_id)
                    ->orderByDesc('total_points')->take(5)->get();
 
-    // Streak (days in a row with a completed activity)
+    // Streak
     $streak = 0;
-    $date = now()->startOfDay();
     for ($i = 0; $i < 30; $i++) {
         $hasActivity = \App\Models\ActivityResult::where('student_id', $student->id)
-            ->whereDate('completed_at', $date->copy()->subDays($i))->exists();
+            ->whereDate('completed_at', now()->startOfDay()->subDays($i))->exists();
         if ($hasActivity) $streak++;
         else break;
     }
 
-    // Points needed for next level
-    $nextLevelPoints = ($student->current_level) * 500;
-    $xpPercent = min(100, round(($student->total_points / $nextLevelPoints) * 100));
+    // XP / level
+    $nextLevelPoints = $student->current_level * 500;
+    $xpPercent       = min(100, round(($student->total_points / max(1, $nextLevelPoints)) * 100));
+
+    // ── Badges ────────────────────────────────────────────────
+    $allBadges    = \App\Models\Badge::all();
+    $earnedBadges = \App\Models\StudentBadge::where('student_id', $student->id)
+                    ->with('badge')->latest('earned_at')->get();
+    $earnedIds    = $earnedBadges->pluck('badge_id')->toArray();
+
+    // ── Trophy (leaderboard rank) ─────────────────────────────
+    $allClassmates = \App\Models\Student::where('teacher_id', $student->teacher_id)
+                     ->orderByDesc('total_points')->get();
+    $myRank        = $allClassmates->search(fn($s) => $s->id === $student->id) + 1;
+    $trophy        = match(true) {
+        $myRank === 1 && $allClassmates->count() > 1
+            => ['icon' => '🥇', 'label' => 'Gold Trophy',   'color' => '#F59E0B'],
+        $myRank === 2
+            => ['icon' => '🥈', 'label' => 'Silver Trophy', 'color' => '#9CA3AF'],
+        $myRank === 3
+            => ['icon' => '🥉', 'label' => 'Bronze Trophy', 'color' => '#CD7C0A'],
+        default => null,
+    };
+
+    // ── Day streak update + badge check ───────────────────────
+    $today     = now()->toDateString();
+    $yesterday = now()->subDay()->toDateString();
+    if ($student->last_active !== $today) {
+        if ($student->last_active === $yesterday) {
+            $student->increment('day_streak');
+        } else {
+            $student->update(['day_streak' => 1]);
+        }
+        $student->update(['last_active' => $today]);
+        $student->refresh();
+        \App\Services\BadgeService::checkAndAward($student);
+        // Refresh earned badges after potential new awards
+        $earnedBadges = \App\Models\StudentBadge::where('student_id', $student->id)
+                        ->with('badge')->latest('earned_at')->get();
+        $earnedIds    = $earnedBadges->pluck('badge_id')->toArray();
+        $badgesEarned = $earnedBadges->count();
+    }
 
     return view('student.dashboard', compact(
         'student', 'activities', 'results',
         'activitiesDone', 'badgesEarned', 'leaderboard',
-        'streak', 'nextLevelPoints', 'xpPercent'
+        'streak', 'nextLevelPoints', 'xpPercent',
+        'allBadges', 'earnedBadges', 'earnedIds',
+        'myRank', 'trophy'
     ));
 }
-
     public function progress()
 {
     $teacher  = auth()->user()->teacher;

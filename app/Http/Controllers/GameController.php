@@ -173,38 +173,50 @@ class GameController extends Controller
         $hpPercent  = round(($newHp / $session->enemy_max_hp) * 100);
         $roundsLeft = $totalWords - $newRoundsPlayed;
 
-        // ── WIN ───────────────────────────────────────────────
-        if ($newHp <= 0) {
-            $pointsEarned = $session->activity->points_reward;
-            $session->update([
-                'status'        => 'won',
-                'points_earned' => $pointsEarned,
-            ]);
-            $student->increment('total_points', $pointsEarned);
+       // ── WIN ───────────────────────────────────────────────────────
+if ($newHp <= 0) {
+    $pointsEarned = $session->activity->points_reward;
 
-            \App\Models\ActivityResult::updateOrCreate(
-                [
-                    'student_id'  => $student->id,
-                    'activity_id' => $session->activity_id,
-                ],
-                [
-                    'score'        => min(100, round(($session->total_damage / $session->enemy_max_hp) * 100, 1)),
-                    'status'       => 'completed',
-                    'completed_at' => now(),
-                ]
-            );
+    $session->update([
+        'status'        => 'won',
+        'points_earned' => $pointsEarned,
+    ]);
 
-            return response()->json([
-                'status'     => 'won',
-                'ml_score'   => $mlScore,
-                'transcript' => $transcript,
-                'damage'     => $damage,
-                'enemy_hp'   => 0,
-                'hp_percent' => 0,
-                'points'     => $pointsEarned,
-                'message'    => '🎉 You defeated the ' . $session->enemy->name . '!',
-            ]);
-        }
+    $student->increment('total_points', $pointsEarned);
+
+    // Save activity result
+    \App\Models\ActivityResult::updateOrCreate(
+        [
+            'student_id'  => $student->id,
+            'activity_id' => $session->activity_id,
+        ],
+        [
+            'score'        => min(100, round(
+                ($session->total_damage / $session->enemy_max_hp) * 100, 1
+            )),
+            'status'       => 'completed',
+            'completed_at' => now(),
+        ]
+    );
+
+    // ── Award badges ──────────────────────────────────────────
+    $newBadges = \App\Services\BadgeService::checkAndAward($student);
+
+    return response()->json([
+        'status'      => 'won',
+        'ml_score'    => $mlScore,
+        'transcript'  => $transcript,
+        'damage'      => $damage,
+        'enemy_hp'    => 0,
+        'hp_percent'  => 0,
+        'points'      => $pointsEarned,
+        'new_badges'  => collect($newBadges)->map(fn($b) => [
+            'name' => $b->badge_name,
+            'icon' => $b->badge_icon,
+        ])->values(),
+        'message'     => '🎉 You defeated the ' . $session->enemy->name . '!',
+    ]);
+}
 
         // ── LOSE — no rounds left and enemy still alive ───────
         if ($newRoundsPlayed >= $totalWords) {

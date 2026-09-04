@@ -5,10 +5,21 @@ use Illuminate\Database\Eloquent\Model;
 class Badge extends Model
 {
     protected $fillable = [
-        'badge_name', 'description', 'badge_icon', 'criteria'
+        'badge_name',
+        'description',
+        'badge_icon',
+        'criteria',
     ];
 
-    public function studentBadges() {
+    public function studentBadges()
+    {
         return $this->hasMany(StudentBadge::class);
+    }
+
+    public function students()
+    {
+        return $this->belongsToMany(Student::class, 'student_badges')
+                    ->withPivot('earned_at')
+                    ->withTimestamps();
     }
 }

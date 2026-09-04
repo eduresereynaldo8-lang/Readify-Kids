@@ -54,7 +54,7 @@
 ## 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Readify-Kids.git
+git clone https://github.com/eduresereynaldo8-lang/Readify-Kids.git
 cd Readify-Kids
 ```
 

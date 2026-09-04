@@ -43,33 +43,72 @@ class AdminController extends Controller
         ));
     }
 
-    // All teachers
-    public function teachers()
-    {
-        $teachers = Teacher::with(['user', 'students', 'activities'])
-                    ->latest()->get();
+   // All teachers
+public function teachers(Request $request)
+{
+    $search   = $request->input('search');
+    $status   = $request->input('status');
 
-        return view('admin.teachers', compact('teachers'));
-    }
+    $teachers = Teacher::with(['user', 'students', 'activities'])
+                ->when($search, fn($q) => $q->where(function($q) use ($search) {
+                    $q->where('firstname',   'like', "%{$search}%")
+                      ->orWhere('lastname',  'like', "%{$search}%")
+                      ->orWhere('school_name','like', "%{$search}%")
+                      ->orWhereHas('user',   fn($q) => $q->where('email','like',"%{$search}%"));
+                }))
+                ->when($status === 'active',   fn($q) => $q->whereHas('user', fn($q) => $q->whereNotNull('email_verified_at')))
+                ->when($status === 'inactive', fn($q) => $q->whereHas('user', fn($q) => $q->whereNull('email_verified_at')))
+                ->latest()
+                ->paginate(10)
+                ->withQueryString();
 
-    // All students
-    public function students()
-    {
-        $students = Student::with(['teacher', 'activityResults'])
-                    ->latest()->get();
+    return view('admin.teachers', compact('teachers', 'search', 'status'));
+}
 
-        return view('admin.students', compact('students'));
-    }
+// All students
+public function students(Request $request)
+{
+    $search  = $request->input('search');
+    $level   = $request->input('level');
 
-    // All activities
-    public function activities()
-    {
-        $activities = Activity::with(['teacher'])
-                      ->latest()->get();
+    $students = Student::with(['teacher', 'activityResults'])
+                ->when($search, fn($q) => $q->where(function($q) use ($search) {
+                    $q->where('firstname',      'like', "%{$search}%")
+                      ->orWhere('lastname',     'like', "%{$search}%")
+                      ->orWhere('student_number','like', "%{$search}%")
+                      ->orWhere('section',      'like', "%{$search}%");
+                }))
+                ->when($level, fn($q) => $q->where('current_level', $level))
+                ->latest()
+                ->paginate(10)
+                ->withQueryString();
 
-        return view('admin.activities', compact('activities'));
-    }
+    return view('admin.students', compact('students', 'search', 'level'));
+}
 
+// All activities
+public function activities(Request $request)
+{
+    $search = $request->input('search');
+    $type   = $request->input('type');
+    $status = $request->input('status');
+
+    $activities = Activity::with(['teacher'])
+                  ->when($search, fn($q) => $q->where('activity_name', 'like', "%{$search}%")
+                                              ->orWhere('description',  'like', "%{$search}%"))
+                  ->when($type,   fn($q) => $q->where('activity_type', $type))
+                  ->when($status === 'published', fn($q) => $q->where('is_published', true))
+                  ->when($status === 'draft',     fn($q) => $q->where('is_published', false))
+                  ->when($status === 'battle',    fn($q) => $q->where('battle_mode',  true))
+                  ->latest()
+                  ->paginate(10)
+                  ->withQueryString();
+
+    // Get all unique types for filter dropdown
+    $types = Activity::select('activity_type')->distinct()->pluck('activity_type');
+
+    return view('admin.activities', compact('activities', 'search', 'type', 'status', 'types'));
+}
     // Toggle teacher active/inactive
     public function toggleTeacher($id)
     {

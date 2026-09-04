@@ -95,6 +95,9 @@ class EvaluationController extends Controller
         $student->increment('total_points', $recording->activity->points_reward);
         $student->checkAndUpdateLevel();
 
+// After $student->increment('total_points', ...) or wherever you finalize the eval
+\App\Services\BadgeService::checkAndAward($recording->student);
+
         return redirect()->route('teacher.evaluations.index')
                ->with('success', 'Evaluation saved successfully! Student has been notified.');
     }

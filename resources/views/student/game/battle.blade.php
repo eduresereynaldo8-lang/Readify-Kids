@@ -1594,11 +1594,17 @@ function moveToNext() {
 }
 
 function showWin(data) {
-    document.getElementById('win-msg').textContent  = data.message;
-    document.getElementById('win-pts').textContent  = `+${data.points} ⭐ pts!`;
+    document.getElementById('win-msg').textContent = data.message;
+    document.getElementById('win-pts').textContent = `+${data.points} ⭐ pts!`;
     if (data.transcript)
-        document.getElementById('win-transcript').textContent = `🎙️ Last read: "${data.transcript}"`;
+        document.getElementById('win-transcript').textContent =
+            `🎙️ Last read: "${data.transcript}"`;
     document.getElementById('win-overlay').style.display = 'flex';
+
+    // Show badge notifications if any were earned
+    if (data.new_badges && data.new_badges.length > 0) {
+        showBadgeNotifications(data.new_badges);
+    }
 }
 
 function showLose(data) {
@@ -1640,7 +1646,75 @@ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 window.addEventListener('load', () => {
     holdBtn.disabled = true;
     setTimeout(startCountdown, 600);
+
+
 });
+
+function showBadgeNotifications(badges) {
+    if (!badges || badges.length === 0) return;
+
+    const wrap = document.getElementById('badge-notif-wrap');
+    wrap.innerHTML = '';
+    wrap.style.display = 'flex';
+
+    badges.forEach((badge, i) => {
+        const div = document.createElement('div');
+        div.style.cssText = `
+            background: var(--cream);
+            border: 4px solid var(--gold);
+            border-radius: 16px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 6px 0 rgba(0,0,0,.15);
+            animation: badgeSlideIn 0.5s ${i * 0.2}s cubic-bezier(0.34,1.56,0.64,1) both;
+            min-width: 220px;
+        `;
+        div.innerHTML = `
+            <span style="font-size:36px;line-height:1;">${badge.icon}</span>
+            <div>
+                <div style="font-size:10px;font-family:'Baloo 2',sans-serif;
+                            font-weight:700;color:var(--gold-dark);
+                            text-transform:uppercase;letter-spacing:.06em;">
+                    🏅 Badge Earned!
+                </div>
+                <div style="font-size:15px;font-family:'Baloo 2',sans-serif;
+                            font-weight:800;color:var(--panel);">
+                    ${badge.name}
+                </div>
+            </div>
+        `;
+        wrap.appendChild(div);
+    });
+
+    // Auto dismiss after 4 seconds
+    setTimeout(() => {
+        wrap.style.animation = 'badgeSlideOut 0.4s ease forwards';
+        setTimeout(() => {
+            wrap.style.display = 'none';
+            wrap.style.animation = '';
+        }, 400);
+    }, 4000);
+}
 </script>
+
+{{-- Badge earned notification --}}
+<div id="badge-notif-wrap"
+     style="position:fixed;top:20px;right:20px;
+            z-index:99998;display:none;
+            flex-direction:column;gap:8px;">
+</div>
+
+<style>
+@keyframes badgeSlideIn {
+    from { opacity:0; transform:translateX(120px) scale(0.9); }
+    to   { opacity:1; transform:translateX(0) scale(1); }
+}
+@keyframes badgeSlideOut {
+    from { opacity:1; transform:translateX(0); }
+    to   { opacity:0; transform:translateX(120px); }
+}
+</style>
 </body>
 </html>

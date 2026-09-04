@@ -3,6 +3,13 @@ import whisper
 import difflib
 import os
 import tempfile
+import os
+import sys
+
+# Tell Whisper where to find ffmpeg
+# If ffmpeg is installed globally this line is not needed
+# If ffmpeg.exe is in the ml_api folder use this:
+os.environ["PATH"] += os.pathsep + os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
 

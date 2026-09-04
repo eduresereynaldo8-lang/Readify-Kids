@@ -26,9 +26,17 @@ class Student extends Model
         return $this->hasMany(VoiceRecording::class);
     }
 
-    public function badges() {
-        return $this->hasMany(StudentBadge::class);
-    }
+    public function badges()
+{
+    return $this->belongsToMany(Badge::class, 'student_badges')
+                ->withPivot('earned_at')
+                ->withTimestamps();
+}
+
+public function studentBadges()
+{
+    return $this->hasMany(StudentBadge::class);
+}
 
     public function rewards() {
         return $this->hasMany(StudentReward::class);

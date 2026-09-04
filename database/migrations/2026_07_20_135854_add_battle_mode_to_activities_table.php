@@ -9,12 +9,12 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::table('activities', function (Blueprint $table) {
-            //
-        });
-    }
+  public function up(): void
+{
+    Schema::table('activities', function (Blueprint $table) {
+        $table->boolean('battle_mode')->default(false)->after('adaptive_difficulty');
+    });
+}
 
     /**
      * Reverse the migrations.

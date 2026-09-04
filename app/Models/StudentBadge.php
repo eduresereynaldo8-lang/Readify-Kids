@@ -4,13 +4,23 @@ use Illuminate\Database\Eloquent\Model;
 
 class StudentBadge extends Model
 {
-    protected $fillable = ['student_id', 'badge_id', 'awarded_at'];
+    protected $fillable = [
+        'student_id',
+        'badge_id',
+        'earned_at',
+    ];
 
-    public function student() {
+    protected $casts = [
+        'earned_at' => 'datetime',
+    ];
+
+    public function student()
+    {
         return $this->belongsTo(Student::class);
     }
 
-    public function badge() {
+    public function badge()
+    {
         return $this->belongsTo(Badge::class);
     }
 }
