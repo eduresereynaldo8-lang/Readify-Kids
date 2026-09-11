@@ -2,8 +2,8 @@
 ml_api.py
 ==========
 Readify Kids — ML Scoring API
-Model: Local Whisper Small (runs on your PC)
-No API key needed — zero cost!
+Primary  : OpenAI Whisper API (whisper-1)
+Fallback : Local Whisper Small model
 """
 
 from flask import Flask, request, jsonify
@@ -12,34 +12,42 @@ from dotenv import load_dotenv
 import difflib
 import os
 import subprocess
-import sys
+import time
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# ── Add local ffmpeg to PATH ───────────────────────────────────
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-os.environ['PATH'] = BASE_DIR + os.pathsep + os.environ.get('PATH', '')
+# ── OpenAI client ──────────────────────────────────────────────
+import openai
+openai.api_key = os.environ.get('OPENAI_API_KEY')
 
-# ── Load Whisper Small at startup ──────────────────────────────
-print('Loading Whisper Small model...')
-import whisper
-model = whisper.load_model('small')
-print('Whisper Small loaded successfully!')
+# ── Local Whisper fallback ─────────────────────────────────────
+local_model = None
+
+def get_local_model():
+    global local_model
+    if local_model is None:
+        print('Loading local Whisper Small model as fallback...')
+        import whisper
+        local_model = whisper.load_model('small')
+        print('Local Whisper Small loaded.')
+    return local_model
+
+# ── ffmpeg path ────────────────────────────────────────────────
+BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+FFMPEG_PATH = os.path.join(BASE_DIR, 'ffmpeg.exe') \
+              if os.path.exists(os.path.join(BASE_DIR, 'ffmpeg.exe')) \
+              else 'ffmpeg'
 
 # ─────────────────────────────────────────────────────────────
 def convert_to_wav(input_path: str) -> str:
-    """Convert any audio to 16kHz mono WAV for Whisper."""
+    """Convert any audio format to 16kHz mono WAV."""
     output_path = input_path.rsplit('.', 1)[0] + '_converted.wav'
-    ffmpeg_path = os.path.join(BASE_DIR, 'ffmpeg.exe')
-    if not os.path.exists(ffmpeg_path):
-        ffmpeg_path = 'ffmpeg'
-
     try:
         result = subprocess.run([
-            ffmpeg_path,
+            FFMPEG_PATH,
             '-i', input_path,
             '-ar', '16000',
             '-ac', '1',
@@ -48,7 +56,7 @@ def convert_to_wav(input_path: str) -> str:
         ], capture_output=True, text=True)
 
         if result.returncode == 0 and os.path.exists(output_path):
-            print(f'Converted : {output_path}')
+            print(f'Converted to WAV: {output_path}')
             return output_path
         else:
             print(f'FFmpeg error: {result.stderr}')
@@ -58,8 +66,66 @@ def convert_to_wav(input_path: str) -> str:
         return input_path
 
 
+def transcribe_with_api(audio_path: str) -> str:
+    """Transcribe using OpenAI Whisper API (whisper-1)."""
+    with open(audio_path, 'rb') as audio_file:
+        response = openai.audio.transcriptions.create(
+            model='whisper-1',
+            file=audio_file,
+            language='en',
+        )
+    if hasattr(response, 'text'):
+        return response.text.strip()
+    return str(response).strip()
+
+
+def transcribe_with_local(audio_path: str) -> str:
+    """Transcribe using local Whisper Small model."""
+    model  = get_local_model()
+    result = model.transcribe(audio_path, language='en', fp16=False)
+    return result['text'].strip()
+
+
+def transcribe_audio(audio_path: str) -> tuple:
+    """
+    Try OpenAI API first.
+    Fall back to local Whisper Small if rate limited or API unavailable.
+    Returns (transcript, method_used)
+    """
+    # ── Try OpenAI API ────────────────────────────────────────
+    if os.environ.get('OPENAI_API_KEY'):
+        for attempt in range(2):
+            try:
+                print(f'Trying OpenAI API (attempt {attempt + 1})...')
+                transcript = transcribe_with_api(audio_path)
+                print(f'OpenAI API success.')
+                return transcript, 'openai-whisper-1'
+
+            except openai.RateLimitError:
+                print(f'Rate limit hit on attempt {attempt + 1}.')
+                if attempt == 0:
+                    print('Waiting 15 seconds before retry...')
+                    time.sleep(15)
+                else:
+                    print('Rate limit persists. Falling back to local model.')
+                    break
+
+            except openai.AuthenticationError:
+                print('Invalid API key. Falling back to local model.')
+                break
+
+            except Exception as e:
+                print(f'API error: {e}. Falling back to local model.')
+                break
+
+    # ── Fallback to local Whisper Small ──────────────────────
+    print('Using local Whisper Small model...')
+    transcript = transcribe_with_local(audio_path)
+    return transcript, 'local-whisper-small'
+
+
 def compute_score(transcript: str, expected: str) -> float:
-    """Compute similarity score 0–100 using SequenceMatcher."""
+    """Compute similarity score 0-100 using SequenceMatcher."""
     transcript_clean = transcript.lower().strip()
     expected_clean   = expected.lower().strip()
     if not expected_clean:
@@ -71,7 +137,7 @@ def compute_score(transcript: str, expected: str) -> float:
 
 
 def compute_word_accuracy(transcript: str, expected: str) -> dict:
-    """Word-level breakdown: correct, missed, wrong words."""
+    """Word-level breakdown of correct, missed, and wrong words."""
     expected_words   = expected.lower().strip().split()
     transcript_words = transcript.lower().strip().split()
     correct  = [w for w in expected_words if w in transcript_words]
@@ -92,10 +158,12 @@ def compute_word_accuracy(transcript: str, expected: str) -> dict:
 # ─────────────────────────────────────────────────────────────
 @app.route('/health', methods=['GET'])
 def health():
+    api_key_set = bool(os.environ.get('OPENAI_API_KEY'))
     return jsonify({
-        'status'  : 'ok',
-        'model'   : 'local-whisper-small',
-        'message' : 'Readify Kids ML API is running!',
+        'status'      : 'ok',
+        'model'       : 'openai/whisper-1 (API) with local fallback',
+        'api_key_set' : api_key_set,
+        'message'     : 'Readify Kids ML API is running!',
     })
 
 
@@ -126,17 +194,12 @@ def score():
         wav_path = convert_to_wav(recording_path)
         print(f'Processing : {wav_path}')
 
-        # Transcribe with local Whisper Small
-        result     = model.transcribe(
-            wav_path,
-            language='en',
-            fp16=False,
-            task='transcribe'
-        )
-        transcript = result['text'].strip()
+        # Transcribe (API first, local fallback)
+        transcript, method = transcribe_audio(wav_path)
         print(f'Transcript : {transcript}')
+        print(f'Method     : {method}')
 
-        # Cleanup converted WAV
+        # Cleanup converted file
         if wav_path != recording_path and os.path.exists(wav_path):
             os.remove(wav_path)
 
@@ -152,7 +215,7 @@ def score():
             'transcript'    : transcript,
             'expected'      : expected_text,
             'word_breakdown': word_breakdown,
-            'model'         : 'local-whisper-small',
+            'model'         : method,
             'message'       : 'Scored successfully',
         })
 
@@ -178,14 +241,13 @@ def transcribe_only():
         return jsonify({'error': 'Recording file not found'}), 404
 
     try:
-        wav_path   = convert_to_wav(recording_path)
-        result     = model.transcribe(wav_path, language='en', fp16=False)
-        transcript = result['text'].strip()
+        wav_path             = convert_to_wav(recording_path)
+        transcript, method   = transcribe_audio(wav_path)
         if wav_path != recording_path and os.path.exists(wav_path):
             os.remove(wav_path)
         return jsonify({
             'transcript': transcript,
-            'model'     : 'local-whisper-small',
+            'model'     : method,
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -194,14 +256,17 @@ def transcribe_only():
 # ─────────────────────────────────────────────────────────────
 if __name__ == '__main__':
     port  = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('APP_ENV', 'development') == 'development'
     print('=' * 50)
-    print('Readify Kids ML API — Local Server Mode')
-    print('Model  : Whisper Small (local, zero cost)')
-    print(f'Port   : {port}')
+    print('Readify Kids ML API')
+    print('Primary : OpenAI Whisper API (whisper-1)')
+    print('Fallback: Local Whisper Small model')
+    print(f'API Key : {"SET" if os.environ.get("OPENAI_API_KEY") else "NOT SET"}')
+    print(f'Port    : {port}')
     print('=' * 50)
     print('Endpoints:')
-    print('  GET  /health')
-    print('  POST /score')
-    print('  POST /transcribe-only')
+    print('  GET  /health          — check if API is running')
+    print('  POST /score           — transcribe + score recording')
+    print('  POST /transcribe-only — transcribe only (debug)')
     print('=' * 50)
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=debug)

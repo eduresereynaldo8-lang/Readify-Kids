@@ -26,3 +26,5 @@ Thumbs.db
 ml_api/venv
 ml_api/__pycache__
 ml_api/*.pyc
+
+ml_api/.env

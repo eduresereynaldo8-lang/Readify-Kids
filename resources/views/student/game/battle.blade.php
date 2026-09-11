@@ -536,6 +536,1381 @@
         @keyframes lowHpFlash {
             0%,100%{border-color:#FF5C5C;} 50%{border-color:#FFE1E1;}
         }
+
+        /* =========================================================
+   MOBILE / PORTRAIT RESPONSIVE BATTLE MODE
+   ========================================================= */
+
+/* Tablets and small screens */
+@media (max-width: 768px) {
+
+    html,
+    body {
+        width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    body {
+        min-height: 100dvh;
+    }
+
+    /* ---------------- TOP BAR ---------------- */
+
+    .top-bar {
+        min-height: 48px;
+        padding: 7px 10px;
+        gap: 6px;
+    }
+
+    .quit-btn {
+        font-size: 11px;
+        padding: 5px 9px;
+        gap: 3px;
+    }
+
+    .quit-btn i {
+        font-size: 14px;
+    }
+
+    .round-badge {
+        font-size: 10px;
+        padding: 5px 9px;
+        white-space: nowrap;
+    }
+
+    .top-right {
+        gap: 5px;
+    }
+
+    .hp-display {
+        font-size: 10px;
+    }
+
+    .level-chip {
+        font-size: 9px;
+        padding: 4px 7px;
+    }
+
+
+    /* ---------------- ARENA ---------------- */
+
+    .arena {
+        min-height: calc(100dvh - 48px);
+        height: calc(100dvh - 48px);
+        overflow: hidden;
+    }
+
+    .sun {
+        width: 55px;
+        height: 55px;
+        right: 5%;
+        top: 3%;
+    }
+
+    .cloud.c1 {
+        width: 100px;
+    }
+
+    .cloud.c2 {
+        width: 80px;
+    }
+
+    .cloud.c3 {
+        width: 65px;
+    }
+
+    .mountains {
+        bottom: 105px;
+        height: 20%;
+    }
+
+    .ground {
+        height: 55px;
+    }
+
+
+    /* ---------------- HP SECTION ---------------- */
+
+    .hp-section {
+        width: 100%;
+        padding: 8px 8px 0;
+        gap: 6px;
+        align-items: flex-start;
+    }
+
+    .hp-block {
+        width: 105px;
+        min-width: 105px;
+        padding: 6px 7px;
+        border-width: 2px;
+        border-radius: 11px;
+    }
+
+    .hp-name {
+        font-size: 9px;
+        gap: 3px;
+        margin-bottom: 3px;
+        line-height: 1.1;
+    }
+
+    .hp-name .label {
+        font-size: 7px;
+        padding: 1px 4px;
+    }
+
+    .hp-bar-bg {
+        height: 10px;
+        border-width: 1px;
+    }
+
+    .hp-text {
+        font-size: 8px;
+        margin-top: 2px;
+    }
+
+    .center-info {
+        min-width: 0;
+        padding: 0 2px;
+        flex: 1;
+    }
+
+    .vs-badge {
+        font-size: 15px;
+        margin-bottom: 2px;
+    }
+
+    .rounds-left-pill {
+        font-size: 8px;
+        padding: 3px 7px;
+        margin-bottom: 4px;
+        border-width: 1px;
+        white-space: nowrap;
+    }
+
+
+    /* ---------------- WORD CARD ---------------- */
+
+    #center-word-card {
+        width: 100%;
+        max-width: 190px;
+        padding: 8px 9px;
+        border-width: 2px;
+        border-radius: 12px;
+        box-shadow: 0 4px 0 rgba(0,0,0,.15);
+    }
+
+    .cw-label {
+        font-size: 8px;
+        margin-bottom: 3px;
+    }
+
+    #center-word-text {
+        font-size: 18px;
+        line-height: 1.25;
+        word-break: break-word;
+    }
+
+    #center-word-text.paragraph {
+        font-size: 11px;
+        line-height: 1.4;
+    }
+
+    #done-reading-btn {
+        width: 100%;
+        margin-top: 5px;
+        padding: 7px 8px;
+        font-size: 9px;
+        line-height: 1.2;
+    }
+
+
+    /* ---------------- BATTLEFIELD ---------------- */
+
+    .battlefield {
+        flex: 1;
+        width: 100%;
+        min-height: 0;
+        padding: 0 12px 62px;
+        align-items: flex-end;
+        justify-content: space-between;
+    }
+
+    .character-wrap {
+        gap: 3px;
+        width: 100px;
+        min-width: 0;
+    }
+
+    .character-label {
+        font-size: 8px;
+        padding: 2px 6px;
+        max-width: 95px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .char-platform {
+        width: 80px;
+        height: 13px;
+        bottom: -4px;
+    }
+
+    .character-sprite,
+    .enemy-sprite {
+        width: 90px;
+        height: 110px;
+    }
+
+
+    /* ---------------- BATTLE MESSAGE ---------------- */
+
+    .battle-msg-wrap {
+        bottom: 58px;
+        width: calc(100% - 30px);
+        max-width: 280px;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .battle-msg {
+        width: 100%;
+        padding: 6px 9px;
+        border-width: 2px;
+        border-radius: 14px;
+        font-size: 9px;
+        line-height: 1.25;
+    }
+
+    .battle-transcript {
+        font-size: 8px;
+        margin-top: 2px;
+    }
+
+
+    /* ---------------- SCORE REVEAL ---------------- */
+
+    #score-reveal {
+        top: 28%;
+        width: calc(100% - 30px);
+        max-width: 260px;
+    }
+
+    .score-reveal-inner {
+        padding: 10px 12px;
+        border-width: 3px;
+        border-radius: 15px;
+    }
+
+    .score-reveal-label {
+        font-size: 8px;
+    }
+
+    .score-reveal-value {
+        font-size: 25px;
+    }
+
+    .score-reveal-damage {
+        font-size: 10px;
+    }
+
+    .score-reveal-transcript {
+        font-size: 8px;
+        word-break: break-word;
+    }
+
+
+    /* ---------------- ATTACK EFFECT ---------------- */
+
+    #attack-effect {
+        font-size: 38px;
+    }
+
+    .damage-floater {
+        font-size: 20px;
+    }
+
+    #student-damage-indicator {
+        font-size: 17px;
+        top: -20px;
+    }
+
+
+    /* ---------------- BOTTOM PANEL ---------------- */
+
+    .bottom-panel {
+        padding: 6px 8px 8px;
+        border-top-width: 3px;
+        flex-shrink: 0;
+    }
+
+    .dots-wrap {
+        gap: 3px;
+        margin-bottom: 4px;
+        min-height: 8px;
+    }
+
+    .dot {
+        width: 7px;
+        height: 7px;
+    }
+
+    .bottom-inner {
+        width: 100%;
+        max-width: none;
+        gap: 7px;
+        justify-content: center;
+        align-items: center;
+    }
+
+
+    /* ---------------- RECORD BUTTON ---------------- */
+
+    .hold-rec-wrap {
+        gap: 3px;
+        flex-shrink: 0;
+    }
+
+    .hold-rec-btn {
+        width: 56px;
+        height: 56px;
+        box-shadow:
+            0 0 0 5px rgba(255,111,165,.2),
+            0 4px 0 rgba(0,0,0,.15);
+    }
+
+    .hold-rec-btn.active {
+        box-shadow:
+            0 0 0 7px rgba(124,58,237,.2),
+            0 4px 0 rgba(0,0,0,.15);
+    }
+
+    .hold-rec-btn i {
+        font-size: 23px;
+    }
+
+    .hold-rec-label {
+        font-size: 8px;
+    }
+
+    .hold-rec-timer {
+        font-size: 14px;
+    }
+
+
+    /* ---------------- WAVEFORM ---------------- */
+
+    .waveform-wrap {
+        padding: 5px 6px;
+        height: 28px;
+        gap: 2px;
+        border-width: 1px;
+        max-width: 70px;
+        overflow: hidden;
+    }
+
+    .wv {
+        width: 3px;
+    }
+
+
+    /* ---------------- LOADING ---------------- */
+
+    .loading-wrap {
+        gap: 4px;
+        max-width: 95px;
+        text-align: center;
+    }
+
+    .loading-wrap span {
+        font-size: 8px;
+        line-height: 1.2;
+    }
+
+
+    /* ---------------- HISTORY ---------------- */
+
+    .history-panel {
+        width: 90px;
+        max-width: 90px;
+        max-height: 58px;
+        gap: 3px;
+        overflow-y: auto;
+        flex-shrink: 1;
+    }
+
+    .history-title {
+        font-size: 7px;
+    }
+
+    .history-item {
+        padding: 3px 4px;
+        border-width: 1px;
+        border-radius: 5px;
+        font-size: 7px;
+    }
+
+    .history-item div {
+        font-size: 6px !important;
+    }
+
+
+    /* ---------------- COUNTDOWN ---------------- */
+
+    .countdown-number {
+        font-size: 90px;
+    }
+
+    .countdown-label {
+        font-size: 13px;
+    }
+
+    .countdown-sub {
+        font-size: 10px;
+        text-align: center;
+        padding: 0 20px;
+    }
+
+
+    /* ---------------- MODALS ---------------- */
+
+    .quit-modal-card,
+    .overlay-card {
+        width: calc(100% - 30px);
+        max-width: 330px;
+        padding: 24px 18px;
+        border-width: 3px;
+        border-radius: 18px;
+    }
+
+    .quit-modal-emoji,
+    .overlay-emoji {
+        font-size: 45px;
+    }
+
+    .quit-modal-title,
+    .overlay-title {
+        font-size: 19px;
+    }
+
+    .quit-modal-sub,
+    .overlay-sub {
+        font-size: 11px;
+    }
+
+    .overlay-pts {
+        font-size: 23px;
+        margin: 8px 0 18px;
+    }
+
+    .quit-modal-btns,
+    .overlay-btns {
+        gap: 7px;
+        flex-wrap: wrap;
+    }
+
+    .btn-stay,
+    .btn-quit-confirm,
+    .btn-back,
+    .btn-retry {
+        padding: 9px 13px;
+        font-size: 10px;
+        border-radius: 10px;
+    }
+
+
+    /* ---------------- BADGE NOTIFICATION ---------------- */
+
+    #badge-notif-wrap {
+        top: 10px !important;
+        right: 10px !important;
+        left: 10px !important;
+        align-items: flex-end;
+    }
+
+    #badge-notif-wrap > div {
+        min-width: 0 !important;
+        width: auto;
+        max-width: 280px;
+        padding: 8px 10px !important;
+    }
+}
+
+
+/* =========================================================
+   VERY SMALL PORTRAIT PHONES
+   Example: 320px–390px wide
+   ========================================================= */
+
+@media (max-width: 480px) and (orientation: portrait) {
+
+    .top-bar {
+        padding: 6px 7px;
+    }
+
+    .quit-btn {
+        padding: 4px 7px;
+        font-size: 10px;
+    }
+
+    .round-badge {
+        font-size: 9px;
+        padding: 4px 7px;
+    }
+
+    .hp-display {
+        display: none;
+    }
+
+    .level-chip {
+        font-size: 8px;
+        padding: 4px 6px;
+    }
+
+    .hp-section {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    .hp-block {
+        width: 88px;
+        min-width: 88px;
+        padding: 5px 5px;
+    }
+
+    .hp-name {
+        font-size: 8px;
+    }
+
+    .hp-name .label {
+        font-size: 6px;
+    }
+
+    .center-info {
+        padding: 0;
+    }
+
+    #center-word-card {
+        max-width: 155px;
+        padding: 7px 6px;
+    }
+
+    #center-word-text {
+        font-size: 16px;
+    }
+
+    #center-word-text.paragraph {
+        font-size: 10px;
+    }
+
+    .battlefield {
+        padding-left: 5px;
+        padding-right: 5px;
+        padding-bottom: 58px;
+    }
+
+    .character-wrap {
+        width: 80px;
+    }
+
+    .character-sprite,
+    .enemy-sprite {
+        width: 75px;
+        height: 92px;
+    }
+
+    .char-platform {
+        width: 65px;
+    }
+
+    .character-label {
+        font-size: 7px;
+        max-width: 75px;
+    }
+
+    .battle-msg-wrap {
+        bottom: 55px;
+        width: calc(100% - 20px);
+    }
+
+    .battle-msg {
+        font-size: 8px;
+        padding: 5px 7px;
+    }
+
+    .bottom-inner {
+        gap: 5px;
+    }
+
+    .hold-rec-btn {
+        width: 52px;
+        height: 52px;
+    }
+
+    .hold-rec-btn i {
+        font-size: 21px;
+    }
+
+    .hold-rec-label {
+        font-size: 7px;
+    }
+
+    .history-panel {
+        width: 72px;
+        max-width: 72px;
+    }
+
+    .history-title {
+        font-size: 6px;
+    }
+
+    .history-item {
+        font-size: 6px;
+    }
+}
+
+
+/* =========================================================
+   PORTRAIT ATTACK ANIMATIONS
+   Reduce horizontal movement so characters stay on screen.
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    @keyframes attackDash {
+        0%   { transform:translateX(0) scaleX(1); }
+        30%  { transform:translateX(45px) scaleX(1.1); }
+        55%  { transform:translateX(40px) scaleX(.9); }
+        80%  { transform:translateX(45px) scaleX(1); }
+        100% { transform:translateX(0) scaleX(1); }
+    }
+
+    @keyframes attackJump {
+        0%   { transform:translateX(0) translateY(0); }
+        25%  { transform:translateX(25px) translateY(-45px) rotate(7deg); }
+        50%  { transform:translateX(45px) translateY(0) scaleX(1.1); }
+        65%  { transform:translateX(42px) translateY(5px) scaleX(.95); }
+        80%  { transform:translateX(45px) translateY(0); }
+        100% { transform:translateX(0) translateY(0); }
+    }
+
+    @keyframes attackSpin {
+        0%   { transform:translateX(0) rotate(0deg) scale(1); }
+        30%  { transform:translateX(25px) rotate(360deg) scale(1.1); }
+        55%  { transform:translateX(45px) rotate(720deg) scale(1.05); }
+        75%  { transform:translateX(45px) rotate(720deg); }
+        100% { transform:translateX(0) rotate(0deg) scale(1); }
+    }
+
+    @keyframes attackBlink {
+        0%   { transform:translateX(0); opacity:1; }
+        25%  { transform:translateX(0); opacity:0; }
+        26%  { transform:translateX(45px); opacity:0; }
+        45%  { transform:translateX(45px) scaleX(1.1); opacity:1; }
+        70%  { transform:translateX(45px); opacity:1; }
+        85%  { transform:translateX(0); opacity:0; }
+        100% { transform:translateX(0); opacity:1; }
+    }
+
+    @keyframes attackCharge {
+        0%   { transform:translateX(0) scale(1); filter:brightness(1); }
+        20%  { transform:translateX(-8px) scale(.9); filter:brightness(2); }
+        40%  { transform:translateX(-8px) scale(1.15); filter:brightness(2.5); }
+        60%  { transform:translateX(45px) scale(1.05); filter:brightness(2); }
+        75%  { transform:translateX(42px) scale(.95); filter:brightness(1.5); }
+        90%  { transform:translateX(42px); filter:brightness(1); }
+        100% { transform:translateX(0) scale(1); filter:brightness(1); }
+    }
+
+    @keyframes enemyDash {
+        0%   { transform:translateX(0); }
+        30%  { transform:translateX(-45px) scaleX(1.05); }
+        55%  { transform:translateX(-40px) scaleX(.95); }
+        80%  { transform:translateX(-45px); }
+        100% { transform:translateX(0); }
+    }
+
+    @keyframes enemyLeap {
+        0%   { transform:translateX(0) translateY(0); }
+        25%  { transform:translateX(-25px) translateY(-40px) rotate(-7deg); }
+        50%  { transform:translateX(-45px) translateY(0); }
+        65%  { transform:translateX(-42px) translateY(5px); }
+        80%  { transform:translateX(-45px) translateY(0); }
+        100% { transform:translateX(0) translateY(0); }
+    }
+
+    @keyframes enemyZap {
+        0%   { transform:translateX(0); filter:brightness(1); }
+        15%  { filter:brightness(2.5); }
+        30%  { transform:translateX(-40px); filter:brightness(2); }
+        50%  { transform:translateX(-45px) scaleX(1.1); filter:brightness(1.5); }
+        70%  { transform:translateX(-45px); filter:brightness(1); }
+        100% { transform:translateX(0); filter:brightness(1); }
+    }
+
+    @keyframes enemySwipe {
+        0%   { transform:translateX(0) rotate(0); }
+        20%  { transform:translateX(-15px) rotate(-10deg); }
+        45%  { transform:translateX(-45px) rotate(5deg); }
+        65%  { transform:translateX(-42px) rotate(-5deg) scaleX(1.05); }
+        80%  { transform:translateX(-45px) rotate(0); }
+        100% { transform:translateX(0) rotate(0); }
+    }
+}
+
+
+/* =========================================================
+   LANDSCAPE PHONE / TABLET
+   Compact vertical layout
+   ========================================================= */
+
+@media (max-width: 1200px) and (orientation: landscape) {
+
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    body {
+        min-height: 100dvh;
+    }
+
+    /* ================= TOP BAR ================= */
+
+    .top-bar {
+        height: 42px;
+        min-height: 42px;
+        padding: 5px 12px;
+        gap: 8px;
+    }
+
+    .quit-btn {
+        font-size: 11px;
+        padding: 5px 10px;
+    }
+
+    .round-badge {
+        font-size: 10px;
+        padding: 5px 10px;
+    }
+
+    .top-right {
+        gap: 6px;
+    }
+
+    .hp-display {
+        font-size: 10px;
+    }
+
+    .level-chip {
+        font-size: 9px;
+        padding: 4px 8px;
+    }
+
+
+    /* ================= ARENA ================= */
+
+    .arena {
+        width: 100%;
+        height: calc(100dvh - 42px);
+        min-height: 0;
+        overflow: hidden;
+
+        display: flex;
+        flex-direction: column;
+    }
+
+
+    /* ================= HP SECTION ================= */
+
+    .hp-section {
+        width: 100%;
+        flex-shrink: 0;
+
+        padding: 5px 18px 0;
+        gap: 10px;
+
+        align-items: flex-start;
+    }
+
+    .hp-block {
+        width: 145px;
+        min-width: 145px;
+
+        padding: 5px 7px;
+
+        border-width: 2px;
+        border-radius: 10px;
+    }
+
+    .hp-name {
+        font-size: 9px;
+        margin-bottom: 2px;
+        gap: 3px;
+    }
+
+    .hp-name .label {
+        font-size: 7px;
+        padding: 1px 4px;
+    }
+
+    .hp-bar-bg {
+        height: 9px;
+        border-width: 1px;
+    }
+
+    .hp-text {
+        font-size: 8px;
+        margin-top: 2px;
+    }
+
+    .center-info {
+        padding: 0;
+    }
+
+    .vs-badge {
+        font-size: 15px;
+        margin-bottom: 1px;
+    }
+
+    .rounds-left-pill {
+        font-size: 8px;
+        padding: 3px 7px;
+        margin-bottom: 2px;
+    }
+
+
+    /* ================= WORD CARD ================= */
+
+    #center-word-card {
+        width: 260px;
+        max-width: 260px;
+
+        padding: 7px 10px;
+
+        border-width: 2px;
+        border-radius: 12px;
+
+        box-shadow: 0 3px 0 rgba(0,0,0,.15);
+    }
+
+    .cw-label {
+        font-size: 8px;
+        margin-bottom: 2px;
+    }
+
+    #center-word-text {
+        font-size: 16px;
+        line-height: 1.2;
+    }
+
+    #center-word-text.paragraph {
+        font-size: 10px;
+        line-height: 1.3;
+    }
+
+    #done-reading-btn {
+        margin-top: 4px;
+        padding: 6px 8px;
+
+        font-size: 9px;
+        line-height: 1.1;
+    }
+
+
+    /* ================= BATTLEFIELD ================= */
+
+    .battlefield {
+        flex: 1;
+        min-height: 0;
+
+        width: 100%;
+
+        padding: 0 35px 52px;
+
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+
+        overflow: hidden;
+    }
+
+    .character-wrap {
+        width: 110px;
+        min-width: 110px;
+
+        gap: 2px;
+    }
+
+    .character-label {
+        font-size: 8px;
+        padding: 2px 5px;
+
+        max-width: 100px;
+
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .char-platform {
+        width: 90px;
+        height: 12px;
+        bottom: -3px;
+    }
+
+    .character-sprite,
+    .enemy-sprite {
+        width: 100px;
+        height: 120px;
+    }
+
+
+    /* ================= MOUNTAINS / GROUND ================= */
+
+    .mountains {
+        bottom: 70px;
+        height: 16%;
+    }
+
+    .ground {
+        height: 45px;
+    }
+
+
+    /* ================= BATTLE MESSAGE ================= */
+
+    .battle-msg-wrap {
+        bottom: 48px;
+
+        width: calc(100% - 80px);
+        max-width: 500px;
+
+        white-space: normal;
+        text-align: center;
+    }
+
+    .battle-msg {
+        width: 100%;
+
+        padding: 5px 9px;
+
+        border-width: 2px;
+        border-radius: 12px;
+
+        font-size: 9px;
+        line-height: 1.2;
+    }
+
+    .battle-transcript {
+        font-size: 8px;
+        margin-top: 2px;
+    }
+
+
+    /* ================= SCORE REVEAL ================= */
+
+    #score-reveal {
+        top: 25%;
+
+        width: 260px;
+        max-width: 260px;
+    }
+
+    .score-reveal-inner {
+        padding: 8px 12px;
+
+        border-width: 2px;
+        border-radius: 13px;
+    }
+
+    .score-reveal-label {
+        font-size: 8px;
+    }
+
+    .score-reveal-value {
+        font-size: 24px;
+    }
+
+    .score-reveal-damage {
+        font-size: 10px;
+    }
+
+    .score-reveal-transcript {
+        font-size: 8px;
+    }
+
+
+    /* ================= BOTTOM PANEL ================= */
+
+    .bottom-panel {
+        flex-shrink: 0;
+
+        height: 105px;
+        min-height: 105px;
+
+        padding: 5px 12px 7px;
+
+        border-top-width: 3px;
+
+        overflow: hidden;
+    }
+
+    .dots-wrap {
+        gap: 3px;
+        margin-bottom: 3px;
+
+        min-height: 7px;
+    }
+
+    .dot {
+        width: 7px;
+        height: 7px;
+    }
+
+    .bottom-inner {
+        width: 100%;
+        max-width: 700px;
+
+        gap: 10px;
+
+        justify-content: center;
+        align-items: center;
+    }
+
+
+    /* ================= RECORD BUTTON ================= */
+
+    .hold-rec-wrap {
+        gap: 2px;
+        flex-shrink: 0;
+    }
+
+    .hold-rec-btn {
+        width: 58px;
+        height: 58px;
+
+        box-shadow:
+            0 0 0 5px rgba(255,111,165,.2),
+            0 3px 0 rgba(0,0,0,.15);
+    }
+
+    .hold-rec-btn.active {
+        box-shadow:
+            0 0 0 6px rgba(124,58,237,.2),
+            0 3px 0 rgba(0,0,0,.15);
+    }
+
+    .hold-rec-btn i {
+        font-size: 23px;
+    }
+
+    .hold-rec-label {
+        font-size: 8px;
+    }
+
+    .hold-rec-timer {
+        font-size: 13px;
+    }
+
+
+    /* ================= WAVEFORM ================= */
+
+    .waveform-wrap {
+        width: 75px;
+        max-width: 75px;
+
+        height: 27px;
+
+        padding: 4px 5px;
+
+        gap: 2px;
+
+        overflow: hidden;
+    }
+
+    .wv {
+        width: 3px;
+    }
+
+
+    /* ================= LOADING ================= */
+
+    .loading-wrap {
+        max-width: 110px;
+
+        gap: 3px;
+
+        text-align: center;
+    }
+
+    .loading-wrap span {
+        font-size: 8px;
+        line-height: 1.1;
+    }
+
+
+    /* ================= HISTORY ================= */
+
+    .history-panel {
+        width: 110px;
+        max-width: 110px;
+
+        max-height: 65px;
+
+        gap: 3px;
+
+        overflow-y: auto;
+        flex-shrink: 1;
+    }
+
+    .history-title {
+        font-size: 7px;
+    }
+
+    .history-item {
+        padding: 3px 5px;
+
+        border-width: 1px;
+        border-radius: 5px;
+
+        font-size: 7px;
+    }
+
+    .history-item div {
+        font-size: 6px !important;
+    }
+
+
+    /* ================= COUNTDOWN ================= */
+
+    .countdown-number {
+        font-size: 80px;
+    }
+
+    .countdown-label {
+        font-size: 12px;
+    }
+
+    .countdown-sub {
+        font-size: 9px;
+
+        text-align: center;
+
+        padding: 0 20px;
+    }
+
+
+    /* ================= MODALS ================= */
+
+    .quit-modal-card,
+    .overlay-card {
+        width: 330px;
+        max-width: calc(100% - 30px);
+
+        padding: 20px 18px;
+
+        border-width: 3px;
+        border-radius: 16px;
+    }
+
+    .quit-modal-emoji,
+    .overlay-emoji {
+        font-size: 40px;
+    }
+
+    .quit-modal-title,
+    .overlay-title {
+        font-size: 18px;
+    }
+
+    .quit-modal-sub,
+    .overlay-sub {
+        font-size: 10px;
+    }
+
+    .overlay-pts {
+        font-size: 22px;
+        margin: 7px 0 15px;
+    }
+
+    .quit-modal-btns,
+    .overlay-btns {
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .btn-stay,
+    .btn-quit-confirm,
+    .btn-back,
+    .btn-retry {
+        padding: 8px 12px;
+        font-size: 10px;
+        border-radius: 9px;
+    }
+}
+
+
+/* =========================================================
+   EXTRA SHORT LANDSCAPE PHONES
+   Example: 667x375 / 844x390
+   ========================================================= */
+
+@media (max-width: 900px)
+       and (orientation: landscape)
+       and (max-height: 500px) {
+
+    .top-bar {
+        height: 38px;
+        min-height: 38px;
+
+        padding: 4px 9px;
+    }
+
+    .arena {
+        height: calc(100dvh - 38px);
+    }
+
+    .hp-section {
+        padding: 3px 10px 0;
+    }
+
+    .hp-block {
+        width: 120px;
+        min-width: 120px;
+
+        padding: 4px 6px;
+    }
+
+    .hp-name {
+        font-size: 8px;
+    }
+
+    .hp-bar-bg {
+        height: 8px;
+    }
+
+    .hp-text {
+        font-size: 7px;
+    }
+
+    .vs-badge {
+        font-size: 13px;
+    }
+
+    .rounds-left-pill {
+        font-size: 7px;
+        padding: 2px 6px;
+    }
+
+    #center-word-card {
+        width: 220px;
+        max-width: 220px;
+
+        padding: 5px 8px;
+    }
+
+    #center-word-text {
+        font-size: 14px;
+    }
+
+    #center-word-text.paragraph {
+        font-size: 9px;
+    }
+
+    #done-reading-btn {
+        padding: 5px 7px;
+        font-size: 8px;
+    }
+
+    .battlefield {
+        padding-left: 20px;
+        padding-right: 20px;
+        padding-bottom: 42px;
+    }
+
+    .character-sprite,
+    .enemy-sprite {
+        width: 78px;
+        height: 95px;
+    }
+
+    .character-wrap {
+        width: 85px;
+        min-width: 85px;
+    }
+
+    .character-label {
+        font-size: 7px;
+    }
+
+    .char-platform {
+        width: 70px;
+    }
+
+    .battle-msg-wrap {
+        bottom: 40px;
+        max-width: 400px;
+    }
+
+    .battle-msg {
+        font-size: 8px;
+        padding: 4px 7px;
+    }
+
+    .bottom-panel {
+        height: 82px;
+        min-height: 82px;
+
+        padding: 3px 8px 5px;
+    }
+
+    .hold-rec-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .hold-rec-btn i {
+        font-size: 19px;
+    }
+
+    .hold-rec-label {
+        font-size: 7px;
+    }
+
+    .waveform-wrap {
+        width: 60px;
+        max-width: 60px;
+        height: 23px;
+    }
+
+    .loading-wrap {
+        max-width: 85px;
+    }
+
+    .loading-wrap span {
+        font-size: 7px;
+    }
+
+    .history-panel {
+        width: 85px;
+        max-width: 85px;
+        max-height: 50px;
+    }
+
+    .history-title {
+        font-size: 6px;
+    }
+
+    .history-item {
+        font-size: 6px;
+        padding: 2px 3px;
+    }
+}
     </style>
 </head>
 <body>
