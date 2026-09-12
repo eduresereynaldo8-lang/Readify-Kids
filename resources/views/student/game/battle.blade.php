@@ -1950,18 +1950,20 @@
     {{-- HP section --}}
     <div class="hp-section">
         <div class="hp-block" id="student-hp-block">
-            <div class="hp-name">
-                <span>{{ auth()->user()->student->firstname }}</span>
-                <span class="label">YOU</span>
-            </div>
-            <div class="hp-bar-bg" id="student-hp-bg">
-                <div class="hp-bar-fill student" id="student-hp-bar" style="width:100%;"></div>
-            </div>
-            <div class="hp-text">
-                ❤️ <span id="student-hp-current">{{ $session->enemy_max_hp }}</span>
-                / <span id="student-hp-max">{{ $session->enemy_max_hp }}</span>
-            </div>
-        </div>
+    <div class="hp-name">
+        <span>{{ auth()->user()->student->firstname }}</span>
+        <span class="label">YOU</span>
+    </div>
+    <div class="hp-bar-bg" id="student-hp-bg">
+        <div class="hp-bar-fill student"
+             id="student-hp-bar"
+             style="width:{{ $studentHpPct }}%;"></div>
+    </div>
+    <div class="hp-text">
+        ❤️ <span id="student-hp-current">{{ $studentCurrentHp }}</span>
+        / <span id="student-hp-max">{{ $studentMaxHp }}</span>
+    </div>
+</div>
 
         <div class="center-info">
             <div class="vs-badge">VS</div>
@@ -2204,13 +2206,18 @@
 </div>
 
 {{-- Hidden data --}}
-<input type="hidden" id="session-id"          value="{{ $session->id }}">
-<input type="hidden" id="current-word-value"  value="{{ $currentWord }}">
-<input type="hidden" id="current-round-index" value="{{ $roundIndex }}">
-<input type="hidden" id="total-words"         value="{{ $totalWords }}">
-<input type="hidden" id="rounds-left-value"   value="{{ $roundsLeft }}">
-<input type="hidden" id="enemy-max-hp"        value="{{ $session->enemy_max_hp }}">
-<input type="hidden" id="is-paragraph"        value="{{ $session->activity->level == 3 ? '1' : '0' }}">
+<input type="hidden" id="session-id"           value="{{ $session->id }}">
+<input type="hidden" id="current-word-value"   value="{{ $currentWord }}">
+<input type="hidden" id="current-round-index"  value="{{ $roundIndex }}">
+<input type="hidden" id="total-words"          value="{{ $totalWords }}">
+<input type="hidden" id="rounds-left-value"    value="{{ $roundsLeft }}">
+<input type="hidden" id="enemy-max-hp"         value="{{ $session->enemy_max_hp }}">
+<input type="hidden" id="is-paragraph"         value="{{ $session->activity->level == 3 ? '1' : '0' }}">
+
+{{-- ★ Student HP from DB — persists across rounds ★ --}}
+<input type="hidden" id="student-max-hp"       value="{{ $studentMaxHp }}">
+<input type="hidden" id="student-current-hp"   value="{{ $studentCurrentHp }}">
+<input type="hidden" id="student-hp-pct"       value="{{ $studentHpPct }}">
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -2414,14 +2421,14 @@ function pickAttackStyle(score) {
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 // ── Student HP state ───────────────────────────────────────────
-const studentMaxHp   = parseInt(document.getElementById('enemy-max-hp').value);
-let   studentCurrentHp = studentMaxHp;
+// ── Student HP — loaded from DB, persists across rounds ───────
+const studentMaxHp     = parseInt(document.getElementById('student-max-hp').value);
+let   studentCurrentHp = parseInt(document.getElementById('student-current-hp').value);
 
 function updateStudentHpBar(newHp) {
     studentCurrentHp = Math.max(0, newHp);
     const pct = Math.round((studentCurrentHp / studentMaxHp) * 100);
     const bar = document.getElementById('student-hp-bar');
-    const bg  = document.getElementById('student-hp-bg');
     const blk = document.getElementById('student-hp-block');
 
     bar.style.width = pct + '%';
@@ -2429,13 +2436,13 @@ function updateStudentHpBar(newHp) {
 
     if (pct <= 25) {
         bar.style.background = 'linear-gradient(180deg,#FF8A8A,#FF5C5C)';
-        blk.style.animation = 'lowHpFlash 0.5s infinite';
+        blk.style.animation  = 'lowHpFlash 0.5s infinite';
     } else if (pct <= 50) {
         bar.style.background = 'linear-gradient(180deg,#FFC57A,#FFA53C)';
-        blk.style.animation = '';
+        blk.style.animation  = '';
     } else {
         bar.style.background = 'linear-gradient(180deg,#7CE79A,#57D67B)';
-        blk.style.animation = '';
+        blk.style.animation  = '';
     }
 }
 
@@ -2598,9 +2605,13 @@ async function submitRecording() {
 
     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
     const formData  = new FormData();
-    formData.append('recording', new File([audioBlob], 'attack.webm', { type: 'audio/webm' }));
-    formData.append('word_or_passage', currentWord);
-    formData.append('_token', csrfToken);
+    formData.append('recording',          new File([audioBlob], 'attack.webm', { type: 'audio/webm' }));
+    formData.append('word_or_passage',    currentWord);
+    formData.append('_token',             csrfToken);
+    // ★ Send current student HP so server can calculate damage correctly ★
+    formData.append('student_current_hp', studentCurrentHp);
+
+    // ... rest of your submit function stays the same
 
     try {
         const res = await fetch(`/student/game/battle/${sessionId}/round`, {
