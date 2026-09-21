@@ -942,6 +942,12 @@
             Evaluations
         </a>
 
+        <div class="nav-section">Logs</div>
+<a href="{{ route('admin.logs') }}"
+   class="nav-item {{ request()->routeIs('admin.logs') ? 'active' : '' }}">
+    <i class="ti ti-clipboard-list"></i> Activity Logs
+</a>
+
         <a href="{{ route('admin.reports') }}"
            class="nav-item {{ request()->routeIs('admin.reports') ? 'active' : '' }}">
             <i class="ti ti-book"></i>

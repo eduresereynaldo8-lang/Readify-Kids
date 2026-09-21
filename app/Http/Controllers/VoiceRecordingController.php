@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\VoiceRecording;
 use App\Models\Activity;
+use App\Helpers\LogActivity;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class VoiceRecordingController extends Controller
 {
@@ -54,43 +57,92 @@ class VoiceRecordingController extends Controller
         );
     }
 
-    // Upload and submit voice recording
+    // Upload and submit voice recording for manual teacher evaluation.
     public function upload(Request $request, $id)
     {
-        $request->validate([
-            'recording' => 'required|file|mimes:mp3,wav,ogg,webm,mp4|max:20480',
-        ]);
-
         $student = auth()->user()->student;
-
         $activity = Activity::where('teacher_id', $student->teacher_id)
+            ->where('is_published', true)
+            ->where('activity_type', 'Read Aloud')
             ->findOrFail($id);
 
-        // Count previous attempts
-        $attemptNumber = VoiceRecording::where('student_id', $student->id)
-            ->where('activity_id', $id)
-            ->count() + 1;
+        $file = $request->file('recording');
+        $isUploadedFile = $file instanceof \Illuminate\Http\UploadedFile;
+        if (config('app.debug')) {
+            Log::debug('Read aloud upload received', [
+                'student_id' => $student->id,
+                'activity_id' => $activity->id,
+                'has_recording' => $request->hasFile('recording'),
+                'mime' => $isUploadedFile && $file->isValid() ? $file->getMimeType() : null,
+                'client_mime' => $isUploadedFile ? $file->getClientMimeType() : null,
+                'extension' => $isUploadedFile ? $file->getClientOriginalExtension() : null,
+                'size' => $isUploadedFile && $file->isValid() ? $file->getSize() : null,
+            ]);
+        }
 
-        // Store the recording file
-        $path = $request->file('recording')
-            ->store('recordings', 'public');
-
-        VoiceRecording::create([
-            'student_id'     => $student->id,
-            'activity_id'    => $id,
-            'recording_path' => $path,
-            'attempt_number' => $attemptNumber,
-            'status'         => 'pending',
+        $request->validate([
+            'recording' => 'required|file|mimes:mp3,wav,ogg,webm,weba,mp4,m4a|max:20480',
         ]);
 
-        // Check and award badges after submitting the recording
-        \App\Services\BadgeService::checkAndAward($student);
+        $attemptNumber = VoiceRecording::where('student_id', $student->id)
+            ->where('activity_id', $activity->id)
+            ->count() + 1;
 
-        return redirect()
-            ->route('student.readaloud.show', $id)
-            ->with(
-                'success',
-                'Recording submitted! Your teacher will listen and give you feedback soon. 🎉'
-            );
+        $path = null;
+        try {
+            $path = $file->store('recordings', 'public');
+            if (!$path) {
+                throw new \RuntimeException('Public disk did not store the recording.');
+            }
+
+            $recording = VoiceRecording::create([
+                'student_id'     => $student->id,
+                'activity_id'    => $activity->id,
+                'recording_path' => $path,
+                'attempt_number' => $attemptNumber,
+                'status'         => 'pending',
+            ]);
+        } catch (\Throwable $error) {
+            if ($path) {
+                try {
+                    Storage::disk('public')->delete($path);
+                } catch (\Throwable $cleanupError) {
+                    report($cleanupError);
+                }
+            }
+            Log::error('Read aloud upload could not be saved', [
+                'student_id' => $student->id,
+                'activity_id' => $activity->id,
+                'exception' => $error,
+            ]);
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Your recording could not be saved. Please try again.'], 500);
+            }
+            return back()->withErrors(['recording' => 'Your recording could not be saved. Please try again.']);
+        }
+
+        // A badge/log failure must not turn a saved submission into a failed upload.
+        try {
+            \App\Services\BadgeService::checkAndAward($student);
+        } catch (\Throwable $error) {
+            report($error);
+        }
+        try {
+            LogActivity::log('SUBMIT_RECORDING', 'Read Aloud',
+                'Submitted recording for activity: ' . $activity->activity_name);
+        } catch (\Throwable $error) {
+            report($error);
+        }
+
+        $message = 'Recording submitted! Your teacher will listen and give you feedback soon. 🎉';
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'pending',
+                'recording_id' => $recording->id,
+                'message' => $message,
+            ], 201);
+        }
+
+        return redirect()->route('student.readaloud.show', $id)->with('success', $message);
     }
 }

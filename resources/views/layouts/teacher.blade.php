@@ -834,6 +834,11 @@
 
         </a>
 
+        <a href="{{ route('teacher.logs') }}"
+   class="nav-item {{ request()->routeIs('teacher.logs') ? 'active' : '' }}">
+    <i class="ti ti-clipboard-list"></i> My Activity Logs
+</a>
+
         <div class="nav-label">Reports</div>
 
         <a href="{{ route('teacher.progress') }}"

@@ -6,37 +6,138 @@ use App\Models\Activity;
 use App\Models\Enemy;
 use App\Models\GameSession;
 use App\Models\GameRound;
+use App\Helpers\LogActivity;
 
 class GameController extends Controller
 {
     // Game lobby
-    public function index()
-    {
-        $student    = auth()->user()->student;
-        $activities = Activity::where('is_published', true)
-                      ->where('teacher_id', $student->teacher_id)
-                      ->where('level', '<=', $student->current_level)
-                      ->where('battle_mode', true)
-                      ->whereIn('activity_type', [
-                          'Phonics','Word Game','Vocabulary',
-                          'Word Recognition','Sound Blending'
-                      ])
-                      ->get();
+  public function index(Request $request)
+{
+    $student = auth()->user()->student;
 
-        $enemies = Enemy::all()->keyBy('level');
+    $search = $request->input('search');
+    $level = $request->input('level');
+    $statusFilter = $request->input('status');
 
-        // Get latest session status per activity
-        $sessionStatuses = GameSession::where('student_id', $student->id)
-                           ->whereIn('activity_id', $activities->pluck('id'))
-                           ->orderByDesc('created_at')
-                           ->get()
-                           ->groupBy('activity_id')
-                           ->map->first();
 
-        return view('student.game.index', compact(
-            'activities', 'enemies', 'sessionStatuses'
-        ));
+    /*
+    |--------------------------------------------------------------------------
+    | Get the latest battle session for each activity
+    |--------------------------------------------------------------------------
+    */
+
+    $sessions = GameSession::where('student_id', $student->id)
+        ->latest('created_at')
+        ->get()
+        ->groupBy('activity_id')
+        ->map(function ($activitySessions) {
+            return $activitySessions->first();
+        });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get enemies
+    |--------------------------------------------------------------------------
+    */
+
+    $enemies = Enemy::all();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get available Battle Mode activities
+    |--------------------------------------------------------------------------
+    */
+
+    $query = Activity::where('teacher_id', $student->teacher_id)
+        ->where('is_published', true)
+        ->where('battle_mode', true)
+        ->where('level', '<=', $student->current_level)
+        ->with('wordBank');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Search
+    |--------------------------------------------------------------------------
+    */
+
+    if ($search) {
+
+        $query->where(function ($q) use ($search) {
+
+            $q->where('activity_name', 'like', "%{$search}%")
+              ->orWhere('description', 'like', "%{$search}%");
+
+        });
+
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Level filter
+    |--------------------------------------------------------------------------
+    */
+
+    if ($level) {
+        $query->where('level', $level);
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get activities
+    |--------------------------------------------------------------------------
+    */
+
+    $activities = $query
+        ->latest()
+        ->get();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Status filter
+    |--------------------------------------------------------------------------
+    */
+
+    if ($statusFilter) {
+
+        $activities = $activities->filter(function ($activity) use (
+            $sessions,
+            $statusFilter
+        ) {
+
+            $session = $sessions->get($activity->id);
+
+            $currentStatus = $session
+                ? $session->status
+                : 'new';
+
+            return $currentStatus === $statusFilter;
+
+        })->values();
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Return view
+    |--------------------------------------------------------------------------
+    */
+
+    return view('student.game.index', compact(
+        'activities',
+        'sessions',
+        'enemies',
+        'search',
+        'level',
+        'statusFilter'
+    ));
+}
 
     // Start or resume a game session
   public function start($activityId)
@@ -114,7 +215,7 @@ class GameController extends Controller
 
     // Student HP — use saved value from DB
     $studentMaxHp     = $session->student_max_hp ?: $session->enemy_max_hp;
-    $studentCurrentHp = $session->student_current_hp ?: $studentMaxHp;
+    $studentCurrentHp = $session->student_current_hp ?? $studentMaxHp;
     $studentHpPct     = max(0, round(($studentCurrentHp / $studentMaxHp) * 100));
 
     return view('student.game.battle', compact(
@@ -161,7 +262,7 @@ class GameController extends Controller
     // Calculate enemy damage to student (8–15% of student max HP)
     $studentMaxHp     = $session->student_max_hp ?: $session->enemy_max_hp;
     $enemyDamage      = (int) round($studentMaxHp * (0.08 + (mt_rand(0, 7) / 100)));
-    $studentCurrentHp = $request->input('student_current_hp', $session->student_current_hp);
+    $studentCurrentHp = $session->student_current_hp ?? $studentMaxHp;
     $newStudentHp     = max(0, $studentCurrentHp - $enemyDamage);
 
     // Save game round
@@ -179,6 +280,11 @@ class GameController extends Controller
     // Update enemy HP
     $newEnemyHp      = max(0, $session->enemy_current_hp - $damage);
     $newRoundsPlayed = $roundsPlayed + 1;
+    $allWords = $session->activity->wordBank
+        ->sortBy('order')
+        ->pluck('word')
+        ->values()
+        ->toArray();
     $hpPercent       = round(($newEnemyHp / $session->enemy_max_hp) * 100);
     $roundsLeft      = $totalWords - $newRoundsPlayed;
 
@@ -207,6 +313,9 @@ class GameController extends Controller
 
         $newBadges = \App\Services\BadgeService::checkAndAward($student);
 
+        LogActivity::log('BATTLE_ROUND', 'Battle Arena',
+    'Round ' . $newRoundsPlayed . ' — Score: ' . $mlScore . '% — Enemy: ' . $session->enemy->name);
+
         return response()->json([
             'status'          => 'won',
             'ml_score'        => $mlScore,
@@ -217,6 +326,8 @@ class GameController extends Controller
             'student_hp'      => $newStudentHp,
             'student_hp_pct'  => round(($newStudentHp / $studentMaxHp) * 100),
             'enemy_damage'    => $enemyDamage,
+            'round_id'        => $round->id,
+            'rounds_left'     => $roundsLeft,
             'points'          => $pointsEarned,
             'new_badges'      => collect($newBadges)->map(fn($b) => [
                 'name' => $b->badge_name,
@@ -228,7 +339,7 @@ class GameController extends Controller
 
     // ── LOSE ──────────────────────────────────────────────────
     if ($newRoundsPlayed >= $totalWords) {
-        $session->update(['status' => 'lost']);
+        $session->update(['status' => 'lost', 'student_current_hp' => 0]);
 
         \App\Models\ActivityResult::updateOrCreate(
             ['student_id' => $student->id, 'activity_id' => $session->activity_id],
@@ -266,21 +377,27 @@ class GameController extends Controller
         $message = "💪 Read clearly! -{$damage} HP! {$roundsLeft} round(s) left.";
     }
 
+    $nextRoundIndex = $newRoundsPlayed;
+    $nextWord = $allWords[$nextRoundIndex] ?? null;
+
     return response()->json([
-        'status'         => 'ongoing',
-        'ml_score'       => $mlScore,
-        'transcript'     => $transcript,
-        'damage'         => $damage,
-        'enemy_hp'       => $newEnemyHp,
-        'hp_percent'     => $hpPercent,
-        'student_hp'     => $newStudentHp,
-        'student_hp_pct' => round(($newStudentHp / $studentMaxHp) * 100),
-        'enemy_damage'   => $enemyDamage,
-        'round_id'       => $round->id,
-        'rounds_left'    => $roundsLeft,
-        'rounds_used'    => $newRoundsPlayed,
-        'total_words'    => $totalWords,
-        'message'        => $message,
+        'status'           => 'ongoing',
+        'ml_score'         => $mlScore,
+        'transcript'       => $transcript,
+        'damage'           => $damage,
+        'enemy_hp'         => $newEnemyHp,
+        'hp_percent'       => $hpPercent,
+        'student_hp'       => $newStudentHp,
+        'student_hp_pct'   => round(($newStudentHp / $studentMaxHp) * 100),
+        'enemy_damage'     => $enemyDamage,
+        'round_id'         => $round->id,
+        'rounds_left'      => $roundsLeft,
+        'rounds_used'      => $newRoundsPlayed,
+        'total_words'     => $totalWords,
+        'next_word'        => $nextWord,
+        'next_round'       => $newRoundsPlayed + 1,
+        'next_round_index' => $nextRoundIndex,
+        'message'          => $message,
     ]);
 }
 

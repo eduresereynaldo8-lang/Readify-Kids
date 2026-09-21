@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use App\Models\Activity;
 use App\Models\ActivityWordBank;
 use App\Models\ReadingMaterial;
+use App\Helpers\LogActivity;
 
 class ActivityController extends Controller
 {
@@ -224,6 +225,9 @@ class ActivityController extends Controller
                 ]);
             }
         }
+
+LogActivity::log('CREATE_ACTIVITY', 'Activities',
+    'Created activity: ' . $request->activity_name);
 
         return redirect()->route('teacher.activities.index')
                ->with('success', 'Battle activity ' . ($request->has('is_published') ? 'published' : 'saved as draft') . ' successfully!');

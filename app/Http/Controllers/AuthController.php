@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Teacher;
 use App\Models\Student;
+use App\Helpers\LogActivity;
 
 class AuthController extends Controller
 {
@@ -33,6 +34,7 @@ class AuthController extends Controller
     }
 
     Auth::login($user);
+LogActivity::log('LOGIN', 'Auth', auth()->user()->username . ' logged in');
 
     // Redirect based on user role
     if ($user->role === 'admin') {
@@ -83,11 +85,19 @@ class AuthController extends Controller
     }
 
     // Logout
-    public function logout(Request $request)
-    {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-        return redirect()->route('login');
+  public function logout(Request $request)
+{
+    // ★ Save user info BEFORE logging out ★
+    if (auth()->check()) {
+        $username = auth()->user()->username;
+        $role     = auth()->user()->role;
+        LogActivity::log('LOGOUT', 'Auth', $username . ' logged out');
     }
+
+    auth()->logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect()->route('login');
+}
 }

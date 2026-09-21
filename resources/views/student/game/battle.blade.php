@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{-- Force landscape + fullscreen on mobile --}}
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Battle! — Readify Kids</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
@@ -10,6 +12,42 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
+
+            /* ── Force landscape on mobile ── */
+/* ── Force landscape on mobile ── */
+#rotate-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: #1C0A2E;
+    z-index: 999999;
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+}
+#rotate-overlay.show {
+    display: flex;
+}
+.rotate-emoji {
+    font-size: 80px;
+    animation: rotatePhone 1.5s ease-in-out infinite;
+}
+.rotate-text {
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 18px; font-weight: 800;
+    color: #FFC93C; text-align: center;
+}
+.rotate-sub {
+    font-size: 13px; color: rgba(255,255,255,0.6);
+    text-align: center; padding: 0 30px;
+}
+@keyframes rotatePhone {
+    0%   { transform: rotate(0deg); }
+    40%  { transform: rotate(90deg); }
+    60%  { transform: rotate(90deg); }
+    100% { transform: rotate(0deg); }
+}
+
+
+
         :root{
             --sky-top:#5FC0FF; --sky-mid:#8FD8FF; --sky-bottom:#FFDD8A;
             --ground:#7BC96F; --ground-dark:#5AA652;
@@ -2219,6 +2257,41 @@
 <input type="hidden" id="student-current-hp"   value="{{ $studentCurrentHp }}">
 <input type="hidden" id="student-hp-pct"       value="{{ $studentHpPct }}">
 
+{{-- Badge earned notification --}}
+<div id="badge-notif-wrap"
+     style="position:fixed;top:20px;right:20px;
+            z-index:99998;display:none;
+            flex-direction:column;gap:8px;">
+</div>
+
+<style>
+@keyframes badgeSlideIn {
+    from { opacity:0; transform:translateX(120px) scale(0.9); }
+    to   { opacity:1; transform:translateX(0) scale(1); }
+}
+@keyframes badgeSlideOut {
+    from { opacity:1; transform:translateX(0); }
+    to   { opacity:0; transform:translateX(120px); }
+}
+</style>
+
+{{-- Rotate overlay --}}
+<div id="rotate-overlay">
+    <div class="rotate-emoji">📱</div>
+    <div class="rotate-text">Please Rotate Your Device</div>
+    <div class="rotate-sub">
+        This battle is best played in landscape mode!<br>
+        Rotate your phone sideways to continue.
+    </div>
+    <button onclick="goFullscreen()"
+        style="margin-top:8px;padding:12px 32px;border-radius:30px;
+               border:none;background:#7C3AED;color:#fff;
+               font-family:'Baloo 2',sans-serif;font-size:14px;
+               font-weight:700;cursor:pointer;
+               box-shadow:0 4px 0 rgba(0,0,0,0.3);">
+    Go Fullscreen
+</button>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // ── Audio context for sound effects ────────────────────────────
@@ -2433,6 +2506,8 @@ function updateStudentHpBar(newHp) {
 
     bar.style.width = pct + '%';
     document.getElementById('student-hp-current').textContent = studentCurrentHp;
+    document.getElementById('student-current-hp').value = studentCurrentHp;
+    document.getElementById('student-hp-pct').value = pct;
 
     if (pct <= 25) {
         bar.style.background = 'linear-gradient(180deg,#FF8A8A,#FF5C5C)';
@@ -2446,17 +2521,14 @@ function updateStudentHpBar(newHp) {
     }
 }
 
-// Enemy damage to student = random 8–15% of student max HP per hit
-function calcEnemyDamage() {
-    const pct = 0.08 + Math.random() * 0.07; // 8–15%
-    return Math.max(1, Math.round(studentMaxHp * pct));
-}
-
 // ── State ──────────────────────────────────────────────────────
 let mediaRecorder, audioChunks = [], isRecording = false;
 let timerInterval, seconds = 0, waveInterval = null;
 let battleLocked = false;
 let gamePhase    = 'countdown';
+// Used so Round 1 countdown only starts once
+let firstRoundStarted = false;
+let countdownRunning = false;
 
 // ── DOM refs ───────────────────────────────────────────────────
 const holdBtn     = document.getElementById('hold-rec-btn');
@@ -2470,24 +2542,34 @@ const wvBars      = document.querySelectorAll('.wv');
 const sessionId   = document.getElementById('session-id').value;
 const csrfToken   = document.querySelector('meta[name="csrf-token"]').content;
 const enemyMaxHp  = parseInt(document.getElementById('enemy-max-hp').value);
-const enemyName   = '{{ $session->enemy->name }}';
+const enemyName   = @json($session->enemy->name);
 const totalWords  = parseInt(document.getElementById('total-words').value);
 const wordCard    = document.getElementById('center-word-card');
 const doneBtn     = document.getElementById('done-reading-btn');
-const currentWord = document.getElementById('current-word-value').value;
+let currentWord = document.getElementById('current-word-value').value;
 
 // ── COUNTDOWN ──────────────────────────────────────────────────
 function startCountdown() {
+    if (countdownRunning || battleLocked || gamePhase !== 'countdown') return;
+    if (isMobileDevice() && (isPortrait() || !isFullscreen())) return;
+    countdownRunning = true;
+    holdBtn.disabled = true;
     const overlay = document.getElementById('countdown-overlay');
     const numEl   = document.getElementById('countdown-number');
     const lblEl   = document.getElementById('countdown-label');
     const subEl   = document.getElementById('countdown-sub');
 
     overlay.style.display = 'flex';
+    subEl.textContent = 'Read the word when it appears';
     setBattleMsg('⏳ Get ready…');
     let count = 3;
 
     function tick() {
+        // Pause this countdown if the mobile fullscreen overlay returns.
+        if (isMobileDevice() && (isPortrait() || !isFullscreen())) {
+            setTimeout(tick, 250);
+            return;
+        }
         numEl.style.animation = 'none';
         void numEl.offsetWidth;
         numEl.style.animation = 'countPop 0.9s cubic-bezier(0.34,1.56,0.64,1) forwards';
@@ -2505,7 +2587,15 @@ function startCountdown() {
             numEl.style.color = '#57D67B';
             lblEl.textContent = 'READ IT!';
             subEl.textContent = 'Read the passage aloud then press Done!';
-            setTimeout(() => { overlay.style.display = 'none'; showWordCard(); }, 900);
+            setTimeout(function finishCountdown() {
+                if (isMobileDevice() && (isPortrait() || !isFullscreen())) {
+                    setTimeout(finishCountdown, 250);
+                    return;
+                }
+                overlay.style.display = 'none';
+                countdownRunning = false;
+                showWordCard();
+            }, 900);
         }
     }
     tick();
@@ -2608,14 +2698,9 @@ async function submitRecording() {
     formData.append('recording',          new File([audioBlob], 'attack.webm', { type: 'audio/webm' }));
     formData.append('word_or_passage',    currentWord);
     formData.append('_token',             csrfToken);
-    // ★ Send current student HP so server can calculate damage correctly ★
-    formData.append('student_current_hp', studentCurrentHp);
-
-    // ... rest of your submit function stays the same
-
     try {
         const res = await fetch(`/student/game/battle/${sessionId}/round`, {
-            method: 'POST', body: formData
+            method: 'POST', body: formData, headers: { 'Accept': 'application/json' }
         });
         if (!res.ok) throw new Error(`Server error ${res.status}`);
         const data = await res.json();
@@ -2645,6 +2730,7 @@ async function submitRecording() {
 
         // 6. Win / Lose / Ongoing
         if (data.status === 'won') {
+            updateStudentHpBar(parseInt(data.student_hp ?? studentCurrentHp, 10));
             setBattleMsg('🎉 Final blow landed!');
             playSound('win');
             await delay(600);
@@ -2661,10 +2747,9 @@ async function submitRecording() {
         } else if (data.status === 'ongoing') {
             showBattleMsg(data);
             await delay(600);
-            // 7. Enemy counterattack with HP damage to student
-            await playEnemyCounterAttack(false);
+            await playEnemyCounterAttack(data, false);
             await delay(400);
-            moveToNext();
+            moveToNext(data);
         } else {
             setBattleMsg('⏳ Recording submitted! Waiting for AI scoring…');
             battleLocked = false;
@@ -2757,67 +2842,105 @@ function playEnemyHit(damage, score, style) {
 }
 
 // ── Enemy counterattack (mid-battle) ──────────────────────────
-function playEnemyCounterAttack(isFinal = false) {
+// ── Enemy counterattack (mid-battle) ──────────────────────────
+function playEnemyCounterAttack(data, isFinal = false) {
     return new Promise(resolve => {
+
         const enemySprite   = document.getElementById('enemy-sprite');
         const studentSprite = document.getElementById('student-sprite');
         const bubble        = document.getElementById('enemy-attack-bubble');
         const hpBg          = document.getElementById('student-hp-bg');
         const dmgInd        = document.getElementById('student-damage-indicator');
 
-        const style   = pickRandom(ENEMY_ATTACK_STYLES);
-        const word    = pickRandom(ENEMY_ATTACK_POOL);
-        const dmgText = ['💢','😵','💫','🌀','😤'][Math.floor(Math.random()*5)];
+        const style = pickRandom(ENEMY_ATTACK_STYLES);
+        const word  = pickRandom(ENEMY_ATTACK_POOL);
 
-        // Enemy damage to student
-        const enemyDmg = calcEnemyDamage();
+        const dmgText = ['💢','😵','💫','🌀','😤'][
+            Math.floor(Math.random() * 5)
+        ];
+
+        // IMPORTANT:
+        // Use damage calculated by Laravel, not a second random JS value.
+        const enemyDmg = parseInt(data.enemy_damage ?? 0);
+        const newHp    = parseInt(data.student_hp ?? studentCurrentHp);
 
         bubble.textContent   = word;
         bubble.style.display = 'block';
 
         setTimeout(() => {
+
             enemySprite.style.animation = 'none';
             void enemySprite.offsetWidth;
-            enemySprite.style.animation = `${style.anim} ${style.dur}ms cubic-bezier(0.34,1.56,0.64,1) forwards`;
-            enemySprite.style.filter    = `drop-shadow(0 0 20px ${style.color})`;
+
+            enemySprite.style.animation =
+                `${style.anim} ${style.dur}ms cubic-bezier(0.34,1.56,0.64,1) forwards`;
+
+            enemySprite.style.filter =
+                `drop-shadow(0 0 20px ${style.color})`;
+
             setBattleMsg(`${enemyName} counters: "${word}"`);
+
         }, 300);
 
         setTimeout(() => {
-            // Student takes damage
+
             playSound('enemy_hit');
+
             studentSprite.style.animation = 'none';
             void studentSprite.offsetWidth;
-            studentSprite.style.animation = 'studentHit 0.5s ease';
-            studentSprite.style.filter    = 'brightness(3) saturate(0)';
+
+            studentSprite.style.animation =
+                'studentHit 0.5s ease';
+
+            studentSprite.style.filter =
+                'brightness(3) saturate(0)';
 
             hpBg.classList.remove('shake');
             void hpBg.offsetWidth;
             hpBg.classList.add('shake');
 
-            // Update student HP
-            updateStudentHpBar(studentCurrentHp - enemyDmg);
+            // Use server-calculated HP
+            updateStudentHpBar(newHp);
 
-            // Damage indicator on student
-            dmgInd.textContent     = `-${enemyDmg} ${dmgText}`;
-            dmgInd.style.display   = 'block';
+            // Also update hidden value
+            document.getElementById('student-current-hp').value = newHp;
+
+            dmgInd.textContent =
+                `-${enemyDmg} ${dmgText}`;
+
+            dmgInd.style.display = 'block';
             dmgInd.style.animation = 'none';
             void dmgInd.offsetWidth;
-            dmgInd.style.animation = 'floatUp 1s ease forwards';
+
+            dmgInd.style.animation =
+                'floatUp 1s ease forwards';
 
             setTimeout(() => {
-                studentSprite.style.filter    = 'drop-shadow(0 8px 6px rgba(0,0,0,.25))';
+
+                studentSprite.style.filter =
+                    'drop-shadow(0 8px 6px rgba(0,0,0,.25))';
+
                 studentSprite.style.animation = '';
+
                 hpBg.classList.remove('shake');
+
                 dmgInd.style.display = 'none';
+
             }, 600);
+
         }, style.dur * 0.55);
 
         setTimeout(() => {
+
             enemySprite.style.animation = '';
-            enemySprite.style.filter    = 'drop-shadow(0 8px 6px rgba(0,0,0,.25))';
-            bubble.style.display        = 'none';
+
+            enemySprite.style.filter =
+                'drop-shadow(0 8px 6px rgba(0,0,0,.25))';
+
+            bubble.style.display = 'none';
+
             resolve();
+
         }, style.dur + 200);
     });
 }
@@ -2919,10 +3042,16 @@ function updateEnemyHpBar(newHp, hpPercent) {
 }
 
 function updateStats(data) {
-    const oldDmg = parseInt(document.getElementById('top-damage').textContent.replace(/,/g,''));
-    const oldRnd = parseInt(document.getElementById('round-num').textContent);
-    document.getElementById('top-damage').textContent = (oldDmg + data.damage).toLocaleString();
-    document.getElementById('round-num').textContent  = Math.min(oldRnd + 1, totalWords);
+
+    const oldDmg = parseInt(
+        document
+            .getElementById('top-damage')
+            .textContent
+            .replace(/,/g,'')
+    );
+
+    document.getElementById('top-damage').textContent =
+        (oldDmg + data.damage).toLocaleString();
 }
 
 function updateRoundsLeft(left) {
@@ -2957,7 +3086,7 @@ function setBattleMsg(text) {
 
 function addHistory(data, word) {
     const hist  = document.getElementById('round-history');
-    const empty = hist.querySelector('[style*="No rounds"]');
+    const empty = hist.querySelector(':scope > div:not(.history-item)');
     if (empty) empty.remove();
     const sc = data.ml_score;
     const c  = sc >= 90 ? '#3FA86A' : sc >= 70 ? '#3D82D9' : sc >= 50 ? '#E0A11B' : '#E05B3C';
@@ -2972,13 +3101,147 @@ function addHistory(data, word) {
     hist.insertBefore(div, hist.firstChild);
 }
 
-function moveToNext() {
-    const idx = parseInt(document.getElementById('current-round-index').value);
-    const dot  = document.getElementById(`dot-${idx}`);
-    if (dot) { dot.style.background = '#57D67B'; dot.style.boxShadow = 'none'; }
-    window.location.reload();
-}
+function moveToNext(data) {
 
+    // Current completed round index
+    const oldIndex = parseInt(
+        document.getElementById('current-round-index').value
+    );
+
+    // ─────────────────────────────────────────────
+    // 1. Mark completed round dot green
+    // ─────────────────────────────────────────────
+    const oldDot = document.getElementById(`dot-${oldIndex}`);
+
+    if (oldDot) {
+        oldDot.style.background = '#57D67B';
+        oldDot.style.boxShadow  = 'none';
+    }
+
+
+    // ─────────────────────────────────────────────
+    // 2. Get new round information from Laravel
+    // ─────────────────────────────────────────────
+    const nextIndex = parseInt(
+        data.next_round_index ?? (oldIndex + 1)
+    );
+
+    const nextWord = data.next_word;
+
+    if (!nextWord) {
+        console.warn('No next word returned by server.');
+        return;
+    }
+
+
+    // ─────────────────────────────────────────────
+    // 3. Highlight next dot purple
+    // ─────────────────────────────────────────────
+    const nextDot = document.getElementById(`dot-${nextIndex}`);
+
+    if (nextDot) {
+        nextDot.style.background = '#7C3AED';
+        nextDot.style.boxShadow =
+            '0 0 0 3px rgba(124,58,237,0.3)';
+    }
+
+
+    // ─────────────────────────────────────────────
+    // 4. Update JS current word
+    // ─────────────────────────────────────────────
+    currentWord = nextWord;
+
+
+    // ─────────────────────────────────────────────
+    // 5. Update hidden Blade values
+    // ─────────────────────────────────────────────
+    document.getElementById('current-word-value').value =
+        nextWord;
+
+    document.getElementById('current-round-index').value =
+        nextIndex;
+
+    document.getElementById('rounds-left-value').value =
+        data.rounds_left;
+    updateRoundsLeft(data.rounds_left);
+
+
+    // ─────────────────────────────────────────────
+    // 6. Update visible word
+    // ─────────────────────────────────────────────
+    const wordText =
+        document.getElementById('center-word-text');
+
+    wordText.textContent = nextWord;
+
+
+    // ─────────────────────────────────────────────
+    // 7. Update visible round number
+    // ─────────────────────────────────────────────
+    document.getElementById('round-num').textContent =
+        data.next_round ?? (nextIndex + 1);
+
+
+    // ─────────────────────────────────────────────
+    // 8. Update student HP from server
+    // ─────────────────────────────────────────────
+    if (data.student_hp !== undefined) {
+
+        updateStudentHpBar(
+            parseInt(data.student_hp)
+        );
+
+        document.getElementById('student-current-hp').value =
+            data.student_hp;
+    }
+
+
+    // ─────────────────────────────────────────────
+    // 9. Reset previous-round UI
+    // ─────────────────────────────────────────────
+    const transcript =
+        document.getElementById('battle-transcript');
+
+    transcript.style.display = 'none';
+    transcript.textContent = '';
+
+    document.getElementById('score-reveal').style.display =
+        'none';
+    ['score-reveal-value', 'score-reveal-damage', 'score-reveal-transcript']
+        .forEach(id => { document.getElementById(id).textContent = ''; });
+
+    doneBtn.style.display = 'none';
+
+    wordCard.style.display = 'none';
+
+
+    // ─────────────────────────────────────────────
+    // 10. Reset microphone
+    // ─────────────────────────────────────────────
+    battleLocked = false;
+
+    gamePhase = 'countdown';
+
+    resetHoldBtn();
+
+    holdBtn.disabled = true;
+
+
+    // ─────────────────────────────────────────────
+    // 11. Start next round countdown
+    //
+    // NO PAGE RELOAD.
+    // Fullscreen stays active.
+    // Landscape lock stays active.
+    // ─────────────────────────────────────────────
+    setBattleMsg(
+        `⚔️ Round ${data.next_round ?? nextIndex + 1} incoming!`
+    );
+
+    setTimeout(() => {
+        startCountdown();
+    }, 700);
+}
 function showWin(data) {
     document.getElementById('win-msg').textContent = data.message;
     document.getElementById('win-pts').textContent = `+${data.points} ⭐ pts!`;
@@ -3028,13 +3291,7 @@ function stopWaveform() {
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// ── Auto-start countdown ────────────────────────────────────────
-window.addEventListener('load', () => {
-    holdBtn.disabled = true;
-    setTimeout(startCountdown, 600);
 
-
-});
 
 function showBadgeNotifications(badges) {
     if (!badges || badges.length === 0) return;
@@ -3083,24 +3340,87 @@ function showBadgeNotifications(badges) {
         }, 400);
     }, 4000);
 }
+
+// ── Fullscreen + Landscape ─────────────────────────────────────
+
+function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function isPortrait() {
+    return window.innerHeight > window.innerWidth;
+}
+
+function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement ||
+        document.mozFullScreenElement || document.msFullscreenElement);
+}
+
+async function requestFullscreenAndLandscape() {
+    try {
+        const el = document.documentElement;
+        if (!isFullscreen()) {
+            const request = el.requestFullscreen || el.webkitRequestFullscreen ||
+                el.mozRequestFullScreen || el.msRequestFullscreen;
+            if (request) await request.call(el);
+        }
+    } catch (e) {
+        console.log('Fullscreen request failed:', e);
+    }
+
+    try {
+        if (isFullscreen() && screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock('landscape');
+        }
+    } catch (e) {
+        console.log('Orientation lock unavailable:', e);
+    }
+}
+
+function showRotateOverlay(show) {
+    const overlay = document.getElementById('rotate-overlay');
+    if (overlay) overlay.style.display = show ? 'flex' : 'none';
+}
+
+function checkOrientation() {
+    showRotateOverlay(isMobileDevice() && (isPortrait() || !isFullscreen()));
+}
+
+function startFirstRoundOnce() {
+    if (firstRoundStarted) return;
+    if (isMobileDevice() && (isPortrait() || !isFullscreen())) return;
+    firstRoundStarted = true;
+    startCountdown();
+}
+
+async function goFullscreen() {
+    await requestFullscreenAndLandscape();
+    setTimeout(() => {
+        checkOrientation();
+        if (!isMobileDevice() || (isFullscreen() && !isPortrait())) {
+            showRotateOverlay(false);
+            if (!firstRoundStarted) {
+                startFirstRoundOnce();
+            } else if (gamePhase === 'countdown') {
+                // Resume a next round that was waiting for fullscreen.
+                startCountdown();
+            }
+        }
+    }, 300);
+}
+
+window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 300));
+window.addEventListener('resize', () => setTimeout(checkOrientation, 300));
+document.addEventListener('fullscreenchange', () => setTimeout(checkOrientation, 300));
+document.addEventListener('webkitfullscreenchange', () => setTimeout(checkOrientation, 300));
+
+window.addEventListener('load', () => {
+    holdBtn.disabled = true;
+    checkOrientation();
+    if (!isMobileDevice()) setTimeout(startFirstRoundOnce, 600);
+});
 </script>
 
-{{-- Badge earned notification --}}
-<div id="badge-notif-wrap"
-     style="position:fixed;top:20px;right:20px;
-            z-index:99998;display:none;
-            flex-direction:column;gap:8px;">
-</div>
-
-<style>
-@keyframes badgeSlideIn {
-    from { opacity:0; transform:translateX(120px) scale(0.9); }
-    to   { opacity:1; transform:translateX(0) scale(1); }
-}
-@keyframes badgeSlideOut {
-    from { opacity:1; transform:translateX(0); }
-    to   { opacity:0; transform:translateX(120px); }
-}
-</style>
 </body>
 </html>

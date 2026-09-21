@@ -39,14 +39,7 @@
                             <option value="Section B" {{ $student->section=='Section B'?'selected':'' }}>Section B</option>
                         </select>
                     </div>
-                    <div class="col-6 mb-3">
-                        <label class="form-label small fw-semibold">Level</label>
-                        <select name="current_level" class="form-select form-select-sm" required>
-                            <option value="1" {{ $student->current_level==1?'selected':'' }}>Level 1</option>
-                            <option value="2" {{ $student->current_level==2?'selected':'' }}>Level 2</option>
-                            <option value="3" {{ $student->current_level==3?'selected':'' }}>Level 3</option>
-                        </select>
-                    </div>
+                    
                 </div>
                 <div class="d-flex gap-2 justify-content-end mt-2">
                     <a href="{{ route('teacher.students.index') }}" class="btn btn-sm btn-outline-secondary">Cancel</a>

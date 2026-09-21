@@ -250,4 +250,23 @@ public function leaderboard()
         'nextLevelPoints', 'xpPercent'
     ));
 }
+
+public function teacherLogs(Request $request)
+{
+    $teacher = auth()->user();
+    $action  = $request->input('action');
+    $date    = $request->input('date');
+
+    $logs = \App\Models\ActivityLog::where('user_id', $teacher->id)
+            ->when($action, fn($q) => $q->where('action', $action))
+            ->when($date,   fn($q) => $q->whereDate('created_at', $date))
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+    $actions = \App\Models\ActivityLog::where('user_id', $teacher->id)
+               ->select('action')->distinct()->pluck('action');
+
+    return view('teacher.logs', compact('logs', 'action', 'date', 'actions'));
+}
 }

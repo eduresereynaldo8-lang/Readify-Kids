@@ -227,7 +227,7 @@
 <div class="mountains"></div>
 <div class="ground"></div>
 
-<a href="{{ route('student.readaloud.index') }}" class="quit-btn">
+<a href="{{ route('student.readaloud.index', [], false) }}" class="quit-btn">
     <i class="ti ti-arrow-left"></i> Back
 </a>
 
@@ -279,7 +279,7 @@
     </div>
 
     {{-- Status text --}}
-    <div class="rec-status-text" id="rec-status">
+    <div class="rec-status-text" id="rec-status" role="status" aria-live="polite">
         Press and hold the button below to start recording
     </div>
 
@@ -294,7 +294,9 @@
                 onmousedown="startRecording()"
                 onmouseup="stopRecording()"
                 ontouchstart="startRecording(event)"
-                ontouchend="stopRecording(event)">
+                ontouchend="stopRecording(event)"
+                ontouchcancel="stopRecording(event)"
+                onmouseleave="stopRecording()">
             <i class="ti ti-microphone" id="mic-icon"></i>
         </button>
         <div class="mic-timer" id="mic-timer">0:00</div>
@@ -303,7 +305,7 @@
 
     {{-- Hidden form --}}
     <form id="upload-form" method="POST"
-          action="{{ route('student.readaloud.upload', $activity->id) }}"
+          action="{{ route('student.readaloud.upload', $activity->id, false) }}"
           enctype="multipart/form-data" style="display:none;">
         @csrf
         <input type="file" name="recording" id="recording-file" accept="audio/*">
@@ -314,6 +316,7 @@
 <script>
 let mediaRecorder, audioChunks = [], isRecording = false;
 let timerInterval, seconds = 0, waveInterval = null;
+let requestingMic = false, holdActive = false, submitting = false, recordingFailed = false;
 
 const micBtn       = document.getElementById('mic-btn');
 const micIcon      = document.getElementById('mic-icon');
@@ -322,113 +325,232 @@ const micHint      = document.getElementById('mic-hint');
 const recStatus    = document.getElementById('rec-status');
 const waveWrap     = document.getElementById('waveform-wrap');
 const wvBars       = document.querySelectorAll('.wv');
-const recFileInput = document.getElementById('recording-file');
+const uploadUrl    = @json(route('student.readaloud.upload', $activity->id, false));
+const indexUrl     = @json(route('student.readaloud.index', [], false));
+const debugUploads = @json(config('app.debug'));
+const maxRecordingBytes = 20 * 1024 * 1024;
 
-// ── Start recording ────────────────────────────────────────────
-function startRecording(e) {
+function debugRecording(label, details) {
+    if (debugUploads) console.log('[ReadAloud] ' + label, details);
+}
+
+debugRecording('environment', {
+    origin: window.location.origin,
+    secure: window.isSecureContext,
+    mediaDevices: !!navigator.mediaDevices,
+    getUserMedia: !!navigator.mediaDevices?.getUserMedia,
+    mediaRecorder: typeof MediaRecorder !== 'undefined',
+    uploadUrl,
+});
+
+function getSupportedMimeType() {
+    if (typeof MediaRecorder.isTypeSupported !== 'function') return '';
+    return ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
+        .find(type => MediaRecorder.isTypeSupported(type)) || '';
+}
+
+function recordingExtension(mime) {
+    switch (mime.split(';')[0].toLowerCase()) {
+        case 'audio/webm': case 'video/webm': return 'webm';
+        case 'audio/ogg': case 'application/ogg': return 'ogg';
+        case 'audio/mp4': case 'video/mp4': case 'audio/x-m4a': return 'mp4';
+        case 'audio/wav': case 'audio/x-wav': return 'wav';
+        case 'audio/mpeg': return 'mp3';
+        default: throw new Error('This browser produced an unsupported recording format. Try another browser.');
+    }
+}
+
+function resetRecordingUi() {
+    clearInterval(timerInterval);
+    stopWaveform();
+    micBtn.classList.remove('recording', 'submitting');
+    micBtn.disabled = false;
+    micIcon.className = 'ti ti-microphone';
+    micTimer.style.display = 'none';
+    waveWrap.style.display = 'none';
+    micHint.textContent = 'Hold the button while reading';
+    document.getElementById('uploading-overlay').style.display = 'none';
+}
+
+function showRecordingError(message) {
+    resetRecordingUi();
+    recStatus.textContent = '❌ ' + message;
+}
+
+function microphoneErrorMessage(error) {
+    switch (error.name) {
+        case 'NotAllowedError': return 'Microphone permission was denied. Allow it for this site in your browser settings, then try again.';
+        case 'NotFoundError': return 'No microphone was found. Connect a microphone and try again.';
+        case 'NotReadableError': return 'Your microphone is unavailable or in use by another app. Close that app and try again.';
+        case 'SecurityError': return 'Your browser blocked microphone access. Open this page over HTTPS and check its permissions.';
+        case 'AbortError': return 'Microphone startup was interrupted. Please try again.';
+        default: return 'Could not start recording. Try again or use another browser.';
+    }
+}
+
+// Permission is requested only while the student presses Record.
+async function startRecording(e) {
     if (e) e.preventDefault();
-    if (isRecording) return;
+    if (isRecording || requestingMic || submitting || micBtn.disabled) return;
+    if (!window.isSecureContext) {
+        showRecordingError('Recording requires HTTPS or localhost. Open the secure link supplied by your teacher.');
+        return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+        showRecordingError('Audio recording is not supported in this browser. Try an up-to-date browser.');
+        return;
+    }
 
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks   = [];
+    requestingMic = true;
+    holdActive = true;
+    let stream;
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Releasing while the permission prompt is open must not start a stuck recording.
+        if (!holdActive) {
+            stream.getTracks().forEach(track => track.stop());
+            recStatus.textContent = 'Microphone is ready. Hold the button again while reading.';
+            return;
+        }
 
-        mediaRecorder.ondataavailable = ev => {
-            if (ev.data.size > 0) audioChunks.push(ev.data);
+        const mimeType = getSupportedMimeType();
+        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+        mediaRecorder = recorder;
+        audioChunks = [];
+        recordingFailed = false;
+        recorder.ondataavailable = event => {
+            if (event.data.size > 0) audioChunks.push(event.data);
         };
-
-        mediaRecorder.onstop = () => {
-            // Auto-submit right away
-            submitRecording();
+        recorder.onerror = event => {
+            recordingFailed = true;
+            isRecording = false;
+            holdActive = false;
+            console.error('[ReadAloud] MediaRecorder failed:', event.error || event);
+            stream.getTracks().forEach(track => track.stop());
+            showRecordingError('Recording was interrupted. Please record your reading again.');
         };
-
-        mediaRecorder.start(100);
+        recorder.onstop = () => {
+            stream.getTracks().forEach(track => track.stop());
+            isRecording = false;
+            holdActive = false;
+            clearInterval(timerInterval);
+            stopWaveform();
+            if (!recordingFailed) submitRecording();
+        };
+        recorder.start(100);
         isRecording = true;
-
         micBtn.classList.add('recording');
-        micIcon.className       = 'ti ti-player-stop';
-        recStatus.textContent   = '🔴 Recording… release when done!';
-        micHint.textContent     = 'Release the button when finished';
-        micTimer.style.display  = 'block';
-        waveWrap.style.display  = 'flex';
-
+        micIcon.className = 'ti ti-player-stop';
+        recStatus.textContent = '🔴 Recording… release when done!';
+        micHint.textContent = 'Release the button when finished';
+        micTimer.textContent = '0:00';
+        micTimer.style.display = 'block';
+        waveWrap.style.display = 'flex';
         seconds = 0;
         timerInterval = setInterval(() => {
             seconds++;
-            micTimer.textContent =
-                Math.floor(seconds/60).toString().padStart(2,'0') + ':' +
-                (seconds%60).toString().padStart(2,'0');
+            micTimer.textContent = Math.floor(seconds / 60).toString().padStart(2, '0') +
+                ':' + (seconds % 60).toString().padStart(2, '0');
         }, 1000);
-
         animateWaveform();
-
-    }).catch(() => {
-        alert('Microphone access denied! Please allow microphone access.');
-    });
+        debugRecording('recorder MIME', recorder.mimeType);
+    } catch (error) {
+        if (stream) stream.getTracks().forEach(track => track.stop());
+        holdActive = false;
+        isRecording = false;
+        console.error('[ReadAloud] Recording startup failed:', error);
+        showRecordingError(microphoneErrorMessage(error));
+    } finally {
+        requestingMic = false;
+    }
 }
 
-// ── Stop recording & auto-submit ───────────────────────────────
 function stopRecording(e) {
     if (e) e.preventDefault();
-    if (!isRecording || !mediaRecorder) return;
+    holdActive = false;
+    if (!isRecording || !mediaRecorder || mediaRecorder.state !== 'recording') return;
 
-    mediaRecorder.stop();
-    mediaRecorder.stream.getTracks().forEach(t => t.stop());
     isRecording = false;
     clearInterval(timerInterval);
-
+    stopWaveform();
     micBtn.classList.remove('recording');
     micBtn.classList.add('submitting');
-    micIcon.className     = 'ti ti-loader';
+    micBtn.disabled = true;
+    micIcon.className = 'ti ti-loader';
     micTimer.style.display = 'none';
     waveWrap.style.display = 'none';
-    recStatus.textContent  = '📤 Submitting your recording…';
-    micHint.textContent    = 'Please wait…';
-    micBtn.disabled        = true;
-
-    stopWaveform();
+    recStatus.textContent = '📤 Submitting your recording…';
+    micHint.textContent = 'Please wait…';
+    try {
+        mediaRecorder.stop();
+    } catch (error) {
+        recordingFailed = true;
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        console.error('[ReadAloud] Could not stop recording:', error);
+        showRecordingError('Could not finish the recording. Please try again.');
+    }
 }
 
-// ── Submit via fetch (no page reload) ─────────────────────────
+function uploadErrorMessage(status, data) {
+    if (status === 419) return 'Your session expired. Refresh this page and sign in again before recording.';
+    if (status === 401) return 'Please sign in again, then reopen this activity.';
+    if (status === 403 || status === 404) return 'This activity is no longer available to you. Return to your activities.';
+    if (status === 413) return 'The recording is too large. Please make a shorter recording.';
+    if (status === 422) {
+        const errors = data?.errors?.recording;
+        return Array.isArray(errors) && errors.length
+            ? errors.join(' ') : 'The recording could not be accepted. Please record again.';
+    }
+    if (status >= 500) return 'The server could not save your recording. Please try again shortly.';
+    return 'Upload failed. Please try again.';
+}
+
 async function submitRecording() {
-    if (!audioChunks.length) return;
-
-    // Show uploading overlay
+    if (submitting) return;
+    submitting = true;
+    micBtn.disabled = true;
     document.getElementById('uploading-overlay').style.display = 'flex';
-
-    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-    const formData  = new FormData();
-
-    const file = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
-    formData.append('recording', file);
-    formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
-
     try {
-        const res = await fetch('{{ route("student.readaloud.upload", $activity->id) }}', {
+        const mime = mediaRecorder?.mimeType || audioChunks.find(chunk => chunk.type)?.type || '';
+        const audioBlob = new Blob(audioChunks, { type: mime });
+        debugRecording('recording', { mime: audioBlob.type, size: audioBlob.size, uploadUrl });
+        if (!audioBlob.size) throw new Error('No audio was recorded. Hold the button while reading, then release it.');
+        if (audioBlob.size > maxRecordingBytes) throw new Error('The recording is larger than 20 MB. Please make a shorter recording.');
+
+        const formData = new FormData();
+        formData.append('recording', audioBlob, 'recording.' + recordingExtension(audioBlob.type));
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+        const response = await fetch(uploadUrl, {
             method: 'POST',
-            body  : formData,
+            body: formData,
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin',
         });
-
-        // Hide uploading overlay
-        document.getElementById('uploading-overlay').style.display = 'none';
-
-        if (res.ok || res.redirected) {
-            showSuccessPopup();
-        } else {
-            recStatus.textContent = '❌ Upload failed. Please try again.';
-            micBtn.classList.remove('submitting');
-            micBtn.disabled = false;
-            micIcon.className = 'ti ti-microphone';
-            micHint.textContent = 'Hold the button while reading';
+        const rawText = await response.text();
+        const contentType = response.headers.get('content-type') || '';
+        let data = null;
+        if (contentType.includes('json')) {
+            try { data = JSON.parse(rawText); } catch (_) { /* Report as an invalid response below. */ }
+        }
+        if (response.redirected || !response.ok || data?.status !== 'pending' || !data?.recording_id) {
+            console.error('[ReadAloud] Upload response rejected:', {
+                status: response.status, url: response.url, redirected: response.redirected, contentType,
+            });
+            if (debugUploads) console.error('[ReadAloud] Response body:', rawText);
+            if (response.redirected) throw new Error('The upload was redirected. Refresh the page and sign in again before recording.');
+            if (!response.ok) throw new Error(uploadErrorMessage(response.status, data));
+            throw new Error('The server did not confirm your recording. Refresh the page and try again.');
         }
 
-    } catch(err) {
         document.getElementById('uploading-overlay').style.display = 'none';
-        recStatus.textContent = '❌ Something went wrong. Please try again.';
-        micBtn.classList.remove('submitting');
-        micBtn.disabled = false;
-        micIcon.className = 'ti ti-microphone';
-        micHint.textContent = 'Hold the button while reading';
+        showSuccessPopup();
+    } catch (error) {
+        console.error('[ReadAloud] Upload failed:', error);
+        showRecordingError(error instanceof TypeError
+            ? 'Could not reach the upload server. Check your connection and try again.'
+            : error.message);
+    } finally {
+        submitting = false;
     }
 }
 
@@ -455,7 +577,7 @@ function showSuccessPopup() {
         if (remaining <= 0) {
             clearInterval(countInterval);
             // Redirect to index
-            window.location.href = '{{ route("student.readaloud.index") }}';
+            window.location.href = indexUrl;
         }
     }, 1000);
 }
@@ -479,6 +601,10 @@ function stopWaveform() {
         b.style.background = '#D9D0F2';
     });
 }
+
+// Releasing outside the mic or leaving the window must finish the recording.
+window.addEventListener('mouseup', stopRecording);
+window.addEventListener('blur', stopRecording);
 
 // Prevent context menu on long press (mobile)
 document.getElementById('mic-btn').addEventListener('contextmenu', e => e.preventDefault());

@@ -149,10 +149,17 @@
                               action="{{ route('admin.teachers.delete', $t->id) }}"
                               onsubmit="return confirm('Delete {{ $t->firstname }} {{ $t->lastname }} and all their data?')">
                             @csrf @method('DELETE')
+                            <div class="d-flex gap-1">
+    {{-- Edit --}}
+    <a href="{{ route('admin.teachers.edit', $t->id) }}"
+       class="btn btn-sm btn-outline-primary" title="Edit">
+        <i class="ti ti-edit"></i>
+    </a>
                             <button type="submit"
                                     class="btn btn-sm btn-outline-danger"
                                     title="Delete">
                                 <i class="ti ti-trash"></i>
+                        
                             </button>
                         </form>
                     </div>

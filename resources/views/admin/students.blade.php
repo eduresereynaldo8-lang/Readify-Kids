@@ -142,6 +142,14 @@
                           action="{{ route('admin.students.delete', $s->id) }}"
                           onsubmit="return confirm('Delete {{ $s->firstname }} {{ $s->lastname }}?')">
                         @csrf @method('DELETE')
+
+                        <div class="d-flex gap-1">
+    {{-- View --}}
+    <a href="{{ route('admin.students.view', $s->id) }}"
+       class="btn btn-sm btn-outline-primary" title="View">
+        <i class="ti ti-eye"></i>
+    </a>
+    {{-- Delete same as before --}}
                         <button type="submit"
                                 class="btn btn-sm btn-outline-danger"
                                 title="Delete">

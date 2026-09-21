@@ -258,4 +258,93 @@ public function storeTeacher(Request $request)
     return redirect()->route('admin.teachers')
            ->with('success', "Teacher {$request->firstname} {$request->lastname} created successfully!");
 }
+
+public function logs(Request $request)
+{
+    $search = $request->input('search');
+    $role   = $request->input('role');
+    $action = $request->input('action');
+    $date   = $request->input('date');
+
+    $logs = \App\Models\ActivityLog::with('user')
+            ->when($search, fn($q) => $q->whereHas('user',
+                fn($q2) => $q2->where('username', 'like', "%{$search}%"))
+                ->orWhere('description', 'like', "%{$search}%"))
+            ->when($role,   fn($q) => $q->where('role',   $role))
+            ->when($action, fn($q) => $q->where('action', $action))
+            ->when($date,   fn($q) => $q->whereDate('created_at', $date))
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+    $actions = \App\Models\ActivityLog::select('action')
+               ->distinct()->pluck('action');
+
+    return view('admin.logs', compact('logs', 'search', 'role', 'action', 'date', 'actions'));
+}
+
+public function editTeacher($id)
+{
+    $teacher = Teacher::with('user')->findOrFail($id);
+    return view('admin.teachers_edit', compact('teacher'));
+}
+
+public function updateTeacher(Request $request, $id)
+{
+    $teacher = Teacher::with('user')->findOrFail($id);
+
+    $request->validate([
+        'firstname'   => 'required|string|max:100',
+        'lastname'    => 'required|string|max:100',
+        'school_name' => 'required|string|max:255',
+        'email'       => 'required|email|unique:users,email,' . $teacher->user_id,
+        'username'    => 'required|string|max:100|unique:users,username,' . $teacher->user_id,
+        'password'    => 'nullable|string|min:6|confirmed',
+    ]);
+
+    $teacher->update([
+        'firstname'   => $request->firstname,
+        'lastname'    => $request->lastname,
+        'school_name' => $request->school_name,
+    ]);
+
+    $teacher->user->update([
+        'email'    => $request->email,
+        'username' => $request->username,
+    ]);
+
+    if ($request->filled('password')) {
+        $teacher->user->update([
+            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+        ]);
+    }
+
+    LogActivity::log('EDIT_TEACHER', 'Teachers',
+        'Updated teacher: ' . $teacher->firstname . ' ' . $teacher->lastname);
+
+    return redirect()->route('admin.teachers')
+           ->with('success', 'Teacher updated successfully!');
+}
+
+public function viewStudent($id)
+{
+    $student = Student::with([
+        'teacher', 'activityResults.activity',
+        'studentBadges.badge', 'user'
+    ])->findOrFail($id);
+
+    $gameSessions  = \App\Models\GameSession::where('student_id', $id)
+                     ->with('enemy', 'activity')->latest()->get();
+    $recordings    = \App\Models\VoiceRecording::where('student_id', $id)
+                     ->with('activity', 'evaluation')->latest()->get();
+    $totalCompleted = $student->activityResults->where('status','completed')->count();
+    $avgScore       = round($student->activityResults->avg('score') ?? 0, 1);
+    $battlesWon     = $gameSessions->where('status','won')->count();
+
+    return view('admin.students_view', compact(
+        'student', 'gameSessions', 'recordings',
+        'totalCompleted', 'avgScore', 'battlesWon'
+    ));
+}
+
 }

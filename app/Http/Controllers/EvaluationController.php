@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\VoiceRecording;
 use App\Models\Evaluation;
+use App\Helpers\LogActivity;
 
 class EvaluationController extends Controller
 {
@@ -98,6 +99,9 @@ class EvaluationController extends Controller
 // After $student->increment('total_points', ...) or wherever you finalize the eval
 \App\Services\BadgeService::checkAndAward($recording->student);
 
+LogActivity::log('EVALUATE', 'Evaluation',
+    'Evaluated recording ID ' . $recording->id . ' for student ' . $recording->student->firstname);
+    
         return redirect()->route('teacher.evaluations.index')
                ->with('success', 'Evaluation saved successfully! Student has been notified.');
     }

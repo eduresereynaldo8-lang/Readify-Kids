@@ -34,7 +34,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/evaluations', [AdminController::class, 'evaluations'])->name('evaluations');
     Route::get('/reports',     [AdminController::class, 'reports'])->name('reports');
     Route::get('/teachers/create',  [AdminController::class, 'createTeacher'])->name('teachers.create');
-Route::post('/teachers/create', [AdminController::class, 'storeTeacher'])->name('teachers.store');
+    Route::post('/teachers/create', [AdminController::class, 'storeTeacher'])->name('teachers.store');
+    Route::get('/logs', [AdminController::class, 'logs'])->name('logs');
+    Route::get('/teachers/{id}/edit',   [AdminController::class, 'editTeacher'])->name('teachers.edit');
+Route::put('/teachers/{id}',        [AdminController::class, 'updateTeacher'])->name('teachers.update');
+Route::get('/students/{id}',        [AdminController::class, 'viewStudent'])->name('students.view');
 });
 
 // ── Teacher routes (must be logged in as teacher) ─────────────
@@ -82,6 +86,7 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')
     Route::get('/progress',     [DashboardController::class, 'progress'])->name('progress');
     Route::get('/leaderboard',  [LeaderboardController::class, 'index'])->name('leaderboard');
 
+    Route::get('/logs', [DashboardController::class, 'teacherLogs'])->name('logs');
     
 });
 

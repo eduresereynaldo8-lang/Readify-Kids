@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Student;
 use App\Models\User;
+use App\Helpers\LogActivity;
 
 class StudentController extends Controller
 {
@@ -66,6 +67,9 @@ class StudentController extends Controller
             'current_level'  => $request->current_level,
             'total_points'   => 0,
         ]);
+
+        LogActivity::log('ADD_STUDENT', 'Students',
+    'Added student: ' . $request->firstname . ' ' . $request->lastname);
 
         return redirect()->route('teacher.students.index')
                ->with('success', 'Student added successfully!');
