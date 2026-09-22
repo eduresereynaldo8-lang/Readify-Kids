@@ -14,32 +14,57 @@ class AdminController extends Controller
     // Admin dashboard
     public function dashboard()
     {
-        $totalTeachers   = Teacher::count();
-        $totalStudents   = Student::count();
+        $totalTeachers = Teacher::count();
+        $totalStudents = Student::count();
         $totalActivities = Activity::count();
         $totalRecordings = VoiceRecording::count();
-        $totalGames      = GameSession::count();
-        $totalWins       = GameSession::where('status', 'won')->count();
+        $battleCounts = GameSession::selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');
+        $totalGames = $battleCounts->sum();
+        $totalWins = (int) ($battleCounts['won'] ?? 0);
+        $battleLost = (int) ($battleCounts['lost'] ?? 0);
+        $battleOngoing = (int) ($battleCounts['ongoing'] ?? 0);
+        $totalPoints = Student::sum('total_points');
+        $averageScore = \App\Models\ActivityResult::where('status', 'completed')->avg('score');
+        $averageScore = $averageScore === null ? null : round($averageScore, 1);
+        $recentTeachers = Teacher::with('user')->latest()->take(5)->get();
+        $topTeachers = Teacher::withCount(['students', 'activities'])
+            ->orderByDesc('students_count')->orderBy('id')->take(5)->get();
+        $topStudents = Student::withAvg('activityResults', 'score')
+            ->orderByDesc('total_points')->orderBy('id')->take(10)->get();
+        $skills = \App\Services\DashboardMetrics::readingSkills(\App\Models\Evaluation::query());
+        $activityTypes = \App\Services\DashboardMetrics::activityTypes(Activity::query());
+        $attention = [
+            'inactive' => Student::whereDoesntHave('activityResults', fn ($q) => $q
+                ->where('status', 'completed')
+                ->whereBetween('completed_at', [now()->startOfWeek(), now()->endOfWeek()]))->count(),
+            'unattempted' => \App\Services\DashboardMetrics::unattemptedActivities(Activity::query()),
+            'pending' => VoiceRecording::where('status', 'pending')->count(),
+        ];
 
-        // Recent teachers
-        $recentTeachers = Teacher::with('user')
-                          ->latest()->take(5)->get();
-
-        // System activity per day (last 7 days)
+        // One grouped query per series, rather than one query per day.
+        $since = now()->subDays(6)->startOfDay();
+        $games = GameSession::where('created_at', '>=', $since)
+            ->selectRaw('DATE(created_at) as day, COUNT(*) as total')->groupBy('day')->pluck('total', 'day');
+        $recordings = VoiceRecording::where('created_at', '>=', $since)
+            ->selectRaw('DATE(created_at) as day, COUNT(*) as total')->groupBy('day')->pluck('total', 'day');
+        $completed = \App\Models\ActivityResult::where('status', 'completed')->where('completed_at', '>=', $since)
+            ->selectRaw('DATE(completed_at) as day, COUNT(*) as total')->groupBy('day')->pluck('total', 'day');
         $weeklyData = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i);
+            $key = $date->toDateString();
             $weeklyData[] = [
-                'day'   => $date->format('D'),
-                'games' => GameSession::whereDate('created_at', $date)->count(),
-                'recs'  => VoiceRecording::whereDate('created_at', $date)->count(),
+                'day' => $date->format('D'), 'date' => $key,
+                'games' => (int) ($games[$key] ?? 0),
+                'recs' => (int) ($recordings[$key] ?? 0),
+                'completed' => (int) ($completed[$key] ?? 0),
             ];
         }
-
         return view('admin.dashboard', compact(
-            'totalTeachers', 'totalStudents', 'totalActivities',
-            'totalRecordings', 'totalGames', 'totalWins',
-            'recentTeachers', 'weeklyData'
+            'totalTeachers', 'totalStudents', 'totalActivities', 'totalRecordings',
+            'totalGames', 'totalWins', 'recentTeachers', 'weeklyData', 'totalPoints',
+            'averageScore', 'battleLost', 'battleOngoing', 'topTeachers', 'topStudents',
+            'skills', 'activityTypes', 'attention'
         ));
     }
 

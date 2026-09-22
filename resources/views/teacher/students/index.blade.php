@@ -83,7 +83,8 @@
         </a>
     </div>
 
-    <table class="dash-table" id="studentTable">
+    <div class="table-responsive" role="region" aria-label="Scrollable table" tabindex="0">
+<table class="dash-table" id="studentTable">
         <thead>
             <tr>
                 <th>Student</th>
@@ -175,6 +176,7 @@
             @endforelse
         </tbody>
     </table>
+    </div>
 
 {{-- Pagination footer --}}
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3">

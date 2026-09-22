@@ -55,7 +55,7 @@
             <a href="{{ route('admin.teachers.create') }}"
                style="display:inline-flex;align-items:center;gap:6px;
                       padding:7px 16px;border-radius:10px;
-                      background:linear-gradient(135deg,#DC2626,#991B1B);
+                      background:linear-gradient(135deg,#2F8CFF,#1E6FE8);
                       color:#fff;font-size:13px;font-weight:700;
                       text-decoration:none;white-space:nowrap;">
                 <i class="ti ti-plus"></i> Add Teacher
@@ -71,7 +71,8 @@
     </div>
 
     {{-- Table --}}
-    <table class="dash-table" id="teacherTable">
+    <div class="table-responsive" role="region" aria-label="Teachers" tabindex="0">
+<table class="dash-table" id="teacherTable">
         <thead>
             <tr>
                 <th>#</th>
@@ -94,7 +95,7 @@
                 <td>
                     <div class="d-flex align-items-center gap-2">
                         <div style="width:30px;height:30px;border-radius:50%;
-                                    background:#FEE2E2;color:#991B1B;font-size:11px;
+                                    background:#EAF5FF;color:#2377B6;font-size:11px;
                                     font-weight:700;display:flex;align-items:center;
                                     justify-content:center;flex-shrink:0;">
                             {{ strtoupper(substr($t->firstname,0,1).substr($t->lastname,0,1)) }}
@@ -104,7 +105,7 @@
                                 {{ $t->firstname }} {{ $t->lastname }}
                             </div>
                             <div style="font-size:10px;color:#9CA3AF;">
-                                @{{ $t->user->username }}
+                                {{ '@' . $t->user->username }}
                             </div>
                         </div>
                     </div>
@@ -161,6 +162,7 @@
                                 <i class="ti ti-trash"></i>
                         
                             </button>
+                        </div>
                         </form>
                     </div>
                 </td>
@@ -180,6 +182,7 @@
             @endforelse
         </tbody>
     </table>
+    </div>
 
     {{-- Pagination --}}
     @if($teachers->hasPages())
@@ -215,7 +218,7 @@
             ) as $page => $url)
             @if($page == $teachers->currentPage())
             <span style="padding:6px 12px;border-radius:8px;
-                         background:#DC2626;color:#fff;
+                         background:#2F8CFF;color:#fff;
                          font-size:12px;font-weight:700;">
                 {{ $page }}
             </span>

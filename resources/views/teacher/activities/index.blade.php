@@ -49,7 +49,7 @@
             
             <button class="btn btn-sm btn-outline-secondary tab-btn" data-type="Word Game">Word Game</button>
         </div>
-        <div class="d-flex gap-2 align-items-center">
+        <div class="d-flex gap-2 align-items-center flex-wrap">
             <input type="text" id="searchInput" class="form-control form-control-sm"
                    placeholder="Search activities…" style="width:180px;" onkeyup="filterTable()">
             <select class="form-select form-select-sm" id="levelFilter" style="width:120px;" onchange="filterTable()">
@@ -75,7 +75,8 @@
         </div>
     </div>
 
-    <table class="dash-table" id="activityTable">
+    <div class="table-responsive" role="region" aria-label="Scrollable table" tabindex="0">
+<table class="dash-table" id="activityTable">
         <thead>
             <tr>
                 <th>Activity Title</th>
@@ -145,12 +146,13 @@
 @empty
             <tr>
                 <td colspan="9" class="text-center text-muted py-4">
-                    No activities yet. <a href="{{ route('teacher.activities.create') }}">Create your first activity →</a>
+                    No activities yet. <a href="{{ route('teacher.activities.create.readaloud') }}">Create your first activity →</a>
                 </td>
             </tr>
             @endforelse
         </tbody>
     </table>
+    </div>
 
     {{-- Pagination footer --}}
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3">

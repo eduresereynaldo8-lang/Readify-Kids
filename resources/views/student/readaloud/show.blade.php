@@ -1,119 +1,101 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Read Aloud — Readify Kids</title>
-<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
-<meta name="csrf-token" content="{{ csrf_token() }}">
+@extends('layouts.student')
+@section('title', 'Read Aloud')
+@section('page-greet', 'Read Aloud')
+@section('page-sub', 'Read the passage and share your recording with your teacher.')
+@push('styles')
 <style>
-    :root{
+.rk-reader {
         --sky-top:#5FC0FF; --sky-mid:#8FD8FF; --sky-bottom:#FFDD8A;
         --ground:#7BC96F; --ground-dark:#5AA652;
         --panel:#3B2E63; --panel-light:#5B4696;
         --gold:#FFC93C; --gold-dark:#E0A11B;
         --ink:#2B2140; --cream:#FFF7E6; --pink:#FF6FA5; --purple:#7C3AED;
     }
-    * { box-sizing:border-box; margin:0; padding:0; }
-    html,body{ height:100%; }
-    body{
+.rk-reader, .rk-reader * { box-sizing:border-box; margin:0; padding:0; }
+.rk-reader {
         font-family:'Nunito',sans-serif;
         background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 40%,var(--sky-bottom) 82%,#FFEBB0 100%);
-        min-height:100vh; overflow-x:hidden; position:relative;
+        min-height:620px; overflow:hidden; position:relative; border-radius:18px;
     }
-    .sun{
+.rk-reader .sun {
         position:absolute; top:5%; right:8%; width:100px; height:100px; border-radius:50%;
         background:radial-gradient(circle at 35% 35%,#FFF6C9,var(--gold) 60%,var(--gold-dark) 100%);
         box-shadow:0 0 50px 16px rgba(255,201,60,.5);
         animation:sunPulse 4s ease-in-out infinite; z-index:0;
     }
-    @keyframes sunPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
-    .cloud{ position:absolute; opacity:.9; z-index:0; }
-    .cloud svg{ display:block; }
-    .cloud.c1{ top:8%;  left:-10%; width:170px; animation:drift 44s linear infinite; }
-    .cloud.c2{ top:18%; left:-20%; width:120px; animation:drift 58s linear infinite; animation-delay:-12s; }
-    .cloud.c3{ top:5%;  left:-15%; width:95px;  animation:drift 34s linear infinite; animation-delay:-24s; }
-    @keyframes drift{ from{transform:translateX(0);} to{transform:translateX(140vw);} }
-    .mountains{
+@keyframes sunPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+.rk-reader .cloud { position:absolute; opacity:.9; z-index:0; }
+.rk-reader .cloud svg { display:block; }
+.rk-reader .cloud.c1 { top:8%;  left:-10%; width:170px; animation:drift 44s linear infinite; }
+.rk-reader .cloud.c2 { top:18%; left:-20%; width:120px; animation:drift 58s linear infinite; animation-delay:-12s; }
+.rk-reader .cloud.c3 { top:5%;  left:-15%; width:95px;  animation:drift 34s linear infinite; animation-delay:-24s; }
+@keyframes drift{ from{transform:translateX(0);} to{transform:translateX(140vw);} }
+.rk-reader .mountains {
         position:absolute; bottom:80px; left:0; width:100%; height:18%;
         background:linear-gradient(180deg,#B79CE0,#8F72C4);
         clip-path:polygon(0% 100%,8% 40%,18% 70%,30% 20%,42% 65%,55% 15%,68% 60%,80% 25%,92% 55%,100% 30%,100% 100%);
         opacity:.5; z-index:0;
     }
-    .ground{
+.rk-reader .ground {
         position:absolute; bottom:0; left:0; right:0; height:80px;
         background:linear-gradient(180deg,var(--ground) 0%,var(--ground-dark) 100%);
         border-top:4px solid #4E9048; z-index:0;
     }
-
-    /* Quit button */
-    .quit-btn{
-        position:fixed; top:22px; left:24px; z-index:20;
+.rk-reader .quit-btn {
+        position:absolute; top:22px; left:24px; z-index:20;
         display:flex; align-items:center; gap:6px;
         color:#B3261E; font-family:'Baloo 2',sans-serif; font-size:15px; font-weight:700;
         text-decoration:none; padding:9px 20px; border-radius:20px;
         border:2px solid #B3261E; background:#FFE1E1; cursor:pointer; transition:all .2s;
     }
-    .quit-btn:hover{ background:#FFC9C9; }
-
-    /* Stage */
-    .stage{
-        position:relative; z-index:5; min-height:100vh;
+.rk-reader .quit-btn:hover { background:#FFC9C9; }
+.rk-reader .stage {
+        position:relative; z-index:5; min-height:620px;
         display:flex; flex-direction:column; align-items:center;
         justify-content:center; gap:22px; padding:100px 20px 60px;
     }
-
-    .title-card{
+.rk-reader .title-card {
         background:var(--cream); border:4px solid var(--panel); border-radius:18px;
         padding:14px 34px; text-align:center; box-shadow:0 6px 0 rgba(0,0,0,.15);
     }
-    .title-card .label{
+.rk-reader .title-card .label {
         font-family:'Baloo 2',sans-serif; font-size:11px; font-weight:700;
         letter-spacing:.08em; text-transform:uppercase;
         color:var(--panel-light); margin-bottom:4px;
     }
-    .title-card .value{
+.rk-reader .title-card .value {
         font-family:'Baloo 2',sans-serif; font-size:22px; font-weight:800; color:var(--ink);
     }
-
-    .passage-card{
+.rk-reader .passage-card {
         background:var(--cream); border:5px solid var(--panel); border-radius:24px;
         padding:26px 40px; max-width:640px; width:100%; text-align:center;
         box-shadow:0 8px 0 rgba(0,0,0,.15);
     }
-    .passage-card .label{
+.rk-reader .passage-card .label {
         font-family:'Baloo 2',sans-serif; font-size:12px; font-weight:700;
         letter-spacing:.1em; text-transform:uppercase;
         color:var(--panel-light); margin-bottom:12px;
     }
-    .passage-card .content{
+.rk-reader .passage-card .content {
         font-family:'Baloo 2',sans-serif; font-weight:700; color:var(--ink);
         font-size:clamp(20px,3.2vw,32px); line-height:1.5;
     }
-    .passage-card .content.long{
+.rk-reader .passage-card .content.long {
         font-size:16px; line-height:1.9;
         font-family:'Nunito',sans-serif; font-weight:700; text-align:left;
     }
-
-    /* Status text */
-    .rec-status-text{
+.rk-reader .rec-status-text {
         font-family:'Baloo 2',sans-serif; font-size:14px; font-weight:700;
         color:var(--panel); background:rgba(255,255,255,.6);
         padding:6px 18px; border-radius:20px; text-align:center;
     }
-
-    /* Waveform */
-    .waveform-wrap{
+.rk-reader .waveform-wrap {
         display:none; align-items:center; gap:3px; height:40px;
         background:#fff; border:2px solid var(--panel); border-radius:10px; padding:8px 14px;
     }
-    .wv{ width:4px; border-radius:3px; background:#D9D0F2; height:6px; transition:height .08s; }
-
-    /* Mic button */
-    .mic-wrap{ display:flex; flex-direction:column; align-items:center; gap:10px; }
-    .mic-btn{
+.rk-reader .wv { width:4px; border-radius:3px; background:#D9D0F2; height:6px; transition:height .08s; }
+.rk-reader .mic-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.rk-reader .mic-btn {
         width:90px; height:90px; border-radius:50%; border:none; cursor:pointer;
         background:linear-gradient(180deg,#FF8FB8,var(--pink));
         display:flex; align-items:center; justify-content:center;
@@ -121,104 +103,109 @@
         animation:micPulse 2s infinite; transition:all .2s;
         position:relative;
     }
-    .mic-btn.recording{
+.rk-reader .mic-btn.recording {
         background:linear-gradient(180deg,#8F7AD1,var(--purple));
         box-shadow:0 0 0 12px rgba(124,58,237,.2), 0 6px 0 rgba(0,0,0,.15);
         animation:recPulse 1s infinite;
     }
-    .mic-btn.submitting{
+.rk-reader .mic-btn.submitting {
         background:linear-gradient(180deg,#FFC57A,var(--gold-dark));
         animation:none; cursor:not-allowed;
     }
-    .mic-btn i{ color:#fff; font-size:34px; pointer-events:none; }
-    @keyframes micPulse{
+.rk-reader .mic-btn i { color:#fff; font-size:34px; pointer-events:none; }
+@keyframes micPulse{
         0%,100%{ box-shadow:0 0 0 12px rgba(255,111,165,.18), 0 6px 0 rgba(0,0,0,.15); }
         50%{ box-shadow:0 0 0 20px rgba(255,111,165,.06), 0 6px 0 rgba(0,0,0,.15); }
     }
-    @keyframes recPulse{
+@keyframes recPulse{
         0%,100%{ box-shadow:0 0 0 12px rgba(124,58,237,.25), 0 6px 0 rgba(0,0,0,.15); }
         50%{ box-shadow:0 0 0 22px rgba(124,58,237,.06), 0 6px 0 rgba(0,0,0,.15); }
     }
-    .mic-timer{
+.rk-reader .mic-timer {
         font-family:'Baloo 2',sans-serif; font-size:24px; font-weight:800;
         color:var(--panel); display:none;
     }
-    .mic-hint{
+.rk-reader .mic-hint {
         font-family:'Baloo 2',sans-serif; font-size:12px; font-weight:600;
         color:var(--panel-light); opacity:.7;
     }
-
-    /* ── Success popup overlay ────────────────── */
-    #success-overlay{
+.rk-reader #success-overlay {
         display:none; position:fixed; inset:0;
         background:rgba(20,15,40,0.72);
         z-index:9999; align-items:center; justify-content:center;
         animation:fadeIn 0.3s ease;
     }
-    .success-card{
+.rk-reader .success-card {
         background:var(--cream); border:5px solid var(--gold);
         border-radius:26px; padding:40px 36px; text-align:center;
         max-width:400px; width:90%;
         box-shadow:0 10px 0 rgba(0,0,0,.18);
         animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
     }
-    .success-emoji{ font-size:72px; margin-bottom:12px; }
-    .success-title{
+.rk-reader .success-emoji { font-size:72px; margin-bottom:12px; }
+.rk-reader .success-title {
         font-family:'Baloo 2',sans-serif; font-size:24px; font-weight:800;
         color:var(--panel); margin-bottom:8px;
     }
-    .success-sub{
+.rk-reader .success-sub {
         font-family:'Baloo 2',sans-serif; font-size:14px; font-weight:600;
         color:var(--panel-light); line-height:1.5; margin-bottom:16px;
     }
-    .success-countdown{
+.rk-reader .success-countdown {
         font-family:'Baloo 2',sans-serif; font-size:13px; color:var(--panel-light);
         opacity:.7;
     }
-    .success-bar-wrap{
+.rk-reader .success-bar-wrap {
         width:100%; background:rgba(0,0,0,.08); border-radius:8px;
         height:8px; margin-top:12px; overflow:hidden;
     }
-    .success-bar{
+.rk-reader .success-bar {
         height:8px; border-radius:8px;
         background:linear-gradient(90deg,var(--gold),var(--pink));
         width:100%;
         transition:width linear;
     }
-
-    /* Uploading spinner overlay */
-    #uploading-overlay{
+.rk-reader #uploading-overlay {
         display:none; position:fixed; inset:0;
         background:rgba(20,15,40,0.6);
         z-index:9998; align-items:center; justify-content:center;
         flex-direction:column; gap:14px;
     }
-    .uploading-card{
+.rk-reader .uploading-card {
         background:var(--cream); border:4px solid var(--panel);
         border-radius:20px; padding:28px 36px; text-align:center;
         box-shadow:0 8px 0 rgba(0,0,0,.15);
     }
-    .uploading-spinner{
+.rk-reader .uploading-spinner {
         width:48px; height:48px; border-radius:50%;
         border:5px solid #E6DEFA;
         border-top-color:var(--purple);
         animation:spin 0.8s linear infinite; margin:0 auto 12px;
     }
-    @keyframes spin{ to{transform:rotate(360deg);} }
-    .uploading-text{
+@keyframes spin{ to{transform:rotate(360deg);} }
+.rk-reader .uploading-text {
         font-family:'Baloo 2',sans-serif; font-size:15px;
         font-weight:700; color:var(--panel);
     }
-
-    @keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
-    @keyframes popIn{
+@keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
+@keyframes popIn{
         0%{transform:scale(0.5);opacity:0;}
         70%{transform:scale(1.05);}
         100%{transform:scale(1);opacity:1;}
     }
+
+.rk-reader .title-card, .rk-reader .passage-card { overflow-wrap:anywhere; }
+.rk-reader .title-card { max-width:100%; }
+@media(max-width:479.98px) {
+ .rk-reader .stage { padding:90px 12px 40px; }
+ .rk-reader .passage-card { padding:20px 16px; }
+ .rk-reader .title-card { padding:12px 18px; }
+}
 </style>
-</head>
-<body>
+@endpush
+@section('content')
+<div class="rk-reader">
+
 
 <div class="sun"></div>
 <div class="cloud c1"><svg viewBox="0 0 200 90"><path d="M20 70 Q0 70 0 50 Q0 30 25 32 Q28 8 58 12 Q80 -5 100 15 Q130 5 138 30 Q170 28 170 55 Q170 70 150 70 Z" fill="#fff"/></svg></div>
@@ -313,6 +300,10 @@
 
 </div>
 
+
+</div>
+@endsection
+@push('scripts')
 <script>
 let mediaRecorder, audioChunks = [], isRecording = false;
 let timerInterval, seconds = 0, waveInterval = null;
@@ -609,5 +600,4 @@ window.addEventListener('blur', stopRecording);
 // Prevent context menu on long press (mobile)
 document.getElementById('mic-btn').addEventListener('contextmenu', e => e.preventDefault());
 </script>
-</body>
-</html>
+@endpush

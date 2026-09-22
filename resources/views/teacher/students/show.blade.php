@@ -57,7 +57,8 @@
     <div class="col-md-8">
         <div class="dash-card">
             <div class="dash-card-title">Recent Activity History</div>
-            <table class="dash-table">
+            <div class="table-responsive" role="region" aria-label="Scrollable table" tabindex="0">
+<table class="dash-table">
                 <thead>
                     <tr>
                         <th>Activity</th>
@@ -79,6 +80,7 @@
                     @endforelse
                 </tbody>
             </table>
+    </div>
         </div>
     </div>
 </div>

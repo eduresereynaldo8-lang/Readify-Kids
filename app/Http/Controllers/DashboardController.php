@@ -8,54 +8,49 @@ use App\Models\VoiceRecording;
 
 class DashboardController extends Controller
 {
-  public function teacherDashboard()
-{
-    $teacher  = auth()->user()->teacher;
-    $students = \App\Models\Student::where('teacher_id', $teacher->id)
-                ->with('activityResults')->get();
-    $total    = $students->count();
+    public function teacherDashboard()
+    {
+        $teacher = auth()->user()->teacher;
+        $students = Student::where('teacher_id', $teacher->id)
+            ->withAvg('activityResults', 'score')
+            ->withCount(['activityResults as completed_this_week' => fn ($q) => $q
+                ->where('status', 'completed')
+                ->whereBetween('completed_at', [now()->startOfWeek(), now()->endOfWeek()])])
+            ->get();
+        $total = $students->count();
+        $activeToday = \Illuminate\Support\Facades\DB::table('sessions')
+            ->whereIn('user_id', Student::where('teacher_id', $teacher->id)->select('user_id'))
+            ->where('last_activity', '>=', now()->startOfDay()->timestamp)
+            ->distinct()->count('user_id');
+        $activitiesDone = ActivityResult::whereHas('student', fn ($q) => $q->where('teacher_id', $teacher->id))
+            ->where('status', 'completed')
+            ->whereBetween('completed_at', [now()->startOfWeek(), now()->endOfWeek()])->count();
+        $pendingReviews = VoiceRecording::whereHas('student', fn ($q) => $q->where('teacher_id', $teacher->id))
+            ->where('status', 'pending')->count();
 
-    // Metric cards
-    $activeToday    = 0; // update if you track logins
-    $activitiesDone = \App\Models\ActivityResult::whereHas('student',
-                      fn($q) => $q->where('teacher_id', $teacher->id))
-                      ->whereBetween('completed_at', [now()->startOfWeek(), now()->endOfWeek()])
-                      ->count();
-    $pendingReviews = \App\Models\VoiceRecording::whereHas('student',
-                      fn($q) => $q->where('teacher_id', $teacher->id))
-                      ->where('status', 'pending')->count();
-
-    // Status breakdown
-    $onTrack   = $students->filter(fn($s) =>
-                     ($s->activityResults->avg('score') ?? 0) >= 75)->count();
-    $needsHelp = $students->filter(fn($s) =>
-                     ($s->activityResults->avg('score') ?? 0) >= 50 &&
-                     ($s->activityResults->avg('score') ?? 0) < 75)->count();
-    $struggling= $students->filter(fn($s) =>
-                     ($s->activityResults->avg('score') ?? 0) < 50)->count();
-
-    // Skill breakdown
-    $evaluations = \App\Models\Evaluation::whereHas('voiceRecording',
-                   fn($q) => $q->whereHas('student',
-                       fn($q2) => $q2->where('teacher_id', $teacher->id)))->get();
-
-    $skills = [
-        'Pronunciation' => round($evaluations->avg('pronunciation_score') * 20 ?? 0, 1),
-        'Fluency'       => round($evaluations->avg('fluency_score')       * 20 ?? 0, 1),
-        'Accuracy'      => round($evaluations->avg('accuracy_score')      * 20 ?? 0, 1),
-        'Comprehension' => round($evaluations->avg('comprehension_score') * 20 ?? 0, 1),
-    ];
-
-    // Top students
-    $topStudents = $students->sortByDesc('total_points')->take(5);
-
-    return view('teacher.dashboard', compact(
-        'teacher', 'students', 'total',
-        'activeToday', 'activitiesDone', 'pendingReviews',
-        'onTrack', 'needsHelp', 'struggling',
-        'skills', 'topStudents'
-    ));
-}
+        // Preserve the existing activity-average status thresholds.
+        $onTrack = $students->filter(fn ($s) => ($s->activity_results_avg_score ?? 0) >= 75)->count();
+        $needsHelp = $students->filter(fn ($s) => ($s->activity_results_avg_score ?? 0) >= 50 && ($s->activity_results_avg_score ?? 0) < 75)->count();
+        $struggling = $students->filter(fn ($s) => ($s->activity_results_avg_score ?? 0) < 50)->count();
+        $skills = \App\Services\DashboardMetrics::readingSkills(
+            \App\Models\Evaluation::whereHas('voiceRecording.student', fn ($q) => $q->where('teacher_id', $teacher->id))
+        );
+        $topStudents = $students->sortByDesc('total_points')->take(5)->values();
+        $activityTypes = \App\Services\DashboardMetrics::activityTypes(
+            \App\Models\Activity::where('teacher_id', $teacher->id)
+        );
+        $attention = [
+            'inactive' => $students->where('completed_this_week', 0)->count(),
+            'unattempted' => \App\Services\DashboardMetrics::unattemptedActivities(
+                \App\Models\Activity::where('teacher_id', $teacher->id)
+            ),
+            'pending' => $pendingReviews,
+        ];
+        return view('teacher.dashboard', compact(
+            'teacher', 'students', 'total', 'activeToday', 'activitiesDone', 'pendingReviews',
+            'onTrack', 'needsHelp', 'struggling', 'skills', 'topStudents', 'activityTypes', 'attention'
+        ));
+    }
 
    public function studentDashboard()
 {
@@ -133,12 +128,18 @@ class DashboardController extends Controller
         $badgesEarned = $earnedBadges->count();
     }
 
+    $skills = \App\Services\DashboardMetrics::readingSkills(
+        \App\Models\Evaluation::whereHas('voiceRecording', fn ($q) => $q->where('student_id', $student->id))
+    );
+    $completedActivityIds = ActivityResult::where('student_id', $student->id)
+        ->where('status', 'completed')->pluck('activity_id')->all();
+
     return view('student.dashboard', compact(
         'student', 'activities', 'results',
         'activitiesDone', 'badgesEarned', 'leaderboard',
         'streak', 'nextLevelPoints', 'xpPercent',
         'allBadges', 'earnedBadges', 'earnedIds',
-        'myRank', 'trophy'
+        'myRank', 'trophy', 'skills', 'completedActivityIds'
     ));
 }
     public function progress()

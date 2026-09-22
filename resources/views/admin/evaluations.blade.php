@@ -53,7 +53,8 @@
                onkeyup="filterTable()">
     </div>
 
-    <table class="dash-table" id="evalTable">
+    <div class="table-responsive" role="region" aria-label="Scrollable table" tabindex="0">
+<table class="dash-table" id="evalTable">
         <thead>
             <tr>
                 <th>Student</th>
@@ -129,6 +130,7 @@
             @endforelse
         </tbody>
     </table>
+    </div>
 </div>
 
 @endsection

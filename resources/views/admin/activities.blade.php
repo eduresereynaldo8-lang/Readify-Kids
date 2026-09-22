@@ -81,7 +81,8 @@
     </div>
 
     {{-- Table --}}
-    <table class="dash-table">
+    <div class="table-responsive" role="region" aria-label="Scrollable table" tabindex="0">
+<table class="dash-table">
         <thead>
             <tr>
                 <th>#</th>
@@ -181,6 +182,7 @@
             @endforelse
         </tbody>
     </table>
+    </div>
 
     {{-- Pagination --}}
     @if($activities->hasPages())
@@ -205,7 +207,7 @@
                 min($activities->lastPage(), $activities->currentPage() + 2)
             ) as $page => $url)
             @if($page == $activities->currentPage())
-            <span style="padding:6px 12px;border-radius:8px;background:#DC2626;
+            <span style="padding:6px 12px;border-radius:8px;background:#2F8CFF;
                          color:#fff;font-size:12px;font-weight:700;">{{ $page }}</span>
             @else
             <a href="{{ $url }}"

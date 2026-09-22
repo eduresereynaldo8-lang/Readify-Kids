@@ -55,7 +55,8 @@
 
         <div class="dash-card">
             <div class="dash-card-title">Student Completions ({{ $activity->results->count() }})</div>
-            <table class="dash-table">
+            <div class="table-responsive" role="region" aria-label="Scrollable table" tabindex="0">
+<table class="dash-table">
                 <thead>
                     <tr><th>Student</th><th>Score</th><th>Attempts</th><th>Completed</th></tr>
                 </thead>
@@ -72,6 +73,7 @@
                     @endforelse
                 </tbody>
             </table>
+    </div>
         </div>
     </div>
 

@@ -118,7 +118,7 @@
                     </a>
                     <button type="submit"
                             style="padding:8px 22px;border-radius:10px;
-                                   background:linear-gradient(135deg,#DC2626,#991B1B);
+                                   background:linear-gradient(135deg,#2F8CFF,#1E6FE8);
                                    color:#fff;font-size:13px;font-weight:700;
                                    border:none;cursor:pointer;
                                    box-shadow:0 2px 0 rgba(0,0,0,.15);">

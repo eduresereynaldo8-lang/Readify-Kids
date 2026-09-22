@@ -1,0 +1,225 @@
+/* Existing page content styles retained while all roles share the dashboard shell. */
+
+/* admin content */
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-card { background: #fff; border-radius: 12px; border: 1px solid #E5E7EB; padding: 16px; width: 100%; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-card-title { font-size: 13px; font-weight: 700; color: #111827; margin-bottom: 12px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-card { background: #fff; border-radius: 12px; border: 1px solid #E5E7EB; padding: 14px 16px; width: 100%; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-label { font-size: 11px; color: #9CA3AF; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-value { font-size: 22px; font-weight: 800; color: #111827; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-sub { font-size: 10px; color: #9CA3AF; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-table th { text-align: left; padding: 8px 10px; color: #9CA3AF; font-weight: 600; border-bottom: 1px solid #F3F4F6; white-space: nowrap; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-table td { padding: 9px 10px; border-bottom: 1px solid #F9FAFB; vertical-align: middle; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-table tr:last-child td { border-bottom: none; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .table-responsive .dash-table { min-width: 600px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .badge-red { background: #FEE2E2; color: #991B1B; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .badge-green { background: #DCFCE7; color: #166534; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .badge-blue { background: #DBEAFE; color: #1E40AF; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .badge-amber { background: #FEF3C7; color: #92400E; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .prog-bg { background: #E5E7EB; border-radius: 4px; height: 6px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .prog-fill { height: 6px; border-radius: 4px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content input,
+.readify-dashboard[data-role="admin"] .rk-standard-content select,
+.readify-dashboard[data-role="admin"] .rk-standard-content textarea,
+.readify-dashboard[data-role="admin"] .rk-standard-content button { max-width: 100%; }
+.readify-dashboard[data-role="admin"] .rk-standard-content input,
+.readify-dashboard[data-role="admin"] .rk-standard-content select,
+.readify-dashboard[data-role="admin"] .rk-standard-content textarea { font-size: 14px; }
+@media (max-width: 767.98px) {
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-card { padding: 12px; border-radius: 10px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-card-title { font-size: 12px; margin-bottom: 9px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-card { padding: 11px 12px; border-radius: 10px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-icon { width: 34px; height: 34px; font-size: 16px; border-radius: 8px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-label { font-size: 9px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-value { font-size: 19px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-sub { font-size: 9px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .table-responsive { margin-left: -1px; margin-right: -1px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-table { font-size: 11px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-table th { padding: 7px 8px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-table td { padding: 8px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .status-badge { font-size: 9px; padding: 2px 6px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .btn { font-size: 12px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content input,
+.readify-dashboard[data-role="admin"] .rk-standard-content select,
+.readify-dashboard[data-role="admin"] .rk-standard-content textarea { font-size: 16px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .row { --bs-gutter-x: 0.75rem; --bs-gutter-y: 0.75rem; }
+}
+@media (max-width: 400px) {
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-card { padding: 10px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-card { padding: 10px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-value { font-size: 18px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-icon { width: 32px; height: 32px; font-size: 14px; }
+}
+@media (max-width: 900px)
+           and (orientation: landscape) {
+.readify-dashboard[data-role="admin"] .rk-standard-content .dash-card { padding: 12px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-card { padding: 10px 12px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-icon { width: 34px; height: 34px; }
+.readify-dashboard[data-role="admin"] .rk-standard-content .metric-value { font-size: 19px; }
+}
+
+/* teacher content */
+.readify-dashboard[data-role="teacher"] .rk-standard-content .metric-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 16px; height: 100%; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .metric-label { font-size: 11px; color: #6B7280; margin-bottom: 4px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .metric-value { font-size: 26px; font-weight: 700; color: #111827; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .metric-sub { font-size: 11px; color: #9CA3AF; margin-top: 2px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .metric-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 16px; max-width: 100%; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-card-title { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-card-title a { font-size: 11px; color: #185FA5; font-weight: 400; text-decoration: none; white-space: nowrap; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-table th { text-align: left; color: #9CA3AF; font-weight: 500; padding: 8px 10px; border-bottom: 1px solid #E5E7EB; font-size: 11px; white-space: nowrap; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-table td { padding: 9px 10px; border-bottom: 1px solid #F3F4F6; color: #374151; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-table tr:last-child td { border-bottom: none; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-table tr:hover td { background: #F9FAFB; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .status-badge { display: inline-block; font-size: 10px; padding: 2px 10px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .badge-green { background: #DCFCE7; color: #166534; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .badge-amber { background: #FEF3C7; color: #92400E; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .badge-red { background: #FEE2E2; color: #991B1B; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .badge-blue { background: #DBEAFE; color: #1E40AF; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .prog-bg { background: #E5E7EB; border-radius: 4px; height: 6px; width: 80px; display: inline-block; vertical-align: middle; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .prog-fill { height: 6px; border-radius: 4px; display: block; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .feed-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #F3F4F6; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .feed-item:last-child { border-bottom: none; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .feed-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .feed-text { font-size: 12px; color: #374151; line-height: 1.4; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .feed-time { font-size: 10px; color: #9CA3AF; margin-top: 2px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .btn-listen { font-size: 11px; padding: 3px 10px; border-radius: 6px; border: 1px solid #D1D5DB; background: #fff; color: #374151; cursor: pointer; white-space: nowrap; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .toolbar-wrap { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+@media (max-width: 991.98px) {
+.readify-dashboard[data-role="teacher"] .rk-standard-content .row > [class*="col-lg-"] { margin-bottom: 12px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-card {  }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-table { min-width: 600px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .toolbar-wrap { flex-wrap: wrap; }
+}
+@media (max-width: 767.98px) {
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-card { padding: 13px; border-radius: 10px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .metric-card { padding: 12px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .metric-label { font-size: 10px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .metric-value { font-size: 20px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .metric-sub { font-size: 10px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .metric-icon { width: 32px; height: 32px; font-size: 16px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-card-title { font-size: 12px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-card-title a { font-size: 10px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-table { min-width: 600px; font-size: 11px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-table th { font-size: 10px; padding: 7px 8px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-table td { font-size: 11px; padding: 8px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .prog-bg { width: 60px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .status-badge { font-size: 9px; padding: 2px 7px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .toolbar-wrap { flex-direction: column; align-items: stretch; gap: 8px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .toolbar-wrap .d-flex { flex-wrap: wrap; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .form-control,
+.readify-dashboard[data-role="teacher"] .rk-standard-content .form-select { font-size: 16px !important; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .btn { max-width: 100%; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .feed-text { font-size: 11px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .feed-time { font-size: 9px; }
+}
+@media (max-width: 400px) {
+.readify-dashboard[data-role="teacher"] .rk-standard-content .dash-card { padding: 11px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .metric-card { padding: 10px; }
+.readify-dashboard[data-role="teacher"] .rk-standard-content .metric-value { font-size: 18px; }
+}
+
+/* student content */
+.readify-dashboard[data-role="student"] .rk-standard-content .dash-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 14px; padding: 16px; max-width: 100%; }
+.readify-dashboard[data-role="student"] .rk-standard-content .dash-card-title { font-size: 13px; font-weight: 700; color: #111827; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .dash-card-title a { font-size: 11px; color: #185FA5; font-weight: 400; text-decoration: none; white-space: nowrap; }
+.readify-dashboard[data-role="student"] .rk-standard-content .stat-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 14px; text-align: center; height: 100%; }
+.readify-dashboard[data-role="student"] .rk-standard-content .stat-emoji { font-size: 24px; margin-bottom: 4px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .stat-value { font-size: 22px; font-weight: 700; color: #111827; }
+.readify-dashboard[data-role="student"] .rk-standard-content .stat-label { font-size: 11px; color: #6B7280; margin-top: 2px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-banner { background: linear-gradient(135deg, #185FA5, #2563EB); border-radius: 14px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 16px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-sub { font-size: 12px; color: rgba(255,255,255,0.85); margin-bottom: 10px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-btn { font-size: 12px; padding: 7px 18px; border-radius: 8px; border: none; background: #fff; color: #185FA5; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-emoji { font-size: 52px; flex-shrink: 0; }
+.readify-dashboard[data-role="student"] .rk-standard-content .xp-row { background: #fff; border: 1px solid #E5E7EB; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; min-width: 0; }
+.readify-dashboard[data-role="student"] .rk-standard-content .xp-label { font-size: 11px; color: #6B7280; white-space: nowrap; }
+.readify-dashboard[data-role="student"] .rk-standard-content .xp-bar-bg { flex: 1; background: #E5E7EB; border-radius: 6px; height: 10px; min-width: 30px; overflow: hidden; }
+.readify-dashboard[data-role="student"] .rk-standard-content .xp-bar-fill { height: 10px; border-radius: 6px; background: linear-gradient(90deg, #185FA5, #60A5FA); }
+.readify-dashboard[data-role="student"] .rk-standard-content .xp-val { font-size: 11px; color: #6B7280; white-space: nowrap; }
+.readify-dashboard[data-role="student"] .rk-standard-content .level-pill { background: #185FA5; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.readify-dashboard[data-role="student"] .rk-standard-content .level-pill-gray { background: #E5E7EB; color: #9CA3AF; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.readify-dashboard[data-role="student"] .rk-standard-content .act-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; border: 1px solid #E5E7EB; background: #F9FAFB; margin-bottom: 8px; text-decoration: none; color: inherit; transition: border-color 0.15s, background 0.15s; min-width: 0; }
+.readify-dashboard[data-role="student"] .rk-standard-content .act-item:hover { border-color: #185FA5; background: #EFF6FF; }
+.readify-dashboard[data-role="student"] .rk-standard-content .act-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.readify-dashboard[data-role="student"] .rk-standard-content .act-content { min-width: 0; flex: 1; }
+.readify-dashboard[data-role="student"] .rk-standard-content .act-title { font-size: 12px; font-weight: 600; color: #111827; overflow-wrap: anywhere; }
+.readify-dashboard[data-role="student"] .rk-standard-content .act-sub { font-size: 10px; color: #9CA3AF; margin-top: 2px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .act-badge { font-size: 10px; padding: 2px 9px; border-radius: 20px; font-weight: 600; white-space: nowrap; margin-left: auto; flex-shrink: 0; }
+.readify-dashboard[data-role="student"] .rk-standard-content .b-new { background: #DBEAFE; color: #1E40AF; }
+.readify-dashboard[data-role="student"] .rk-standard-content .b-progress { background: #FEF3C7; color: #92400E; }
+.readify-dashboard[data-role="student"] .rk-standard-content .b-done { background: #DCFCE7; color: #166534; }
+.readify-dashboard[data-role="student"] .rk-standard-content .badge-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .badge-item { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
+.readify-dashboard[data-role="student"] .rk-standard-content .badge-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .badge-name { font-size: 10px; color: #6B7280; text-align: center; overflow-wrap: anywhere; }
+.readify-dashboard[data-role="student"] .rk-standard-content .badge-locked { opacity: 0.35; }
+.readify-dashboard[data-role="student"] .rk-standard-content .lb-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; font-size: 12px; margin-bottom: 4px; min-width: 0; }
+.readify-dashboard[data-role="student"] .rk-standard-content .lb-item.me { background: #EFF6FF; border: 1px solid #BFDBFE; }
+.readify-dashboard[data-role="student"] .rk-standard-content .lb-rank { width: 22px; text-align: center; font-size: 14px; flex-shrink: 0; }
+.readify-dashboard[data-role="student"] .rk-standard-content .lb-av { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.readify-dashboard[data-role="student"] .rk-standard-content .lb-name { flex: 1; font-weight: 600; color: #111827; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.readify-dashboard[data-role="student"] .rk-standard-content .lb-pts { font-size: 11px; font-weight: 700; color: #F59E0B; white-space: nowrap; flex-shrink: 0; }
+.readify-dashboard[data-role="student"] .rk-standard-content .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 767.98px) {
+.readify-dashboard[data-role="student"] .rk-standard-content .level-pill { font-size: 9px; padding: 3px 7px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .dash-card { border-radius: 12px; padding: 13px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-banner { padding: 16px; border-radius: 12px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-title { font-size: 14px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-sub { font-size: 10px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-btn { font-size: 11px; padding: 6px 13px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-emoji { font-size: 38px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .xp-row { padding: 9px 10px; gap: 7px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .xp-label { font-size: 10px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .xp-val { font-size: 9px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .level-pill,
+.readify-dashboard[data-role="student"] .rk-standard-content .level-pill-gray { font-size: 9px; padding: 3px 7px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .stat-card { padding: 12px 8px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .stat-emoji { font-size: 21px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .stat-value { font-size: 18px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .stat-label { font-size: 9px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .act-item { padding: 8px 9px; gap: 8px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .act-icon { width: 31px; height: 31px; font-size: 16px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .act-title { font-size: 11px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .act-sub { font-size: 9px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .act-badge { font-size: 8px; padding: 2px 6px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .badge-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .badge-icon { width: 34px; height: 34px; font-size: 17px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .badge-name { font-size: 8px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .lb-item { padding: 6px; gap: 6px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .lb-rank { width: 19px; font-size: 12px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .lb-av { width: 24px; height: 24px; font-size: 9px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .lb-name { font-size: 11px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .lb-pts { font-size: 10px; }
+}
+@media (max-width: 400px) {
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-banner { padding: 13px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-emoji { font-size: 32px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-title { font-size: 13px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .hero-sub { font-size: 9px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .xp-label { display: none; }
+.readify-dashboard[data-role="student"] .rk-standard-content .badge-grid { gap: 4px; }
+.readify-dashboard[data-role="student"] .rk-standard-content .badge-icon { width: 31px; height: 31px; font-size: 15px; }
+}
+
+/* Bootstrap grids, forms and dialogs keep their existing behavior within the shell. */
+.rk-standard-content { display:block; min-width:0; }
+.rk-standard-content > :last-child { margin-bottom:0; }
+.rk-standard-content .row > * { min-width:0; }
+.rk-standard-content :is(input,select,textarea,button,audio,video,img) { max-width:100%; }
+.rk-standard-content .table-responsive { max-width:100%; overflow-x:auto; }
+.rk-standard-content .btn { color:var(--bs-btn-color); }
+.rk-standard-content .btn:hover { color:var(--bs-btn-hover-color); }
+.rk-standard-content .btn:disabled { color:var(--bs-btn-disabled-color); }
+.rk-standard-content .modal { font-family:'Nunito',sans-serif; }
+.rk-standard-content .modal-title { margin:0; }
+.rk-topbar h1 { overflow-wrap:anywhere; }
+.rk-sidebar-profile > div { min-width:0; overflow-wrap:anywhere; }
+@media(max-width:767.98px) {
+ .rk-standard-content :is(.form-control,.form-select) { font-size:16px; }
+}

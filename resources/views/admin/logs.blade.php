@@ -60,7 +60,8 @@
     </form>
 
     {{-- Table --}}
-    <table class="dash-table">
+    <div class="table-responsive" role="region" aria-label="Scrollable table" tabindex="0">
+<table class="dash-table">
         <thead>
             <tr>
                 <th>#</th>
@@ -77,7 +78,7 @@
             @forelse($logs as $log)
             @php
                 $roleColors = [
-                    'admin'   => ['bg'=>'#FEE2E2','color'=>'#991B1B'],
+                    'admin'   => ['bg'=>'#F2ECFF','color'=>'#7C3AED'],
                     'teacher' => ['bg'=>'#DBEAFE','color'=>'#1E40AF'],
                     'student' => ['bg'=>'#DCFCE7','color'=>'#166534'],
                 ];
@@ -141,6 +142,7 @@
             @endforelse
         </tbody>
     </table>
+    </div>
 
     {{-- Pagination --}}
     @if($logs->hasPages())
@@ -158,7 +160,7 @@
 
             @foreach($logs->getUrlRange(max(1,$logs->currentPage()-2),min($logs->lastPage(),$logs->currentPage()+2)) as $page => $url)
             @if($page == $logs->currentPage())
-            <span style="padding:6px 12px;border-radius:8px;background:#DC2626;color:#fff;font-size:12px;font-weight:700;">{{ $page }}</span>
+            <span style="padding:6px 12px;border-radius:8px;background:#2F8CFF;color:#fff;font-size:12px;font-weight:700;">{{ $page }}</span>
             @else
             <a href="{{ $url }}" style="padding:6px 12px;border-radius:8px;background:#fff;border:1px solid #E5E7EB;color:#374151;font-size:12px;text-decoration:none;font-weight:600;">{{ $page }}</a>
             @endif

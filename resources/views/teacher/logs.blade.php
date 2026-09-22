@@ -38,7 +38,8 @@
         </div>
     </form>
 
-    <table class="dash-table">
+    <div class="table-responsive" role="region" aria-label="Scrollable table" tabindex="0">
+<table class="dash-table">
         <thead>
             <tr>
                 <th>#</th>
@@ -85,6 +86,7 @@
             @endforelse
         </tbody>
     </table>
+    </div>
 
     @if($logs->hasPages())
     <div class="d-flex justify-content-end mt-3 gap-1">

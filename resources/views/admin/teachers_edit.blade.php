@@ -17,7 +17,7 @@
         <div class="dash-card">
             <div class="d-flex align-items-center gap-3 mb-4">
                 <div style="width:48px;height:48px;border-radius:50%;
-                            background:#FEE2E2;color:#991B1B;font-size:16px;
+                            background:#EAF5FF;color:#2377B6;font-size:16px;
                             font-weight:700;display:flex;align-items:center;justify-content:center;">
                     {{ strtoupper(substr($teacher->firstname,0,1).substr($teacher->lastname,0,1)) }}
                 </div>
@@ -95,7 +95,7 @@
                        class="btn btn-sm btn-outline-secondary">Cancel</a>
                     <button type="submit"
                             style="padding:8px 22px;border-radius:10px;
-                                   background:linear-gradient(135deg,#DC2626,#991B1B);
+                                   background:linear-gradient(135deg,#2F8CFF,#1E6FE8);
                                    color:#fff;font-size:13px;font-weight:700;
                                    border:none;cursor:pointer;">
                         <i class="ti ti-check"></i> Save Changes
