@@ -2,51 +2,31 @@
 @section('title', 'Edit Student')
 @section('page-title', 'Edit Student')
 @section('page-sub', 'Update student information.')
-
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/student-management.css') }}">
+@endpush
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-md-7">
-        <div class="dash-card">
-            <h6 class="fw-semibold mb-3">Edit: {{ $student->firstname }} {{ $student->lastname }}</h6>
-
-            @if($errors->any())
-            <div class="alert alert-danger small">
-                <ul class="mb-0">
-                    @foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach
-                </ul>
-            </div>
-            @endif
-
-            <form method="POST" action="{{ route('teacher.students.update', $student->id) }}">
-                @csrf @method('PUT')
-                <div class="row">
-                    <div class="col-6 mb-3">
-                        <label class="form-label small fw-semibold">First Name</label>
-                        <input type="text" name="firstname" class="form-control form-control-sm"
-                               value="{{ old('firstname', $student->firstname) }}" required>
-                    </div>
-                    <div class="col-6 mb-3">
-                        <label class="form-label small fw-semibold">Last Name</label>
-                        <input type="text" name="lastname" class="form-control form-control-sm"
-                               value="{{ old('lastname', $student->lastname) }}" required>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-6 mb-3">
-                        <label class="form-label small fw-semibold">Section</label>
-                        <select name="section" class="form-select form-select-sm" required>
-                            <option value="Section A" {{ $student->section=='Section A'?'selected':'' }}>Section A</option>
-                            <option value="Section B" {{ $student->section=='Section B'?'selected':'' }}>Section B</option>
-                        </select>
-                    </div>
-                    
-                </div>
-                <div class="d-flex gap-2 justify-content-end mt-2">
-                    <a href="{{ route('teacher.students.index') }}" class="btn btn-sm btn-outline-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-sm btn-primary">Save Changes</button>
-                </div>
-            </form>
+<div class="sm-form-page">
+    <section class="sm-form-card">
+        <div class="sm-card-heading">
+            <span class="sm-heading-icon"><i class="ti ti-user" aria-hidden="true"></i></span>
+            <div><h2>Student Information</h2><p>Update the details for {{ $student->firstname }} {{ $student->lastname }}.</p></div>
         </div>
-    </div>
+        @if($errors->any())
+        <div class="alert alert-danger" role="alert"><strong>Please check the highlighted fields.</strong><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+        @endif
+        <form method="POST" action="{{ route('teacher.students.update', $student->id) }}" class="sm-student-form" data-today="{{ today()->toDateString() }}">
+            @csrf
+            @method('PUT')
+            @include('teacher.students.form', ['editing' => true])
+            <div class="sm-form-actions">
+                <a href="{{ route('teacher.students.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy" aria-hidden="true"></i> Save Changes</button>
+            </div>
+        </form>
+    </section>
 </div>
 @endsection
+@push('scripts')
+<script src="{{ asset('js/student-management.js') }}" defer></script>
+@endpush

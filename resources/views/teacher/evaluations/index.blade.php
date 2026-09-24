@@ -64,16 +64,7 @@
         <div class="dash-card">
             <div class="dash-card-title">Recently Evaluated</div>
             @forelse($evaluated as $recording)
-            @php
-                $avg = $recording->evaluation
-                    ? round((
-                        $recording->evaluation->pronunciation_score +
-                        $recording->evaluation->fluency_score +
-                        $recording->evaluation->accuracy_score +
-                        $recording->evaluation->comprehension_score
-                      ) / 4 * 20, 1)
-                    : 0;
-            @endphp
+            @php $avg = $recording->evaluation?->final_score; @endphp
             <div class="d-flex align-items-center gap-10 p-2 mb-2 rounded"
                  style="border:1px solid #E5E7EB; background:#F9FAFB; gap:10px;">
                 <div style="width:36px;height:36px;border-radius:50%;background:#DCFCE7;color:#166534;
@@ -86,10 +77,11 @@
                         {{ $recording->student->firstname }} {{ $recording->student->lastname }}
                     </div>
                     <div style="font-size:11px;color:#9CA3AF;">
-                        {{ $recording->activity->activity_name }} · Score: {{ $avg }}%
+                        {{ $recording->activity->activity_name }} · Score: {{ $avg === null ? '—' : number_format($avg, 2).'%' }}
+                        @if($recording->evaluation?->is_legacy)<span class="rk-pill">Legacy rubric</span>@endif
                     </div>
                 </div>
-                <span class="status-badge badge-green">Evaluated ✓</span>
+                <a href="{{ route('teacher.evaluations.show', $recording->id) }}" class="btn btn-sm btn-outline-primary">Edit evaluation</a>
             </div>
             @empty
             <div class="text-center text-muted small py-4">No evaluated recordings yet.</div>

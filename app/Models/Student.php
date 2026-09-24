@@ -1,56 +1,83 @@
 <?php
+
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class Student extends Model
 {
     protected $fillable = [
         'user_id', 'teacher_id', 'student_number',
         'firstname', 'lastname', 'section',
-        'current_level', 'total_points'
+        'lrn_no', 'birthday', 'age', 'gender',
+        'current_level', 'total_points',
     ];
 
-    public function user() {
+    protected $casts = [
+        'birthday' => 'date',
+        'age' => 'integer',
+    ];
+
+    public function getAgeAttribute($value): ?int
+    {
+        // Persist a snapshot on save, but display today's age instead of a stale snapshot.
+        if ($this->birthday !== null) {
+            return (int) $this->birthday->age;
+        }
+
+        return $value === null ? null : (int) $value;
+    }
+
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
-    public function teacher() {
+    public function teacher()
+    {
         return $this->belongsTo(Teacher::class);
     }
 
-    public function activityResults() {
+    public function activityResults()
+    {
         return $this->hasMany(ActivityResult::class);
     }
 
-    public function voiceRecordings() {
+    public function voiceRecordings()
+    {
         return $this->hasMany(VoiceRecording::class);
     }
 
     public function badges()
-{
-    return $this->belongsToMany(Badge::class, 'student_badges')
-                ->withPivot('earned_at')
-                ->withTimestamps();
-}
+    {
+        return $this->belongsToMany(Badge::class, 'student_badges')
+            ->withPivot('earned_at')
+            ->withTimestamps();
+    }
 
-public function studentBadges()
-{
-    return $this->hasMany(StudentBadge::class);
-}
+    public function studentBadges()
+    {
+        return $this->hasMany(StudentBadge::class);
+    }
 
-    public function rewards() {
+    public function rewards()
+    {
         return $this->hasMany(StudentReward::class);
     }
 
-    public function achievements() {
+    public function achievements()
+    {
         return $this->hasMany(StudentAchievement::class);
     }
 
-    public function leaderboard() {
+    public function leaderboard()
+    {
         return $this->hasOne(Leaderboard::class);
     }
 
-    public function mlPredictions() {
+    public function mlPredictions()
+    {
         return $this->hasMany(MlPrediction::class);
     }
 
@@ -72,11 +99,14 @@ public function studentBadges()
             $achieved[] = $this->current_level;
         }
 
-        if (!empty($achieved)) {
+        if (! empty($achieved)) {
             $this->save();
 
+            \App\Helpers\LogActivity::forStudent($this, 'LEVEL_UP', 'Progress',
+                "Advanced from level {$originalLevel} to level {$this->current_level} with {$this->total_points} points.");
+
             // Log the level up event
-            \Illuminate\Support\Facades\Log::info("Student #{$this->id} ({$this->firstname} {$this->lastname}) leveled up!", [
+            Log::info("Student #{$this->id} ({$this->firstname} {$this->lastname}) leveled up!", [
                 'from_level' => $originalLevel,
                 'to_level' => $this->current_level,
                 'total_points' => $this->total_points,
@@ -84,6 +114,6 @@ public function studentBadges()
             ]);
         }
 
-        return !empty($achieved) ? $achieved : null;
+        return ! empty($achieved) ? $achieved : null;
     }
 }

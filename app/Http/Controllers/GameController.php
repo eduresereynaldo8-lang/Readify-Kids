@@ -10,6 +10,15 @@ use App\Helpers\LogActivity;
 
 class GameController extends Controller
 {
+    // Shared with Blade/JavaScript so all Battle feedback uses the same bands.
+    public const SCORE_BANDS = [
+        ['min' => 90, 'label' => 'Excellent', 'color' => '#3FA86A', 'sound' => 'excellent', 'attack' => 4, 'aura' => 'auraExcellent 0.6s ease 3'],
+        ['min' => 75, 'label' => 'Great', 'color' => '#3D82D9', 'sound' => 'great', 'attack' => 2, 'aura' => 'auraGood 0.6s ease 2'],
+        ['min' => 60, 'label' => 'Good', 'color' => '#E0A11B', 'sound' => 'good', 'attack' => 1, 'aura' => 'auraGood 0.6s ease 2'],
+        ['min' => 40, 'label' => 'Keep Practicing', 'color' => '#E07A2C', 'sound' => 'ok', 'attack' => 3, 'aura' => 'auraWeak 0.6s ease 2'],
+        ['min' => 0, 'label' => 'Try Again', 'color' => '#E05B3C', 'sound' => 'weak', 'attack' => 0, 'aura' => 'auraWeak 0.6s ease 2'],
+    ];
+
     // Game lobby
   public function index(Request $request)
 {
@@ -178,6 +187,10 @@ class GameController extends Controller
         'points_earned'     => 0,
     ]);
 
+    LogActivity::forStudent($student, 'BATTLE_STARTED', 'Battle Arena',
+        'Started battle: ' . $activity->activity_name . ' (ID ' . $activity->id . ')'
+        . ' - Enemy: ' . $enemy->name . ' - Session #' . $session->id);
+
     return redirect()->route('student.game.battle', $session->id);
 }
 
@@ -218,10 +231,12 @@ class GameController extends Controller
     $studentCurrentHp = $session->student_current_hp ?? $studentMaxHp;
     $studentHpPct     = max(0, round(($studentCurrentHp / $studentMaxHp) * 100));
 
+    $scoreBands = self::SCORE_BANDS;
+
     return view('student.game.battle', compact(
         'session', 'currentWord', 'hpPercent',
         'allWords', 'totalWords', 'roundIndex', 'roundsLeft',
-        'studentMaxHp', 'studentCurrentHp', 'studentHpPct'
+        'studentMaxHp', 'studentCurrentHp', 'studentHpPct', 'scoreBands'
     ));
 }
 
@@ -246,13 +261,26 @@ class GameController extends Controller
     // Store recording
     $path = $request->file('recording')->store('game_recordings', 'public');
 
-    // ML scoring
+    // Automated oral reading scoring (Whisper transcription + word alignment).
     $mlResult   = $this->callMLScoring(
         storage_path('app/public/' . $path),
         $request->word_or_passage
     );
     $mlScore    = $mlResult['score']      ?? null;
     $transcript = $mlResult['transcript'] ?? null;
+    $miscues = $mlResult['miscues'] ?? null;
+    $substitutions = $mlResult['substitutions'] ?? null;
+    $deletions = $mlResult['deletions'] ?? null;
+    $insertions = $mlResult['insertions'] ?? null;
+    // Breakdown is response-only: game_rounds has no columns for these counts.
+    $readingDetails = [
+        'oral_reading_score' => $mlScore,
+        'expected_word_count' => $mlResult['expected_word_count'] ?? null,
+        'miscues' => $miscues,
+        'substitutions' => $substitutions,
+        'deletions' => $deletions,
+        'insertions' => $insertions,
+    ];
 
     // Calculate damage to enemy
     $damage = $mlScore !== null
@@ -307,16 +335,20 @@ class GameController extends Controller
 
         \App\Models\ActivityResult::updateOrCreate(
             ['student_id' => $student->id, 'activity_id' => $session->activity_id],
-            ['score' => min(100, round(($session->total_damage / $session->enemy_max_hp) * 100, 1)),
+            ['score' => $this->calculateBattlePerformance($session),
              'status' => 'completed', 'completed_at' => now()]
         );
 
         $newBadges = \App\Services\BadgeService::checkAndAward($student);
 
-        LogActivity::log('BATTLE_ROUND', 'Battle Arena',
-    'Round ' . $newRoundsPlayed . ' — Score: ' . $mlScore . '% — Enemy: ' . $session->enemy->name);
+        LogActivity::forStudent($student, 'BATTLE_WON', 'Battle Arena',
+            'Won battle: ' . $session->activity->activity_name . ' (ID ' . $session->activity_id . ')'
+            . ' - Enemy: ' . $session->enemy->name . ' - Session #' . $session->id
+            . ' - Score: ' . $this->calculateBattlePerformance($session) . '%'
+            . ' - Earned ' . $pointsEarned . ' points.');
 
         return response()->json([
+            ...$readingDetails,
             'status'          => 'won',
             'ml_score'        => $mlScore,
             'transcript'      => $transcript,
@@ -343,11 +375,17 @@ class GameController extends Controller
 
         \App\Models\ActivityResult::updateOrCreate(
             ['student_id' => $student->id, 'activity_id' => $session->activity_id],
-            ['score' => min(100, round(($session->total_damage / $session->enemy_max_hp) * 100, 1)),
+            ['score' => $this->calculateBattlePerformance($session),
              'status' => 'completed', 'completed_at' => now()]
         );
 
+        LogActivity::forStudent($student, 'BATTLE_LOST', 'Battle Arena',
+            'Lost battle: ' . $session->activity->activity_name . ' (ID ' . $session->activity_id . ')'
+            . ' - Enemy: ' . $session->enemy->name . ' - Session #' . $session->id
+            . ' - Score: ' . $this->calculateBattlePerformance($session) . '%');
+
         return response()->json([
+            ...$readingDetails,
             'status'         => 'lost',
             'ml_score'       => $mlScore,
             'transcript'     => $transcript,
@@ -367,20 +405,16 @@ class GameController extends Controller
     // ── ONGOING ───────────────────────────────────────────────
     if ($mlScore === null) {
         $message = '⏳ Could not analyze. Try again!';
-    } elseif ($mlScore >= 90) {
-        $message = "🔥 Excellent! -{$damage} HP! {$roundsLeft} round(s) left.";
-    } elseif ($mlScore >= 70) {
-        $message = "⚔️ Good job! -{$damage} HP! {$roundsLeft} round(s) left.";
-    } elseif ($mlScore >= 50) {
-        $message = "👍 Keep going! -{$damage} HP! {$roundsLeft} round(s) left.";
     } else {
-        $message = "💪 Read clearly! -{$damage} HP! {$roundsLeft} round(s) left.";
+        $band = collect(self::SCORE_BANDS)->first(fn ($band) => $mlScore >= $band['min']);
+        $message = "{$band['label']}! -{$damage} HP! {$roundsLeft} round(s) left.";
     }
 
     $nextRoundIndex = $newRoundsPlayed;
     $nextWord = $allWords[$nextRoundIndex] ?? null;
 
     return response()->json([
+        ...$readingDetails,
         'status'           => 'ongoing',
         'ml_score'         => $mlScore,
         'transcript'       => $transcript,
@@ -401,11 +435,20 @@ class GameController extends Controller
     ]);
 }
 
-    // Calculate damage from score
+    private function calculateBattlePerformance(GameSession $session): float
+    {
+        $average = $session->rounds()->whereNotNull('final_score')->avg('final_score');
+
+        return round((float) ($average ?? 0), 2);
+    }
+
+    // Calculate damage from the oral reading score
     private function calculateDamage(float $score, int $maxHp): int
     {
-        $maxDamagePerRound = $maxHp * 0.20;
-        return (int) round(($score / 100) * $maxDamagePerRound);
+        $baseDamage = $maxHp * 0.05;
+        $bonusDamage = ($score / 100) * ($maxHp * 0.15);
+
+        return (int) round($baseDamage + $bonusDamage);
     }
 
     // Call Python ML API
@@ -419,8 +462,19 @@ class GameController extends Controller
                         ]);
 
             if ($response->successful()) {
+                $score = $response->json('score');
+                // A missing/null/invalid score is failed analysis, never a fake zero.
+                if (!is_numeric($score) || !is_finite((float) $score) || $response->json('error')) {
+                    return ['score' => null, 'transcript' => $response->json('transcript')];
+                }
+
                 return [
-                    'score'          => (float) $response->json('score'),
+                    'score'          => round(max(0, min(100, (float) $score)), 2),
+                    'expected_word_count' => $response->json('expected_word_count'),
+                    'miscues'        => $response->json('miscues'),
+                    'substitutions'  => $response->json('substitutions'),
+                    'deletions'      => $response->json('deletions'),
+                    'insertions'     => $response->json('insertions'),
                     'transcript'     => $response->json('transcript'),
                     'word_breakdown' => $response->json('word_breakdown'),
                 ];

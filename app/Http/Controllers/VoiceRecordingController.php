@@ -129,7 +129,8 @@ class VoiceRecordingController extends Controller
         }
         try {
             LogActivity::log('SUBMIT_RECORDING', 'Read Aloud',
-                'Submitted recording for activity: ' . $activity->activity_name);
+                'Submitted Read Aloud recording for activity: ' . $activity->activity_name
+                . ' (ID ' . $activity->id . ') - Attempt ' . $attemptNumber);
         } catch (\Throwable $error) {
             report($error);
         }

@@ -1,7 +1,7 @@
 @extends('layouts.teacher')
-@section('title', 'My Activity Logs')
-@section('page-title', 'My Activity Logs')
-@section('page-sub', 'Your personal activity history.')
+@section('title', 'Activity logs')
+@section('page-title', 'Activity logs')
+@section('page-sub', 'View your activity and student logins, battles, Read Aloud submissions, and achievements.')
 
 @section('content')
 
@@ -9,7 +9,22 @@
 
     <form method="GET" action="{{ route('teacher.logs') }}">
         <div class="d-flex gap-2 flex-wrap align-items-center mb-3">
-            <select name="action" class="form-select form-select-sm"
+            <select name="scope" aria-label="Activity source" class="form-select form-select-sm"
+                    style="width:180px;" onchange="if (this.value === 'mine') this.form.elements.student_id.value = ''; this.form.submit()">
+                <option value="all" @selected($scope === 'all')>All activity</option>
+                <option value="students" @selected($scope === 'students')>Student activity</option>
+                <option value="mine" @selected($scope === 'mine')>My activity</option>
+            </select>
+            <select name="student_id" aria-label="Student" class="form-select form-select-sm"
+                    style="width:220px;" onchange="this.form.elements.scope.value = 'students'; this.form.submit()">
+                <option value="">All my students</option>
+                @foreach($students as $student)
+                <option value="{{ $student->id }}" @selected((string) $studentId === (string) $student->id)>
+                    {{ $student->firstname }} {{ $student->lastname }} ({{ $student->student_number }})
+                </option>
+                @endforeach
+            </select>
+            <select name="action" aria-label="Action" class="form-select form-select-sm"
                     style="width:180px;" onchange="this.form.submit()">
                 <option value="">All Actions</option>
                 @foreach($actions as $act)
@@ -17,7 +32,7 @@
                 @endforeach
             </select>
 
-            <input type="date" name="date" value="{{ $date }}"
+            <input type="date" aria-label="Date" name="date" value="{{ $date }}"
                    class="form-control form-control-sm"
                    style="width:150px;" onchange="this.form.submit()">
 
@@ -25,7 +40,7 @@
                 <i class="ti ti-filter"></i> Filter
             </button>
 
-            @if($action || $date)
+            @if($action || $date || $studentId || $scope !== 'all')
             <a href="{{ route('teacher.logs') }}"
                class="btn btn-sm btn-outline-secondary">
                 <i class="ti ti-x"></i> Clear
@@ -43,6 +58,7 @@
         <thead>
             <tr>
                 <th>#</th>
+                <th>Person</th>
                 <th>Action</th>
                 <th>Module</th>
                 <th>Description</th>
@@ -53,6 +69,13 @@
             @forelse($logs as $log)
             @php
                 $actionColors = [
+                    'BATTLE_STARTED'   => '#06B6D4',
+                    'BATTLE_WON'       => '#10B981',
+                    'BATTLE_LOST'      => '#EF4444',
+                    'SUBMIT_RECORDING' => '#8B5CF6',
+                    'EARN_BADGE'       => '#D97706',
+                    'LEVEL_UP'         => '#D97706',
+                    'COMPLETE_ACTIVITY'=> '#10B981',
                     'LOGIN'            => '#10B981',
                     'LOGOUT'           => '#6B7280',
                     'EVALUATE'         => '#8B5CF6',
@@ -64,6 +87,15 @@
             <tr>
                 <td style="font-size:11px;color:#9CA3AF;">
                     {{ $logs->firstItem() + $loop->index }}
+                </td>
+                <td style="font-size:12px;">
+                    @if($log->role === 'student' && $log->user?->student)
+                        <strong>{{ $log->user->student->firstname }} {{ $log->user->student->lastname }}</strong>
+                        <div class="text-muted">Student &middot; {{ $log->user->username }}</div>
+                    @else
+                        <strong>{{ $log->user?->username ?? 'Unknown user' }}</strong>
+                        <div class="text-muted">{{ $log->user_id === auth()->id() ? 'You' : ucfirst($log->role) }}</div>
+                    @endif
                 </td>
                 <td>
                     <span style="color:{{ $ac }};font-size:12px;font-weight:700;">
@@ -78,9 +110,9 @@
             </tr>
             @empty
             <tr>
-                <td colspan="5" class="text-center text-muted py-5">
+                <td colspan="6" class="text-center text-muted py-5">
                     <div style="font-size:32px;">📋</div>
-                    <div class="mt-2">No activity logs yet.</div>
+                    <div class="mt-2">No activity logs match these filters.</div>
                 </td>
             </tr>
             @endforelse

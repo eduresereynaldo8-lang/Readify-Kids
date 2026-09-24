@@ -1,0 +1,42 @@
+/* Student forms and table; shared navigation remains in layouts.teacher. */
+.sm-form-page{width:100%;max-width:1120px;margin:8px auto 28px;min-width:0}
+.sm-form-card{background:#fff;border:1px solid #dce9f6;border-radius:22px;padding:30px;box-shadow:0 8px 34px #2568a608}
+.sm-card-heading{display:flex;align-items:center;gap:18px;margin-bottom:28px}
+.sm-heading-icon{width:56px;height:56px;border-radius:19px;display:grid;place-items:center;color:#087aff;background:linear-gradient(145deg,#eff8ff,#e2f0ff);font-size:30px;flex-shrink:0;box-shadow:0 3px 7px #1162ba0c}
+.sm-card-heading h2{font:800 22px 'Nunito',sans-serif;margin:0 0 3px;color:#10264f}
+.sm-card-heading p{margin:0;color:#7486a4;font-size:13px;line-height:1.6}
+.sm-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 28px}
+.sm-field{min-width:0;margin:0;padding:0;border:0}
+.sm-field>label,.sm-field>legend{display:block;float:none;width:auto;margin:0 0 8px;font:800 13px 'Nunito',sans-serif;color:#132d59}
+.sm-field>label>span,.sm-field>legend>span{color:#e54969;margin-left:3px}
+.sm-input{position:relative}
+.sm-input>i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#7b8ba5;font-size:21px;pointer-events:none}
+.sm-input .form-control,.sm-input .form-select{width:100%;min-height:45px;border:1px solid #d3dfed;border-radius:8px;padding:10px 14px 10px 44px;background-color:#fff;font-size:14px;color:#183559;box-shadow:0 1px 2px #0a376305}
+.sm-input .form-select{padding-right:35px}
+.sm-input .form-control::placeholder{color:#8290aa;opacity:1}
+.sm-input .form-control:focus,.sm-input .form-select:focus{border-color:#1688ff;box-shadow:0 0 0 3px #1688ff18}
+.sm-input .form-control.is-invalid,.sm-input .form-select.is-invalid{border-color:#e54969}
+.sm-input input[type=date]{min-width:0;max-width:100%;appearance:auto}
+.sm-readonly .form-control{background:#f0f4f8;color:#657a94}
+.sm-help{display:block;color:#778aab;font-size:11px;margin-top:5px}
+.sm-error{display:block;color:#b52748;font-size:12px;margin-top:5px}
+.sm-full{grid-column:1/-1}
+.sm-gender-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sm-gender-choice{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;min-height:45px;padding:9px 12px;border:1px solid #cedbeb;background:#fbfdff;border-radius:8px;cursor:pointer;color:#657791;font-size:14px;font-weight:800}
+.sm-gender-choice input{position:absolute;width:1px;height:1px;opacity:0}
+.sm-gender-choice>i{font-size:23px}
+.sm-gender-choice:has(input:checked){border-color:#1688ff;background:#eaf4ff;color:#0873ee;box-shadow:inset 0 0 0 1px #1688ff20}
+.sm-gender-choice:has(input:focus-visible){outline:3px solid #87bbff;outline-offset:3px}
+.sm-password .form-control{padding-right:48px}
+.sm-password-toggle{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:grid;place-items:center;border:0;background:transparent;width:36px;height:36px;color:#6c7e98;border-radius:6px;font-size:21px}
+.sm-password-toggle:focus-visible{outline:2px solid #087aff;outline-offset:1px}
+.sm-form-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:30px}
+.sm-form-actions .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:11px 22px;font-size:14px;font-weight:800;border-radius:8px;min-height:46px}
+.sm-form-actions .btn-outline-secondary{border-color:#c4d3e4;color:#536882;background:white}
+.sm-form-actions .btn-primary{background:#087aff;border-color:#087aff;box-shadow:0 4px 12px #087aff18}
+.sm-form-actions .btn i{font-size:21px}
+.sm-student-table{min-width:1050px}
+.sm-student-table th,.sm-student-table td{white-space:nowrap}
+@media(min-width:1500px){.sm-form-page{margin-top:12px}.sm-form-card{padding:32px}.sm-fields{gap:25px 28px}}
+@media(max-width:767.98px){.sm-form-page{margin-top:0}.sm-form-card{padding:22px;border-radius:17px}.sm-fields{grid-template-columns:1fr;gap:21px}.sm-full{grid-column:auto}.sm-card-heading{align-items:flex-start;gap:12px}.sm-heading-icon{width:46px;height:46px;font-size:26px;border-radius:14px}.sm-card-heading h2{font-size:20px}.sm-input .form-control,.sm-input .form-select{font-size:16px}.sm-form-actions .btn{padding:10px 17px}}
+@media(max-width:380px){.sm-form-card{padding:18px}.sm-gender-options{gap:8px}.sm-gender-choice{gap:6px;padding:9px 8px}.sm-form-actions{gap:8px}.sm-form-actions .btn{font-size:13px;padding:10px 13px}}

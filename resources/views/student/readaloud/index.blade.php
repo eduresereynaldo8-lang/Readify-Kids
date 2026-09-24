@@ -1,6 +1,6 @@
 @extends('layouts.student')
 @section('title', 'My Activities')
-@section('page-greet', 'My Activities 📖')
+@section('page-greet', 'Read Aloud 📖')
 @section('page-sub', 'Pick an activity and start earning points!')
 
 @section('content')
@@ -11,21 +11,7 @@
 </div>
 @endif
 
-{{-- Tab filter --}}
-<div class="d-flex gap-2 mb-4 flex-wrap">
-    <button class="tab-filter-btn active-tab" data-type="all"
-            style="font-size:12px;padding:6px 18px;border-radius:20px;border:1px solid #185FA5;
-                   background:#185FA5;color:#fff;cursor:pointer;font-weight:600;">
-        All
-    </button>
-    @foreach($grouped->keys() as $type)
-    <button class="tab-filter-btn" data-type="{{ Str::slug($type) }}"
-            style="font-size:12px;padding:6px 18px;border-radius:20px;border:1px solid #E5E7EB;
-                   background:#fff;color:#6B7280;cursor:pointer;">
-        {{ $type }}
-    </button>
-    @endforeach
-</div>
+
 
 @php
 $typeConfig = [

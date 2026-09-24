@@ -1,108 +1,100 @@
 <?php
+
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\VoiceRecording;
-use App\Models\Evaluation;
 use App\Helpers\LogActivity;
+use App\Models\ActivityResult;
+use App\Models\Evaluation;
+use App\Models\Student;
+use App\Models\VoiceRecording;
+use App\Services\BadgeService;
+use App\Services\ReadingAssessment;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class EvaluationController extends Controller
 {
-    // List all pending recordings
-    public function index()
+    private function recordingsForTeacher()
     {
         $teacher = auth()->user()->teacher;
+        abort_unless($teacher, 403);
 
-        $pending = VoiceRecording::where('status', 'pending')
-                   ->whereHas('student', fn($q) => $q->where('teacher_id', $teacher->id))
-                   ->with(['student', 'activity'])
-                   ->latest()->get();
+        return VoiceRecording::whereHas('student', fn ($q) => $q->where('teacher_id', $teacher->id))
+            ->whereHas('activity', fn ($q) => $q->where('teacher_id', $teacher->id)
+                ->where('activity_type', 'Read Aloud')->where('battle_mode', false));
+    }
 
-        $evaluated = VoiceRecording::where('status', 'evaluated')
-                     ->whereHas('student', fn($q) => $q->where('teacher_id', $teacher->id))
-                     ->with(['student', 'activity', 'evaluation'])
-                     ->latest()->take(10)->get();
+    public function index()
+    {
+        $pending = $this->recordingsForTeacher()->where('status', 'pending')
+            ->with(['student', 'activity'])->latest()->get();
+        $evaluated = $this->recordingsForTeacher()->where('status', 'evaluated')
+            ->with(['student', 'activity', 'evaluation'])->latest()->take(10)->get();
 
         return view('teacher.evaluations.index', compact('pending', 'evaluated'));
     }
 
-    // Show evaluation form for a recording
     public function show($id)
     {
-        $teacher   = auth()->user()->teacher;
-        $recording = VoiceRecording::whereHas('student', fn($q) => $q->where('teacher_id', $teacher->id))
-                     ->with(['student', 'activity', 'evaluation'])
-                     ->findOrFail($id);
+        $recording = $this->recordingsForTeacher()
+            ->with(['student', 'activity.readingMaterial', 'evaluation'])->findOrFail($id);
+        $content = $recording->activity->readingMaterial?->content;
+        $totalWords = ReadingAssessment::wordCount($content);
+        $passageText = ReadingAssessment::passageText($content);
+        $observations = ReadingAssessment::OBSERVATIONS;
 
-        return view('teacher.evaluations.show', compact('recording'));
+        return view('teacher.evaluations.show', compact('recording', 'totalWords', 'passageText', 'observations'));
     }
 
-    // Save evaluation
     public function store(Request $request)
     {
-        $request->validate([
-            'recording_id'        => 'required|exists:voice_recordings,id',
-            'pronunciation_score' => 'required|integer|min:1|max:5',
-            'fluency_score'       => 'required|integer|min:1|max:5',
-            'accuracy_score'      => 'required|integer|min:1|max:5',
-            'comprehension_score' => 'required|integer|min:1|max:5',
-            'proficiency_level'   => 'required|string',
-            'feedback'            => 'nullable|string|max:1000',
-        ]);
+        $request->validate(['recording_id' => 'required|integer']);
+        $teacher = auth()->user()->teacher;
 
-        $teacher   = auth()->user()->teacher;
-        $recording = VoiceRecording::findOrFail($request->recording_id);
+        DB::transaction(function () use ($request, $teacher) {
+            // Lock the recording so duplicate submissions cannot award twice.
+            $recording = $this->recordingsForTeacher()->lockForUpdate()
+                ->with('activity.readingMaterial')->findOrFail($request->integer('recording_id'));
+            // Serialize results/rewards across separate attempts for the same student.
+            $student = Student::where('teacher_id', $teacher->id)->lockForUpdate()
+                ->findOrFail($recording->student_id);
+            $evaluation = Evaluation::where('recording_id', $recording->id)->first();
+            $firstEvaluation = $recording->status !== 'evaluated' && $evaluation === null;
+            $data = ReadingAssessment::calculate(
+                $request->all(), $recording->activity->readingMaterial?->content
+            );
 
-        // Save or update evaluation
-        Evaluation::updateOrCreate(
-            ['recording_id' => $recording->id],
-            [
-                'teacher_id'          => $teacher->id,
-                'pronunciation_score' => $request->pronunciation_score,
-                'fluency_score'       => $request->fluency_score,
-                'accuracy_score'      => $request->accuracy_score,
-                'comprehension_score' => $request->comprehension_score,
-                'proficiency_level'   => $request->proficiency_level,
-                'feedback'            => $request->feedback,
-            ]
-        );
+            Evaluation::updateOrCreate(['recording_id' => $recording->id],
+                array_merge($data, ['teacher_id' => $teacher->id]));
+            $recording->update(['status' => 'evaluated']);
 
-        // Mark recording as evaluated
-        $recording->update(['status' => 'evaluated']);
+            $result = ActivityResult::where('student_id', $student->id)
+                ->where('activity_id', $recording->activity_id)->lockForUpdate()->first();
+            ActivityResult::updateOrCreate([
+                'student_id' => $student->id, 'activity_id' => $recording->activity_id,
+            ], [
+                'score' => ReadingAssessment::finalScore($data),
+                'status' => 'completed',
+                'completed_at' => $result?->completed_at ?? now(),
+            ]);
 
-        // Update student's activity result score
-        // Average of all 4 evaluation scores * 20 = percentage
-        $avgScore = (
-            $request->pronunciation_score +
-            $request->fluency_score +
-            $request->accuracy_score +
-            $request->comprehension_score
-        ) / 4 * 20;
+            // Preserve points per first evaluated recording/attempt, but never per edit.
+            if ($firstEvaluation) {
+                $student->increment('total_points', $recording->activity->points_reward);
+                $student->checkAndUpdateLevel();
+            }
 
-        \App\Models\ActivityResult::updateOrCreate(
-            [
-                'student_id'  => $recording->student_id,
-                'activity_id' => $recording->activity_id,
-            ],
-            [
-                'score'        => $avgScore,
-                'status'       => 'completed',
-                'completed_at' => now(),
-            ]
-        );
+            // BadgeService only reads/writes this database, with no external side effects.
+            // Keep badge and log writes atomic with evaluation/results/rewards.
+            BadgeService::checkAndAward($student);
+            LogActivity::log('EVALUATE', 'Evaluation',
+                sprintf('Evaluated recording ID %d — Oral Reading %.2f%%, Comprehension %s, Observation Level %d',
+                    $recording->id, $data['oral_reading_score'],
+                    ($data['comprehension_percentage'] === null ? 'N/A (no questions)'
+                        : number_format($data['comprehension_percentage'], 2) . '%'), $data['observation_level']));
+        }, 3);
 
-        // Award points to student
-        $student = $recording->student;
-        $student->increment('total_points', $recording->activity->points_reward);
-        $student->checkAndUpdateLevel();
-
-// After $student->increment('total_points', ...) or wherever you finalize the eval
-\App\Services\BadgeService::checkAndAward($recording->student);
-
-LogActivity::log('EVALUATE', 'Evaluation',
-    'Evaluated recording ID ' . $recording->id . ' for student ' . $recording->student->firstname);
-    
         return redirect()->route('teacher.evaluations.index')
-               ->with('success', 'Evaluation saved successfully! Student has been notified.');
+            ->with('success', 'Evaluation saved successfully! Student has been notified.');
     }
 }

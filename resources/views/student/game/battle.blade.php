@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {{-- Force landscape + fullscreen on mobile --}}
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Readify Kids">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <title>Battle! — Readify Kids</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
@@ -22,9 +24,15 @@
     z-index: 999999;
     align-items: center; justify-content: center;
     flex-direction: column; gap: 16px;
+    padding: 20px 0; overflow-y: auto;
 }
 #rotate-overlay.show {
     display: flex;
+}
+#rotate-overlay > * { flex-shrink: 0; }
+@media (max-height: 500px) {
+    #rotate-overlay { justify-content: flex-start; gap: 10px; }
+    #rotate-overlay .rotate-emoji { font-size: 40px; }
 }
 .rotate-emoji {
     font-size: 80px;
@@ -2067,7 +2075,7 @@
 
         <div id="score-reveal">
             <div class="score-reveal-inner">
-                <div class="score-reveal-label">🤖 AI Score</div>
+                <div class="score-reveal-label">Oral Reading Score</div>
                 <div class="score-reveal-value"      id="score-reveal-value"></div>
                 <div class="score-reveal-damage"     id="score-reveal-damage"></div>
                 <div class="score-reveal-transcript" id="score-reveal-transcript"></div>
@@ -2175,10 +2183,15 @@
                 <div class="history-title">📋 Round History</div>
                 <div id="round-history">
                     @forelse($session->rounds->sortByDesc('created_at') as $round)
+                    @php
+                        $historyBand = $round->final_score !== null
+                            ? collect($scoreBands)->first(fn ($band) => $round->final_score >= $band['min'])
+                            : null;
+                    @endphp
                     <div class="history-item">
                         <span class="hi-score"
-                              style="color:{{ $round->ml_score >= 90 ? '#3FA86A' : ($round->ml_score >= 70 ? '#3D82D9' : ($round->ml_score >= 50 ? '#E0A11B' : '#E05B3C')) }}">
-                            {{ $round->ml_score ?? '—' }}%
+                              style="color:{{ $historyBand['color'] ?? '#9CA3AF' }}">
+                            {{ $round->final_score !== null ? number_format($round->final_score, 2) . '%' : '—' }}
                         </span>
                         <span class="hi-dmg"> -{{ $round->damage_dealt }}HP</span>
                         <div style="color:rgba(43,33,64,.45);margin-top:2px;font-size:9px;">
@@ -2278,12 +2291,12 @@
 {{-- Rotate overlay --}}
 <div id="rotate-overlay">
     <div class="rotate-emoji">📱</div>
-    <div class="rotate-text">Please Rotate Your Device</div>
-    <div class="rotate-sub">
+    <div class="rotate-text" id="rotate-title">Please Rotate Your Device</div>
+    <div class="rotate-sub" id="rotate-hint">
         This battle is best played in landscape mode!<br>
         Rotate your phone sideways to continue.
     </div>
-    <button onclick="goFullscreen()"
+    <button id="fullscreen-button" type="button" onclick="goFullscreen()"
         style="margin-top:8px;padding:12px 32px;border-radius:30px;
                border:none;background:#7C3AED;color:#fff;
                font-family:'Baloo 2',sans-serif;font-size:14px;
@@ -2291,6 +2304,17 @@
                box-shadow:0 4px 0 rgba(0,0,0,0.3);">
     Go Fullscreen
 </button>
+    <div id="fullscreen-help" class="rotate-sub" hidden aria-live="polite">
+        <p id="ios-home-screen-steps">To play without Safari's browser bars, open
+            <a href="{{ route('student.game.index') }}" style="color:#FFC93C;">Battle Arena</a>
+            in Safari, then tap <strong>Share &gt; Add to Home Screen</strong>.
+            Keep <strong>Open as Web App</strong> enabled if shown.
+            Open Readify Kids from your Home Screen and start a battle.</p>
+        <button type="button" onclick="continueInBrowser()"
+            style="padding:10px 20px;border-radius:24px;border:1px solid #fff;background:transparent;color:#fff;font:inherit;cursor:pointer;">
+            Continue in Browser
+        </button>
+    </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -2428,14 +2452,17 @@ function playSound(type) {
     } catch(e) { /* audio context blocked */ }
 }
 
-// Pick sound based on score
+// One score-band definition is shared with Laravel and saved round history.
+const SCORE_BANDS = @json($scoreBands);
+function readingScoreBand(score) {
+    if (score === null || score === undefined || !Number.isFinite(Number(score))) {
+        return { label: 'Pending', color: '#9CA3AF', sound: 'weak', attack: 0, aura: 'none' };
+    }
+    return SCORE_BANDS.find(band => Number(score) >= band.min) || SCORE_BANDS[SCORE_BANDS.length - 1];
+}
+
 function soundForScore(score) {
-    if (score === null) return 'weak';
-    if (score >= 90) return 'excellent';
-    if (score >= 75) return 'great';
-    if (score >= 60) return 'good';
-    if (score >= 40) return 'ok';
-    return 'weak';
+    return readingScoreBand(score).sound;
 }
 
 // ── Stars ──────────────────────────────────────────────────────
@@ -2485,11 +2512,7 @@ const ATTACK_STYLES = [
     { name:'Power Burst',  anim:'attackCharge', dur:1200, effect:'🔥', effectAnim:'effectBoom',  effectDur:900, color:'#57D67B' },
 ];
 function pickAttackStyle(score) {
-    if (score >= 90) return ATTACK_STYLES[4];
-    if (score >= 75) return ATTACK_STYLES[2];
-    if (score >= 60) return ATTACK_STYLES[1];
-    if (score >= 40) return ATTACK_STYLES[3];
-    return ATTACK_STYLES[0];
+    return ATTACK_STYLES[readingScoreBand(score).attack];
 }
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
@@ -2551,7 +2574,7 @@ let currentWord = document.getElementById('current-word-value').value;
 // ── COUNTDOWN ──────────────────────────────────────────────────
 function startCountdown() {
     if (countdownRunning || battleLocked || gamePhase !== 'countdown') return;
-    if (isMobileDevice() && (isPortrait() || !isFullscreen())) return;
+    if (!isBattleDisplayReady()) return;
     countdownRunning = true;
     holdBtn.disabled = true;
     const overlay = document.getElementById('countdown-overlay');
@@ -2565,8 +2588,8 @@ function startCountdown() {
     let count = 3;
 
     function tick() {
-        // Pause this countdown if the mobile fullscreen overlay returns.
-        if (isMobileDevice() && (isPortrait() || !isFullscreen())) {
+        // Pause this countdown while the display needs rotation or fullscreen.
+        if (!isBattleDisplayReady()) {
             setTimeout(tick, 250);
             return;
         }
@@ -2588,7 +2611,7 @@ function startCountdown() {
             lblEl.textContent = 'READ IT!';
             subEl.textContent = 'Read the passage aloud then press Done!';
             setTimeout(function finishCountdown() {
-                if (isMobileDevice() && (isPortrait() || !isFullscreen())) {
+                if (!isBattleDisplayReady()) {
                     setTimeout(finishCountdown, 250);
                     return;
                 }
@@ -2775,18 +2798,14 @@ function showScoreReveal(data) {
         const transEl = document.getElementById('score-reveal-transcript');
 
         const s = data.ml_score;
-        let color = '#9CA3AF', label = '😐 Keep trying!';
-        if      (s === null) { color = '#9CA3AF'; label = '⏳ Pending'; }
-        else if (s >= 90)    { color = '#3FA86A'; label = '🔥 Excellent!'; }
-        else if (s >= 75)    { color = '#3D82D9'; label = '⚔️ Great!'; }
-        else if (s >= 60)    { color = '#E0A11B'; label = '👍 Good!'; }
-        else if (s >= 40)    { color = '#E07A2C'; label = '💪 OK!'; }
-        else                 { color = '#E05B3C'; label = '😅 Try harder!'; }
-
-        valEl.style.color   = color;
-        valEl.textContent   = s !== null ? `${s}% — ${label}` : '— Pending';
+        const band = readingScoreBand(s);
+        valEl.style.color   = band.color;
+        valEl.textContent   = s != null ? `${Number(s).toFixed(2)}% — ${band.label}` : '— Pending';
         dmgEl.textContent   = `💥 ${data.damage} damage dealt!`;
-        transEl.textContent = data.transcript ? `🎙️ "${data.transcript}"` : '';
+        transEl.textContent = [
+            data.miscues != null ? `Miscues: ${data.miscues}` : '',
+            data.transcript ? `🎙️ "${data.transcript}"` : '',
+        ].filter(Boolean).join(' · ');
 
         panel.style.display = 'block';
         setTimeout(() => { panel.style.display = 'none'; resolve(); }, 1400);
@@ -3022,9 +3041,7 @@ function applyStudentAura(score) {
     const sprite = document.getElementById('student-sprite');
     sprite.style.animation = 'none';
     void sprite.offsetWidth;
-    if      (score >= 80) sprite.style.animation = 'auraExcellent 0.6s ease 3';
-    else if (score >= 55) sprite.style.animation = 'auraGood 0.6s ease 2';
-    else if (score !== null) sprite.style.animation = 'auraWeak 0.6s ease 2';
+    sprite.style.animation = readingScoreBand(score).aura;
     setTimeout(() => {
         sprite.style.animation = '';
         sprite.style.filter    = 'drop-shadow(0 8px 6px rgba(0,0,0,.25))';
@@ -3089,12 +3106,13 @@ function addHistory(data, word) {
     const empty = hist.querySelector(':scope > div:not(.history-item)');
     if (empty) empty.remove();
     const sc = data.ml_score;
-    const c  = sc >= 90 ? '#3FA86A' : sc >= 70 ? '#3D82D9' : sc >= 50 ? '#E0A11B' : '#E05B3C';
+    const c = readingScoreBand(sc).color;
     const div = document.createElement('div');
     div.className = 'history-item';
     div.innerHTML = `
-        <span class="hi-score" style="color:${c}">${sc !== null ? sc + '%' : '—'}</span>
+        <span class="hi-score" style="color:${c}">${sc != null ? Number(sc).toFixed(2) + '%' : '—'}</span>
         <span class="hi-dmg"> -${data.damage}HP</span>
+        ${data.miscues != null ? `<span>${Number(data.miscues)} miscues</span>` : ''}
         ${data.transcript ? `<div style="color:rgba(43,33,64,.5);margin-top:2px;font-size:9px;">🎙️ "${data.transcript.substring(0,16)}"</div>` : ''}
         <div style="color:rgba(43,33,64,.4);font-size:9px;">"${word.substring(0,14)}"</div>
     `;
@@ -3343,9 +3361,16 @@ function showBadgeNotifications(badges) {
 
 // ── Fullscreen + Landscape ─────────────────────────────────────
 
-function isMobileDevice() {
-    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+let browserPlayAllowed = false;
+let fullscreenHelpVisible = false;
+
+function isIOSDevice() {
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function isMobileDevice() {
+    return /Android|Mobile/i.test(navigator.userAgent) || isIOSDevice();
 }
 
 function isPortrait() {
@@ -3357,13 +3382,32 @@ function isFullscreen() {
         document.mozFullScreenElement || document.msFullscreenElement);
 }
 
+function getFullscreenRequest() {
+    const el = document.documentElement;
+    return el.requestFullscreen || el.webkitRequestFullscreen ||
+        el.mozRequestFullScreen || el.msRequestFullscreen;
+}
+
+function supportsFullscreen() {
+    return typeof getFullscreenRequest() === 'function' &&
+        (document.fullscreenEnabled ?? document.webkitFullscreenEnabled ?? true);
+}
+
+function isStandaloneDisplay() {
+    return navigator.standalone === true ||
+        !!window.matchMedia?.('(display-mode: standalone)').matches ||
+        !!window.matchMedia?.('(display-mode: fullscreen)').matches;
+}
+
+function isBattleDisplayReady() {
+    return !isMobileDevice() ||
+        (!isPortrait() && (isFullscreen() || isStandaloneDisplay() || browserPlayAllowed));
+}
+
 async function requestFullscreenAndLandscape() {
     try {
-        const el = document.documentElement;
-        if (!isFullscreen()) {
-            const request = el.requestFullscreen || el.webkitRequestFullscreen ||
-                el.mozRequestFullScreen || el.msRequestFullscreen;
-            if (request) await request.call(el);
+        if (!isFullscreen() && supportsFullscreen()) {
+            await getFullscreenRequest().call(document.documentElement);
         }
     } catch (e) {
         console.log('Fullscreen request failed:', e);
@@ -3384,34 +3428,62 @@ function showRotateOverlay(show) {
 }
 
 function checkOrientation() {
-    showRotateOverlay(isMobileDevice() && (isPortrait() || !isFullscreen()));
+    const ready = isBattleDisplayReady();
+    showRotateOverlay(!ready);
+
+    const title = document.getElementById('rotate-title');
+    const hint = document.getElementById('rotate-hint');
+    const button = document.getElementById('fullscreen-button');
+    button.hidden = isFullscreen() || isStandaloneDisplay() || fullscreenHelpVisible;
+    button.textContent = 'Go Fullscreen';
+    document.getElementById('fullscreen-help').hidden = !fullscreenHelpVisible;
+    document.getElementById('ios-home-screen-steps').hidden = !isIOSDevice();
+    title.textContent = fullscreenHelpVisible ? 'Fullscreen Options' :
+        isPortrait() ? 'Please Rotate Your Device' : 'Ready for Battle?';
+    hint.textContent = fullscreenHelpVisible
+        ? (isIOSDevice()
+            ? 'This browser cannot open the battle in native fullscreen. Use the Home Screen option below, or continue in your browser.'
+            : 'Fullscreen is unavailable in this browser. You can continue playing in the browser window.')
+        : isPortrait()
+            ? (isIOSDevice()
+                ? 'Turn your device sideways. If it does not rotate, turn off Portrait Orientation Lock in Control Center.'
+                : 'Rotate your phone sideways to continue.')
+            : 'Tap Go Fullscreen to continue the battle.';
+
+    // Rotation alone must start/resume play on devices that cannot enter fullscreen.
+    if (ready && isMobileDevice()) {
+        if (!firstRoundStarted) {
+            startFirstRoundOnce();
+        } else if (gamePhase === 'countdown') {
+            startCountdown();
+        }
+    }
 }
 
 function startFirstRoundOnce() {
-    if (firstRoundStarted) return;
-    if (isMobileDevice() && (isPortrait() || !isFullscreen())) return;
+    if (firstRoundStarted || !isBattleDisplayReady()) return;
     firstRoundStarted = true;
     startCountdown();
 }
 
 async function goFullscreen() {
+    // Keep the native request directly tied to this click for Android and iPad.
     await requestFullscreenAndLandscape();
-    setTimeout(() => {
-        checkOrientation();
-        if (!isMobileDevice() || (isFullscreen() && !isPortrait())) {
-            showRotateOverlay(false);
-            if (!firstRoundStarted) {
-                startFirstRoundOnce();
-            } else if (gamePhase === 'countdown') {
-                // Resume a next round that was waiting for fullscreen.
-                startCountdown();
-            }
-        }
-    }, 300);
+    fullscreenHelpVisible = !isFullscreen() && !isStandaloneDisplay() &&
+        (isIOSDevice() || !supportsFullscreen());
+    setTimeout(checkOrientation, 300);
+}
+
+function continueInBrowser() {
+    // This is an explicit fallback, not a claim that Safari's bars were hidden.
+    browserPlayAllowed = true;
+    fullscreenHelpVisible = false;
+    checkOrientation();
 }
 
 window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 300));
 window.addEventListener('resize', () => setTimeout(checkOrientation, 300));
+screen.orientation?.addEventListener?.('change', () => setTimeout(checkOrientation, 300));
 document.addEventListener('fullscreenchange', () => setTimeout(checkOrientation, 300));
 document.addEventListener('webkitfullscreenchange', () => setTimeout(checkOrientation, 300));
 

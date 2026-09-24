@@ -13,7 +13,7 @@
     <div class="flex-grow-1">
         <div class="fw-bold" style="font-size:16px;">{{ $student->firstname }} {{ $student->lastname }}</div>
         <div class="text-muted small d-flex gap-3 mt-1">
-            <span><i class="ti ti-id-badge"></i> {{ $student->student_number }}</span>
+            <span><i class="ti ti-id-badge"></i> LRN: {{ $student->lrn_no ?? '—' }}</span>
             <span><i class="ti ti-users"></i> {{ $student->section }}</span>
             <span><i class="ti ti-chart-bar"></i> Level {{ $student->current_level }}</span>
             <span><span class="status-badge {{ $badgeClass }}">{{ $status }}</span></span>
@@ -34,6 +34,9 @@
     <div class="col-md-4">
         <div class="dash-card">
             <div class="dash-card-title">Student Info</div>
+            <div class="d-flex justify-content-between py-1 border-bottom" style="font-size:12px;"><span class="text-muted">Birthday</span><strong>{{ $student->birthday?->format('M d, Y') ?? '—' }}</strong></div>
+            <div class="d-flex justify-content-between py-1 border-bottom" style="font-size:12px;"><span class="text-muted">Age</span><strong>{{ $student->age ?? '—' }}</strong></div>
+            <div class="d-flex justify-content-between py-1 border-bottom" style="font-size:12px;"><span class="text-muted">Gender</span><strong>{{ $student->gender ?? '—' }}</strong></div>
             <div class="d-flex justify-content-between py-1 border-bottom" style="font-size:12px;">
                 <span class="text-muted">Overall Score</span>
                 <strong>{{ $avg }}%</strong>

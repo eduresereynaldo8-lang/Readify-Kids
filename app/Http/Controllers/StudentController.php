@@ -1,78 +1,82 @@
 <?php
+
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use App\Helpers\LogActivity;
 use App\Models\Student;
 use App\Models\User;
-use App\Helpers\LogActivity;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
     // List all students
-  public function index()
-{
-    $teacher  = auth()->user()->teacher;
-    $students = Student::where('teacher_id', $teacher->id)
-                ->with('activityResults')
-                ->latest()->get();
-
-    $total         = $students->count();
-    $onTrack       = $students->filter(fn($s) =>
-                        ($s->activityResults->avg('score') ?? 0) >= 75)->count();
-    $needAttention = $total - $onTrack;
-
-    // Get unique sections for filter dropdown
-    $sections = $students->pluck('section')
-                ->unique()->filter()->values();
-
-    return view('teacher.students.index', compact(
-        'students', 'total', 'onTrack', 'needAttention', 'sections'
-    ));
-}
-
-    // Show add student form
-    public function create()
+    public function index()
     {
-        return view('teacher.students.create');
+        $teacher = auth()->user()->teacher;
+        $students = Student::where('teacher_id', $teacher->id)
+            ->with('activityResults')
+            ->latest()->get();
+
+        $total = $students->count();
+        $onTrack = $students->filter(fn ($s) => ($s->activityResults->avg('score') ?? 0) >= 75)->count();
+        $needAttention = $total - $onTrack;
+
+        // Get unique sections for filter dropdown
+        $sections = $students->pluck('section')
+            ->unique()->filter()->values();
+
+        $levelOptions = $students->pluck('current_level')->merge(range(1, 5))->unique()->sort()->values();
+
+        return view('teacher.students.index', compact(
+            'students', 'total', 'onTrack', 'needAttention', 'sections', 'levelOptions'
+        ));
     }
 
-    // Store new student
+    // Show add student form.
+    public function create()
+    {
+        $teacher = auth()->user()->teacher;
+        abort_unless($teacher, 403);
+
+        return view('teacher.students.create', $this->formOptions($teacher->id));
+    }
+
     public function store(Request $request)
     {
-        $request->validate([
-            'firstname'      => 'required|string|max:100',
-            'lastname'       => 'required|string|max:100',
-            'student_number' => 'required|string|unique:students,student_number',
-            'section'        => 'required|string|max:50',
-            'current_level'  => 'required|integer|min:1|max:5',
-            'username'       => 'required|string|unique:users,username',
-            'password'       => 'required|string|min:6|confirmed',
-        ]);
+        $teacher = auth()->user()->teacher;
+        abort_unless($teacher, 403);
+        $data = $request->validate(array_merge($this->profileRules(), [
+            'username' => 'required|string|max:100|unique:users,username',
+            'password' => 'required|string|min:6|confirmed',
+        ]));
+        // Never trust the read-only preview or a submitted age.
+        $data['age'] = (int) Carbon::parse($data['birthday'])->age;
 
-        $user = User::create([
-            'username' => $request->username,
-            'password' => Hash::make($request->password),
-            'role'     => 'student',
-            'status'   => 'active',
-        ]);
+        DB::transaction(function () use ($data, $teacher) {
+            $user = User::create([
+                'username' => $data['username'],
+                'password' => Hash::make($data['password']),
+                'role' => 'student',
+                'status' => 'active',
+            ]);
 
-        Student::create([
-            'user_id'        => $user->id,
-            'teacher_id'     => auth()->user()->teacher->id,
-            'firstname'      => $request->firstname,
-            'lastname'       => $request->lastname,
-            'student_number' => $request->student_number,
-            'section'        => $request->section,
-            'current_level'  => $request->current_level,
-            'total_points'   => 0,
-        ]);
+            unset($data['username'], $data['password']);
+            Student::create(array_merge($data, [
+                'user_id' => $user->id,
+                'teacher_id' => $teacher->id,
+                'total_points' => 0,
+            ]));
 
-        LogActivity::log('ADD_STUDENT', 'Students',
-    'Added student: ' . $request->firstname . ' ' . $request->lastname);
+            LogActivity::log('ADD_STUDENT', 'Students',
+                'Added student: '.$data['firstname'].' '.$data['lastname']);
+        });
 
         return redirect()->route('teacher.students.index')
-               ->with('success', 'Student added successfully!');
+            ->with('success', 'Student added successfully!');
     }
 
     // View student profile
@@ -80,43 +84,82 @@ class StudentController extends Controller
     {
         $teacher = auth()->user()->teacher;
         $student = Student::where('teacher_id', $teacher->id)
-                   ->with(['activityResults.activity', 'badges.badge'])
-                   ->findOrFail($id);
+            ->with('activityResults.activity')
+            ->findOrFail($id);
 
         $avg = round($student->activityResults->avg('score') ?? 0, 1);
 
-        if ($avg >= 75)      { $status = 'On Track';    $badgeClass = 'badge-green'; }
-        elseif ($avg >= 50)  { $status = 'Needs Help';  $badgeClass = 'badge-amber'; }
-        else                 { $status = 'Struggling';  $badgeClass = 'badge-red'; }
+        if ($avg >= 75) {
+            $status = 'On Track';
+            $badgeClass = 'badge-green';
+        } elseif ($avg >= 50) {
+            $status = 'Needs Help';
+            $badgeClass = 'badge-amber';
+        } else {
+            $status = 'Struggling';
+            $badgeClass = 'badge-red';
+        }
 
         return view('teacher.students.show', compact('student', 'avg', 'status', 'badgeClass'));
     }
 
-    // Show edit form
     public function edit($id)
     {
         $teacher = auth()->user()->teacher;
-        $student = Student::where('teacher_id', $teacher->id)->findOrFail($id);
-        return view('teacher.students.edit', compact('student'));
+        abort_unless($teacher, 403);
+        $student = Student::where('teacher_id', $teacher->id)->with('user')->findOrFail($id);
+
+        return view('teacher.students.edit', array_merge(
+            ['student' => $student], $this->formOptions($teacher->id, $student)
+        ));
     }
 
-    // Update student
     public function update(Request $request, $id)
     {
         $teacher = auth()->user()->teacher;
+        abort_unless($teacher, 403);
         $student = Student::where('teacher_id', $teacher->id)->findOrFail($id);
-
-        $request->validate([
-            'firstname'     => 'required|string|max:100',
-            'lastname'      => 'required|string|max:100',
-            'section'       => 'required|string|max:50',
-            'current_level' => 'required|integer|min:1|max:5',
-        ]);
-
-        $student->update($request->only('firstname', 'lastname', 'section', 'current_level'));
+        $data = $request->validate($this->profileRules($student));
+        $data['age'] = (int) Carbon::parse($data['birthday'])->age;
+        $student->update($data);
 
         return redirect()->route('teacher.students.index')
-               ->with('success', 'Student updated successfully!');
+            ->with('success', 'Student updated successfully!');
+    }
+
+    private function profileRules(?Student $student = null): array
+    {
+        $uniqueLrn = Rule::unique('students', 'lrn_no');
+        if ($student !== null) {
+            // Ignore only the authorized route record, never a submitted student ID.
+            $uniqueLrn->ignore($student->id);
+        }
+
+        return [
+            'firstname' => 'required|string|max:100',
+            'lastname' => 'required|string|max:100',
+            'lrn_no' => ['required', 'string', 'digits:12', $uniqueLrn],
+            'birthday' => 'required|date_format:Y-m-d|before_or_equal:today',
+            'gender' => ['required', Rule::in(['Male', 'Female'])],
+            'section' => 'required|string|max:50',
+            // Preserve an existing level above five that was earned through points.
+            'current_level' => ['required', 'integer', Rule::in($this->availableLevels($student))],
+        ];
+    }
+
+    private function availableLevels(?Student $student = null): array
+    {
+        return array_values(array_unique(array_merge(range(1, 5),
+            $student === null ? [] : [(int) $student->current_level])));
+    }
+
+    private function formOptions(int $teacherId, ?Student $student = null): array
+    {
+        $sections = Student::where('teacher_id', $teacherId)->whereNotNull('section')
+            ->distinct()->orderBy('section')->pluck('section')
+            ->merge(['Section A', 'Section B'])->filter()->unique()->sort()->values();
+
+        return ['sections' => $sections, 'levels' => $this->availableLevels($student)];
     }
 
     // Delete student
@@ -125,7 +168,8 @@ class StudentController extends Controller
         $teacher = auth()->user()->teacher;
         $student = Student::where('teacher_id', $teacher->id)->findOrFail($id);
         $student->user->delete();
+
         return redirect()->route('teacher.students.index')
-               ->with('success', 'Student deleted successfully!');
+            ->with('success', 'Student deleted successfully!');
     }
 }

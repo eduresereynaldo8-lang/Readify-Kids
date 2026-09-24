@@ -344,6 +344,10 @@ LogActivity::log('CREATE_ACTIVITY', 'Activities',
 
         $student->increment('total_points', $activity->points_reward);
         $student->checkAndUpdateLevel();
+        LogActivity::forStudent($student, 'COMPLETE_ACTIVITY', 'Activities',
+            'Completed activity: ' . $activity->activity_name . ' (ID ' . $activity->id . ')'
+            . ' - Score: ' . ($request->score ?? 0) . '% - Earned ' . $activity->points_reward . ' points.');
+        \App\Services\BadgeService::checkAndAward($student);
 
         return redirect()->route('student.activities.index')
                ->with('success', 'Activity submitted!');

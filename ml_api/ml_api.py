@@ -9,7 +9,8 @@ No API key needed — zero cost!
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
-import difflib
+import re
+import unicodedata
 import os
 import subprocess
 import sys
@@ -58,33 +59,87 @@ def convert_to_wav(input_path: str) -> str:
         return input_path
 
 
+def normalize_words(text: str) -> list[str]:
+    """Ignore case/punctuation; retain order, repeats and internal apostrophes."""
+    text = unicodedata.normalize('NFKC', text).lower().strip()
+    text = text.replace('’', "'").replace('‘', "'")
+    # Hyphens and other punctuation separate words; punctuation is never a token.
+    return re.findall(r"[^\W_]+(?:'[^\W_]+)*", text)
+
+
+def compute_oral_reading(transcript: str, expected: str) -> dict:
+    """Minimum word edit distance with deterministic alignment/backtracking.
+
+    Equal-cost paths prefer matches, substitutions, deletions, then insertions.
+    Every repeated word occupies its own position in the alignment.
+    """
+    expected_words = normalize_words(expected)
+    transcript_words = normalize_words(transcript)
+    n, m = len(expected_words), len(transcript_words)
+    if not n:
+        raise ValueError('Expected text must contain at least one word.')
+
+    distance = [list(range(m + 1))]
+    for i in range(1, n + 1):
+        row = [i] + [0] * m
+        for j in range(1, m + 1):
+            row[j] = min(
+                distance[i - 1][j - 1] + (expected_words[i - 1] != transcript_words[j - 1]),
+                distance[i - 1][j] + 1,
+                row[j - 1] + 1,
+            )
+        distance.append(row)
+
+    substitutions = deletions = insertions = 0
+    correct, missed, wrong = [], [], []
+    i, j = n, m
+    while i or j:
+        if i and j and expected_words[i - 1] == transcript_words[j - 1]:
+            correct.append(expected_words[i - 1])
+            i, j = i - 1, j - 1
+        elif i and j and distance[i][j] == distance[i - 1][j - 1] + 1:
+            substitutions += 1
+            missed.append(expected_words[i - 1])
+            wrong.append(transcript_words[j - 1])
+            i, j = i - 1, j - 1
+        elif i and distance[i][j] == distance[i - 1][j] + 1:
+            deletions += 1
+            missed.append(expected_words[i - 1])
+            i -= 1
+        else:
+            insertions += 1
+            wrong.append(transcript_words[j - 1])
+            j -= 1
+
+    miscues = substitutions + deletions + insertions
+    oral_score = round(max(0.0, min(100.0, ((n - miscues) / n) * 100)), 2)
+    return {
+        'score': oral_score,
+        'oral_reading_score': oral_score,
+        'expected_word_count': n,
+        'miscues': miscues,
+        'substitutions': substitutions,
+        'deletions': deletions,
+        'insertions': insertions,
+        'correct_words': len(correct),
+        # Preserve the existing breakdown shape, now derived from alignment.
+        'word_breakdown': {
+            'correct': correct[::-1],
+            'missed': missed[::-1],
+            'wrong': wrong[::-1],
+            'accuracy': oral_score,
+        },
+    }
+
+
 def compute_score(transcript: str, expected: str) -> float:
-    """Compute similarity score 0–100 using SequenceMatcher."""
-    transcript_clean = transcript.lower().strip()
-    expected_clean   = expected.lower().strip()
-    if not expected_clean:
-        return 0.0
-    similarity = difflib.SequenceMatcher(
-        None, expected_clean, transcript_clean
-    ).ratio()
-    return round(similarity * 100, 2)
+    """Backward-compatible entry point for the oral reading score."""
+    return compute_oral_reading(transcript, expected)['score']
 
 
 def compute_word_accuracy(transcript: str, expected: str) -> dict:
-    """Word-level breakdown: correct, missed, wrong words."""
-    expected_words   = expected.lower().strip().split()
-    transcript_words = transcript.lower().strip().split()
-    correct  = [w for w in expected_words if w in transcript_words]
-    missed   = [w for w in expected_words if w not in transcript_words]
-    wrong    = [w for w in transcript_words if w not in expected_words]
-    accuracy = round(len(correct) / len(expected_words) * 100, 2) \
-               if expected_words else 0
-    return {
-        'correct'  : correct,
-        'missed'   : missed,
-        'wrong'    : wrong,
-        'accuracy' : accuracy,
-    }
+    """Backward-compatible breakdown derived from ordered word alignment."""
+    return compute_oral_reading(transcript, expected)['word_breakdown']
 
 
 # ─────────────────────────────────────────────────────────────
@@ -118,8 +173,9 @@ def score():
         return jsonify({'error': 'recording_path is required'}), 400
     if not os.path.exists(recording_path):
         return jsonify({'error': f'File not found: {recording_path}'}), 404
-    if not expected_text:
-        return jsonify({'error': 'expected_text is required'}), 400
+    if not normalize_words(expected_text):
+        return jsonify({'error': 'expected_text must contain at least one word',
+                        'score': None, 'oral_reading_score': None}), 400
 
     try:
         # Convert to WAV
@@ -140,18 +196,17 @@ def score():
         if wav_path != recording_path and os.path.exists(wav_path):
             os.remove(wav_path)
 
-        # Compute scores
-        score_val      = compute_score(transcript, expected_text)
-        word_breakdown = compute_word_accuracy(transcript, expected_text)
+        # Whisper transcribes only; ordered word alignment supplies the score.
+        reading_score = compute_oral_reading(transcript, expected_text)
+        score_val = reading_score['score']
 
         print(f'Score      : {score_val}%')
         print(f'{"="*50}\n')
 
         return jsonify({
-            'score'         : score_val,
+            **reading_score,
             'transcript'    : transcript,
             'expected'      : expected_text,
-            'word_breakdown': word_breakdown,
             'model'         : 'local-whisper-small',
             'message'       : 'Scored successfully',
         })
@@ -163,6 +218,7 @@ def score():
         return jsonify({
             'error'  : str(e),
             'score'  : None,
+            'oral_reading_score': None,
             'message': 'Transcription failed',
         }), 500
 

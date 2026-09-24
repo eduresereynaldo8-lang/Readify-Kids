@@ -3,6 +3,9 @@
 @section('page-title', 'Student Management')
 @section('page-sub', 'Manage your Grade 2 learners.')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/student-management.css') }}">
+@endpush
 @section('content')
 
 @if(session('success'))
@@ -53,7 +56,7 @@
     <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <div class="d-flex gap-2 align-items-center flex-wrap">
             <input type="text" id="searchInput" class="form-control form-control-sm"
-                   placeholder="Search name or ID…" style="width:200px;"
+                   placeholder="Search name or LRN…" style="width:200px;"
                    onkeyup="filterTable()">
             <select class="form-select form-select-sm" id="sectionFilter"
                     style="width:140px;" onchange="filterTable()">
@@ -65,9 +68,7 @@
             <select class="form-select form-select-sm" id="levelFilter"
                     style="width:120px;" onchange="filterTable()">
                 <option value="">All levels</option>
-                <option value="1">Level 1</option>
-                <option value="2">Level 2</option>
-                <option value="3">Level 3</option>
+                @foreach($levelOptions as $level)<option value="{{ $level }}">Level {{ $level }}</option>@endforeach
             </select>
             <select class="form-select form-select-sm" id="statusFilter"
                     style="width:130px;" onchange="filterTable()">
@@ -84,11 +85,13 @@
     </div>
 
     <div class="table-responsive" role="region" aria-label="Scrollable table" tabindex="0">
-<table class="dash-table" id="studentTable">
+<table class="dash-table sm-student-table" id="studentTable">
         <thead>
             <tr>
                 <th>Student</th>
-                <th>Student ID</th>
+                <th>LRN No.</th>
+                <th>Age</th>
+                <th>Gender</th>
                 <th>Section</th>
                 <th>Level</th>
                 <th>Score</th>
@@ -120,7 +123,9 @@
                         {{ $student->firstname }} {{ $student->lastname }}
                     </div>
                 </td>
-                <td style="color:#9CA3AF;">{{ $student->student_number }}</td>
+                <td>{{ $student->lrn_no ?? '—' }}</td>
+                <td>{{ $student->age ?? '—' }}</td>
+                <td>{{ $student->gender ?? '—' }}</td>
                 <td>
                     <span style="font-size:11px;padding:2px 8px;border-radius:20px;
                                  background:#F3F4F6;color:#374151;font-weight:500;">
@@ -165,8 +170,8 @@
                 </td>
             </tr>
             @empty
-            <tr>
-                <td colspan="8" class="text-center text-muted py-4">
+            <tr id="emptyStudentsRow">
+                <td colspan="10" class="text-center text-muted py-4">
                     No students yet.
                     <a href="{{ route('teacher.students.create') }}">
                         Add your first student →
@@ -211,7 +216,7 @@ function getVisibleRows() {
 
     const rows = [];
     document.querySelectorAll('#studentTable tbody tr').forEach(row => {
-        if (row.id === 'noResultsRow') return;
+        if (!row.hasAttribute('data-section')) return;
         const name    = row.cells[0]?.textContent.toLowerCase() ?? '';
         const id      = row.cells[1]?.textContent.toLowerCase() ?? '';
         const rowSec  = row.dataset.section ?? '';
@@ -261,11 +266,13 @@ function paginate() {
 
     // Handle no-results message
     let noResults = tbody.querySelector('#noResultsRow');
-    if (total === 0) {
+    if (total === 0 && document.getElementById('emptyStudentsRow')) {
+        document.getElementById('emptyStudentsRow').style.display = '';
+    } else if (total === 0) {
         if (!noResults) {
             noResults = document.createElement('tr');
             noResults.id = 'noResultsRow';
-            noResults.innerHTML = '<td colspan="8" class="text-center text-muted py-4">No students match your filters.</td>';
+            noResults.innerHTML = '<td colspan="10" class="text-center text-muted py-4">No students match your filters.</td>';
             tbody.appendChild(noResults);
         }
         noResults.style.display = '';

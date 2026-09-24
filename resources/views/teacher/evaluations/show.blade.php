@@ -1,232 +1,127 @@
 @extends('layouts.teacher')
-@section('title', 'Evaluate Recording')
+@section('title', 'Manual Reading Evaluation')
 @section('page-title', 'Manual Reading Evaluation')
-@section('page-sub', 'Listen to the recording and score the student.')
+@section('page-sub', 'Listen, observe, and assess your student’s reading.')
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/reading-assessment.css') }}">
+@endpush
 
 @section('content')
-
+<div class="ra-page">
 @if($errors->any())
-<div class="alert alert-danger small mb-3">
-    <ul class="mb-0">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
-</div>
+<div class="alert alert-danger" role="alert"><strong>Please check your evaluation.</strong><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+@endif
+@if($totalWords === 0)
+<div class="alert alert-warning" role="alert">This activity has no readable passage. Add passage text before saving an evaluation.</div>
+@endif
+@if($recording->evaluation?->is_legacy)
+<div class="alert alert-info">This is a legacy evaluation. Complete the new rubric to update it; its original rubric scores remain in history.</div>
+@elseif($recording->evaluation && $recording->evaluation->total_words !== $totalWords)
+<div class="alert alert-warning">The passage word count has changed since this evaluation. Saving will use the current passage and recalculate the oral reading score.</div>
 @endif
 
-<div class="row g-3">
-
-    {{-- Left: recording + passage --}}
-    <div class="col-md-7">
-
-        {{-- Student info strip --}}
-        <div class="dash-card mb-3 d-flex align-items-center gap-3">
-            <div style="width:44px;height:44px;border-radius:50%;background:#DBEAFE;color:#1E40AF;
-                        display:flex;align-items:center;justify-content:center;
-                        font-size:16px;font-weight:700;flex-shrink:0;">
-                {{ strtoupper(substr($recording->student->firstname,0,1).substr($recording->student->lastname,0,1)) }}
+<div class="ra-evaluation-grid">
+    <div class="ra-stack">
+        <section class="rk-card ra-panel">
+            <h2 class="ra-panel-title"><i class="ti ti-user" aria-hidden="true"></i> Student Information</h2>
+            <div class="ra-student">
+                <span class="rk-avatar ra-student-avatar">{{ mb_strtoupper(mb_substr($recording->student->firstname, 0, 1).mb_substr($recording->student->lastname, 0, 1)) }}</span>
+                <dl class="ra-student-details">
+                    <dt>Student name</dt><dd>{{ $recording->student->firstname }} {{ $recording->student->lastname }}</dd>
+                    @if($recording->student->student_number)<dt>LRN:</dt><dd>{{ $recording->student->student_number }}</dd>@endif
+                    <dt>Activity</dt><dd>{{ $recording->activity->activity_name }}</dd>
+                    <dt>Attempt</dt><dd>{{ $recording->attempt_number }}</dd>
+                    <dt>Status</dt><dd><span class="rk-pill {{ $recording->status === 'evaluated' ? 'done' : 'pending' }}">{{ ucfirst($recording->status) }}</span></dd>
+                </dl>
             </div>
-            <div class="flex-grow-1">
-                <div class="fw-bold">{{ $recording->student->firstname }} {{ $recording->student->lastname }}</div>
-                <div class="text-muted small">
-                    {{ $recording->student->student_number }} ·
-                    {{ $recording->activity->activity_name }} ·
-                    Attempt {{ $recording->attempt_number }}
-                </div>
+        </section>
+        <section class="rk-card ra-panel">
+            <h2 class="ra-panel-title"><i class="ti ti-volume" aria-hidden="true"></i> Recording</h2>
+            <audio controls preload="metadata" class="ra-audio" src="{{ asset('storage/' . $recording->recording_path) }}">Your browser does not support audio playback.</audio>
+            <p class="rk-footnote">Submitted {{ $recording->created_at->format('M j, Y · g:i a') }}</p>
+        </section>
+        <section class="rk-card ra-panel ra-passage-panel">
+            <h2 class="ra-panel-title"><i class="ti ti-book" aria-hidden="true"></i> Reading Passage</h2>
+            <div class="ra-passage">
+                <h3>{{ $recording->activity->readingMaterial?->title ?? 'No passage available' }}</h3>
+                <p>{{ $passageText ?: 'Add passage text to this activity before evaluating.' }}</p>
+                <div class="ra-word-count">Total words: <strong>{{ $totalWords }}</strong></div>
             </div>
-            <span class="status-badge {{ $recording->status === 'pending' ? 'badge-amber' : 'badge-green' }}">
-                {{ ucfirst($recording->status) }}
-            </span>
-        </div>
-
-        {{-- Audio player --}}
-        <div class="dash-card mb-3">
-            <div class="dash-card-title">🎙️ Recording</div>
-            <audio controls class="w-100" style="border-radius:8px;">
-                <source src="{{ asset('storage/' . $recording->recording_path) }}" type="audio/mpeg">
-                Your browser does not support the audio element.
-            </audio>
-            <div class="text-muted small mt-2">
-                Submitted {{ \Carbon\Carbon::parse($recording->created_at)->diffForHumans() }}
-            </div>
-        </div>
-
-        {{-- Reading passage --}}
-        @if($recording->activity->readingMaterial)
-        <div class="dash-card">
-            <div class="dash-card-title">📄 Reading Passage</div>
-            <div style="background:#F8FAFF;border:1px solid #DBEAFE;border-radius:8px;
-                        padding:14px;font-size:13px;line-height:2;color:#1E3A5F;">
-                {{ $recording->activity->readingMaterial->content }}
-            </div>
-        </div>
-        @endif
-
+        </section>
     </div>
 
-    {{-- Right: evaluation form --}}
-    <div class="col-md-5">
-        <div class="dash-card">
-            <div class="dash-card-title">📝 Evaluation Form</div>
-
-            <form method="POST" action="{{ route('teacher.evaluations.store') }}">
-                @csrf
-                <input type="hidden" name="recording_id" value="{{ $recording->id }}">
-
-                {{-- Star ratings --}}
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Pronunciation <span class="text-danger">*</span></label>
-                    <div class="d-flex gap-1" id="pronunciation-stars">
-                        @for($i = 1; $i <= 5; $i++)
-                        <span class="star-btn" data-group="pronunciation" data-value="{{ $i }}"
-                              style="font-size:24px;cursor:pointer;color:#D1D5DB;">★</span>
-                        @endfor
-                    </div>
-                    <input type="hidden" name="pronunciation_score" id="pronunciation_score"
-                           value="{{ old('pronunciation_score', $recording->evaluation?->pronunciation_score) }}" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Fluency <span class="text-danger">*</span></label>
-                    <div class="d-flex gap-1" id="fluency-stars">
-                        @for($i = 1; $i <= 5; $i++)
-                        <span class="star-btn" data-group="fluency" data-value="{{ $i }}"
-                              style="font-size:24px;cursor:pointer;color:#D1D5DB;">★</span>
-                        @endfor
-                    </div>
-                    <input type="hidden" name="fluency_score" id="fluency_score"
-                           value="{{ old('fluency_score', $recording->evaluation?->fluency_score) }}" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Accuracy <span class="text-danger">*</span></label>
-                    <div class="d-flex gap-1" id="accuracy-stars">
-                        @for($i = 1; $i <= 5; $i++)
-                        <span class="star-btn" data-group="accuracy" data-value="{{ $i }}"
-                              style="font-size:24px;cursor:pointer;color:#D1D5DB;">★</span>
-                        @endfor
-                    </div>
-                    <input type="hidden" name="accuracy_score" id="accuracy_score"
-                           value="{{ old('accuracy_score', $recording->evaluation?->accuracy_score) }}" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Comprehension <span class="text-danger">*</span></label>
-                    <div class="d-flex gap-1" id="comprehension-stars">
-                        @for($i = 1; $i <= 5; $i++)
-                        <span class="star-btn" data-group="comprehension" data-value="{{ $i }}"
-                              style="font-size:24px;cursor:pointer;color:#D1D5DB;">★</span>
-                        @endfor
-                    </div>
-                    <input type="hidden" name="comprehension_score" id="comprehension_score"
-                           value="{{ old('comprehension_score', $recording->evaluation?->comprehension_score) }}" required>
-                </div>
-
-                {{-- Proficiency level --}}
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Proficiency Level <span class="text-danger">*</span></label>
-                    <div class="d-flex gap-2 flex-wrap">
-                        @foreach(['Beginner','Developing','Proficient','Advanced'] as $level)
-                        <div class="prof-btn border rounded px-3 py-1"
-                             style="cursor:pointer;font-size:12px;
-                             {{ (old('proficiency_level', $recording->evaluation?->proficiency_level) == $level) ? 'background:#DBEAFE;border-color:#185FA5;color:#1E40AF;font-weight:600;' : '' }}"
-                             onclick="selectProf('{{ $level }}', this)">
-                            {{ $level }}
+    <section class="rk-card ra-panel">
+        <h2 class="ra-panel-title"><i class="ti ti-file-description" aria-hidden="true"></i> Evaluation Form</h2>
+        <form method="POST" action="{{ route('teacher.evaluations.store') }}" id="reading-assessment-form">
+            @csrf
+            <input type="hidden" name="recording_id" value="{{ $recording->id }}">
+            <fieldset class="ra-fieldset">
+                <legend class="ra-section-title"><span>1</span> Reading Details</legend>
+                <div class="ra-detail-grid">
+                    <div class="ra-time-input">
+                        <label for="reading_minutes">Total reading time</label>
+                        <div class="ra-time-fields">
+                            <input class="form-control" type="number" id="reading_minutes" name="reading_minutes" min="0" max="71582788" step="1" required value="{{ old('reading_minutes', $recording->evaluation?->reading_minutes) }}" aria-label="Reading minutes"><span>minutes</span>
+                            <input class="form-control" type="number" id="reading_seconds" name="reading_seconds" min="0" max="59" step="1" required value="{{ old('reading_seconds', $recording->evaluation?->reading_seconds) }}" aria-label="Reading seconds"><span>seconds</span>
                         </div>
-                        @endforeach
                     </div>
-                    <input type="hidden" name="proficiency_level" id="proficiency_level"
-                           value="{{ old('proficiency_level', $recording->evaluation?->proficiency_level) }}" required>
+                    <div><label for="total_words">Total words in passage</label><input class="form-control" type="number" id="total_words" value="{{ $totalWords }}" readonly aria-describedby="word-count-note"></div>
+                    <div><label for="miscues">Total miscues</label><input class="form-control" type="number" id="miscues" name="miscues" min="0" max="{{ $totalWords }}" step="1" required value="{{ old('miscues', $recording->evaluation?->miscues) }}"></div>
+                    <div><label for="correct_answers">Correct answers (optional)</label><input class="form-control" type="number" id="correct_answers" name="correct_answers" min="0" step="1" aria-describedby="comprehension-note" value="{{ old('correct_answers', $recording->evaluation?->correct_answers) }}"></div>
+                    <div><label for="total_questions">Total questions (optional)</label><input class="form-control" type="number" id="total_questions" name="total_questions" min="1" max="4294967295" step="1" aria-describedby="comprehension-note" value="{{ old('total_questions', $recording->evaluation?->total_questions) }}"></div>
                 </div>
+                <p class="rk-footnote" id="word-count-note">Word count comes from the passage above.</p>
+                <p class="rk-footnote" id="comprehension-note">No comprehension questions? Leave both fields blank. If there are questions, enter both values, including 0 when no answers are correct.</p>
+            </fieldset>
 
-                {{-- Feedback --}}
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Teacher Feedback & Notes</label>
-                    <textarea name="feedback" class="form-control form-control-sm" rows="4"
-                              placeholder="Write your feedback for this student…">{{ old('feedback', $recording->evaluation?->feedback) }}</textarea>
+            <section aria-labelledby="computed-scores-title">
+                <h3 class="ra-section-title" id="computed-scores-title"><span>2</span> Computed Scores</h3>
+                <div class="ra-computed-grid" aria-live="polite">
+                    <div class="ra-computed ra-oral"><h4><i class="ti ti-chart-bar" aria-hidden="true"></i> Oral Reading Score</h4><p>(Number of Words − Miscues) / Number of Words × 100</p><strong id="oral-score">—</strong></div>
+                    <div class="ra-computed ra-comprehension"><h4><i class="ti ti-brain" aria-hidden="true"></i> Comprehension Score</h4><p>Correct Answers / Total Questions × 100</p><strong id="comprehension-score">—</strong></div>
                 </div>
+            </section>
 
-                {{-- Score preview --}}
-                <div class="p-2 rounded mb-3 text-center"
-                     style="background:#F0FDF4;border:1px solid #BBF7D0;">
-                    <div style="font-size:11px;color:#166534;">Computed Score</div>
-                    <div style="font-size:22px;font-weight:700;color:#166534;" id="score-preview">—</div>
+            <fieldset class="ra-fieldset">
+                <legend class="ra-section-title"><span>3</span> Observation Level</legend>
+                <div class="ra-observation-options">
+                @foreach($observations as $level => $description)
+                    <label class="ra-choice"><input type="radio" name="observation_level" value="{{ $level }}" required @checked(old('observation_level', $recording->evaluation?->observation_level) == $level)><span><strong>Level {{ $level }}</strong><small>{{ $description }}</small></span></label>
+                @endforeach
                 </div>
+            </fieldset>
 
-                <div class="d-flex gap-2 justify-content-between">
-                    <a href="{{ route('teacher.evaluations.index') }}" class="btn btn-sm btn-outline-secondary">
-                        <i class="ti ti-arrow-left"></i> Back
-                    </a>
-                    <button type="submit" class="btn btn-sm btn-primary">
-                        <i class="ti ti-circle-check"></i> Save Evaluation
-                    </button>
+            <fieldset class="ra-fieldset">
+                <legend class="ra-section-title"><span>4</span> Learner Experience</legend>
+                <div class="ra-experience-options">
+                @foreach([1 => ['😞', 'Did not enjoy'], 2 => ['🙁', 'Enjoyed a little'], 3 => ['😐', 'Neutral'], 4 => ['🙂', 'Enjoyed'], 5 => ['😃', 'Enjoyed very much']] as $rating => [$emoji, $description])
+                    <label class="ra-experience-choice"><input type="radio" name="learner_experience" value="{{ $rating }}" required @checked(old('learner_experience', $recording->evaluation?->learner_experience) == $rating)><span class="ra-face" aria-hidden="true">{{ $emoji }}</span><strong>{{ $rating }}</strong><span class="visually-hidden">{{ $description }}</span></label>
+                @endforeach
                 </div>
-            </form>
-        </div>
-    </div>
+            </fieldset>
 
+            <div>
+                <label class="ra-section-title" for="feedback"><span>5</span> Teacher Feedback</label>
+                <textarea class="form-control" name="feedback" id="feedback" rows="3" maxlength="2000" placeholder="Write your notes and observations here…">{{ old('feedback', $recording->evaluation?->feedback) }}</textarea>
+            </div>
+
+            <section aria-labelledby="summary-title">
+                <h3 class="ra-section-title" id="summary-title"><span>6</span> Summary</h3>
+                <div class="ra-summary" aria-live="polite">
+                    <div><small>Oral Reading</small><strong id="summary-oral">—</strong></div>
+                    <div><small>Comprehension</small><strong id="summary-comprehension">—</strong></div>
+                    <div><small>Observation</small><strong id="summary-observation">—</strong></div>
+                    <div><small>Experience</small><strong id="summary-experience">—</strong></div>
+                    <div><small>Final Score</small><strong id="summary-final">—</strong></div>
+                </div>
+                <p class="rk-footnote">Final score averages oral reading and comprehension when questions are provided. Without questions, it uses only the oral reading score. Observation and enjoyment do not affect the score.</p>
+            </section>
+            <div class="ra-form-actions"><a href="{{ route('teacher.evaluations.index') }}" class="btn btn-outline-primary"><i class="ti ti-arrow-left" aria-hidden="true"></i> Back</a><button type="submit" class="btn btn-primary" @disabled($totalWords === 0)><i class="ti ti-device-floppy" aria-hidden="true"></i> Save Evaluation</button></div>
+        </form>
+    </section>
+</div>
 </div>
 @endsection
-
 @push('scripts')
-<script>
-// Star rating logic
-const groups = ['pronunciation', 'fluency', 'accuracy', 'comprehension'];
-
-groups.forEach(group => {
-    const stars = document.querySelectorAll(`[data-group="${group}"]`);
-    const input = document.getElementById(`${group}_score`);
-
-    // Pre-fill if value exists
-    if (input.value) highlightStars(stars, parseInt(input.value));
-
-    stars.forEach(star => {
-        star.addEventListener('click', function() {
-            const val = parseInt(this.dataset.value);
-            input.value = val;
-            highlightStars(stars, val);
-            updateScorePreview();
-        });
-        star.addEventListener('mouseover', function() {
-            highlightStars(stars, parseInt(this.dataset.value));
-        });
-        star.addEventListener('mouseout', function() {
-            highlightStars(stars, parseInt(input.value) || 0);
-        });
-    });
-});
-
-function highlightStars(stars, value) {
-    stars.forEach(s => {
-        s.style.color = parseInt(s.dataset.value) <= value ? '#F59E0B' : '#D1D5DB';
-    });
-}
-
-function updateScorePreview() {
-    const p = parseInt(document.getElementById('pronunciation_score').value) || 0;
-    const f = parseInt(document.getElementById('fluency_score').value) || 0;
-    const a = parseInt(document.getElementById('accuracy_score').value) || 0;
-    const c = parseInt(document.getElementById('comprehension_score').value) || 0;
-    const filled = [p,f,a,c].filter(v => v > 0).length;
-    if (filled === 4) {
-        const avg = ((p + f + a + c) / 4 * 20).toFixed(1);
-        document.getElementById('score-preview').textContent = avg + '%';
-    }
-}
-
-// Pre-fill score preview
-updateScorePreview();
-
-// Proficiency level selector
-function selectProf(level, el) {
-    document.querySelectorAll('.prof-btn').forEach(b => {
-        b.style.background = '';
-        b.style.borderColor = '';
-        b.style.color = '';
-        b.style.fontWeight = '';
-    });
-    el.style.background = '#DBEAFE';
-    el.style.borderColor = '#185FA5';
-    el.style.color = '#1E40AF';
-    el.style.fontWeight = '600';
-    document.getElementById('proficiency_level').value = level;
-}
-</script>
+<script src="{{ asset('js/reading-assessment.js') }}" defer></script>
 @endpush

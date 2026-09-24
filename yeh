@@ -1,346 +1,181 @@
-@extends('layouts.student')
-@section('title', 'Battle!')
-@section('page-greet', '⚔️ Battle in progress!')
-@section('page-sub', 'Read the word/passage aloud to attack the enemy!')
+TASK: Update Add Student / Student Management
 
-@section('content')
+1. DATABASE
+Create a NEW migration only. Do not edit old migrations and do not run it automatically.
 
-<div class="row g-3">
+Replace the meaning of the current Student ID field with:
 
-    {{-- LEFT: Battle arena --}}
-    <div class="col-md-8">
+- lrn_no
+- birthday
+- age
+- gender
 
-        {{-- Enemy display --}}
-        <div style="background:linear-gradient(135deg,#1E1B4B,#312E81);border-radius:16px;padding:20px;margin-bottom:14px;text-align:center;position:relative;">
+Recommended fields:
+- lrn_no: string, unique, nullable first if needed for compatibility
+- birthday: date, nullable
+- age: unsigned tiny integer or integer, nullable
+- gender: string/enum, nullable
 
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-                <span style="font-size:11px;color:rgba(255,255,255,0.6);">Round {{ $session->rounds_played + 1 }}</span>
-                <span style="font-size:11px;color:rgba(255,255,255,0.6);">Total damage: {{ number_format($session->total_damage) }}</span>
-            </div>
+Do not delete existing student data.
 
-            <div style="margin-bottom:6px;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                    <span style="font-size:12px;font-weight:700;color:#fff;">{{ $session->enemy->name }}</span>
-                    <span style="font-size:12px;font-weight:700;color:#EF4444;" id="hp-display">❤️ {{ number_format($session->enemy_current_hp) }} / {{ number_format($session->enemy_max_hp) }}</span>
-                </div>
-                <div style="background:rgba(255,255,255,0.2);border-radius:8px;height:14px;">
-                    <div id="hp-bar" style="background:linear-gradient(90deg,#EF4444,#FCA5A5);height:14px;border-radius:8px;width:{{ $hpPercent }}%;transition:width 0.8s ease;"></div>
-            </div>
+2. LRN NO.
+Change the form label:
 
-            <div id="enemy-sprite" style="font-size:96px;margin:16px 0;transition:transform 0.3s,filter 0.3s;">{{ $session->enemy->sprite }}</div>
+Student ID
+→ LRN No.
 
-            <div id="damage-popup" style="display:none;position:absolute;top:30%;left:50%;transform:translateX(-50%);font-size:36px;font-weight:900;color:#FBBF24;text-shadow:2px 2px 8px rgba(0,0,0,0.5);animation:none;pointer-events:none;">-0 💥</div>
+Use a 12-digit LRN format.
 
-            <div id="battle-msg" style="font-size:13px;color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.1);border-radius:8px;padding:8px 14px;margin-top:8px;">🎙️ Read the word/passage below and press Record to attack!</div>{{-- /Enemy display --}}
+Validate:
+- required
+- digits:12
+- unique in students table
 
-        {{-- Word/passage display --}}
-        <div class="dash-card mb-3" style="border:2px solid #7C3AED;text-align:center;">
-            <div style="font-size:11px;color:#7C3AED;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">📖 Read this aloud:</div>
-            <div id="current-word" style="font-size:{{ $session->activity->level == 3 ? '18' : '36' }}px;font-weight:700;color:#111827;line-height:1.5;padding:8px;">{{ $currentWord }}</div>
+Example placeholder:
+123456789012
 
-        {{-- Word progress indicator --}}
-        <div style="display:flex;align-items:center;justify-content:space-between;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:8px 14px;margin-bottom:14px;font-size:11px;color:#6B7280;">
-            <span>📖 Word {{ $roundIndex + 1 }} of {{ $totalWords }}</span>
-            <div style="display:flex;gap:4px;">
-                @foreach($allWords as $i => $word)
-                <div style="width:10px;height:10px;border-radius:50%;background:{{ $i < $roundIndex ? '#22C55E' : ($i == $roundIndex ? '#7C3AED' : '#E5E7EB') }};"></div>
-                @endforeach
-            </div>
-            <span>{{ $session->rounds_played }} rounds played</span>
-        </div>
+3. BIRTHDAY
+Add a required birthday field:
 
-        {{-- Recording section --}}
-        <div class="dash-card">
-            <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:12px;">🎙️ Your Attack</div>
+<input type="date">
 
-            <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:14px;">
-                <div id="waveform" style="display:flex;align-items:center;gap:3px;height:40px;">
-                    @for($i = 0; $i < 24; $i++)
-                    <div class="wv" style="width:5px;border-radius:3px;background:#E5E7EB;height:8px;transition:height 0.08s;"></div>
-                    @endfor
-                </div>
-                <div id="rec-timer" style="font-size:24px;font-weight:700;color:#111827;">0:00</div>
-                <div id="rec-status" style="font-size:11px;color:#9CA3AF;">Press the button to start recording</div>
+Birthday must not be a future date.
 
-            <div class="text-center mb-3">
-                <button id="rec-btn" type="button" style="width:80px;height:80px;border-radius:50%;background:#7C3AED;border:none;cursor:pointer;box-shadow:0 0 0 12px rgba(124,58,237,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto;">
-                    <i class="ti ti-microphone" style="color:#fff;font-size:34px;"></i>
-                </button>
-                <div style="font-size:11px;color:#9CA3AF;margin-top:8px;" id="rec-btn-label">Tap to record your attack!</div>
+4. AGE
+Add an Age field under Birthday.
 
-            <div id="playback-section" style="display:none;margin-bottom:14px;">
-                <div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:6px;">Your recording:</div>
-                <audio id="playback-audio" controls style="width:100%;border-radius:8px;"></audio>
-            </div>
+Age must be AUTO-CALCULATED from birthday.
 
-            <div class="d-flex gap-2 justify-content-center">
-                <button id="re-record-btn" style="display:none;" class="btn btn-sm btn-outline-secondary"><i class="ti ti-refresh"></i> Re-record</button>
-                <button id="attack-btn" style="display:none;background:linear-gradient(135deg,#7C3AED,#4F46E5);color:#fff;font-weight:700;padding:8px 24px;border-radius:10px;border:none;font-size:14px;" class="btn btn-sm">⚔️ Attack!</button>
-            </div>
+The field should be read-only in the UI.
 
-            <div id="loading-state" style="display:none;text-align:center;padding:14px;">
-                <div class="spinner-border text-primary" style="width:24px;height:24px;"></div>
-                <div style="font-size:12px;color:#6B7280;margin-top:6px;">Analyzing your reading...</div>
-        </div>{{-- /LEFT --}}
+Use JavaScript for live calculation, but also calculate age again in Laravel before saving so the server is authoritative.
 
-    {{-- RIGHT: Round history --}}
-    <div class="col-md-4">
+Use Carbon, for example:
+Carbon::parse($birthday)->age
 
-        <div class="dash-card mb-3" style="background:#F5F3FF;border-color:#DDD6FE;">
-            <div style="font-size:13px;font-weight:700;color:#5B21B6;margin-bottom:10px;">⚔️ Battle Stats</div>
-            <div class="d-flex flex-column gap-2">
-                <div style="display:flex;justify-content:space-between;font-size:12px;">
-                    <span style="color:#6B7280;">Rounds played</span>
-                    <strong id="rounds-display">{{ $session->rounds_played }}</strong>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;">
-                    <span style="color:#6B7280;">Total damage</span>
-                    <strong id="total-damage-display" style="color:#EF4444;">{{ number_format($session->total_damage) }}</strong>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;">
-                    <span style="color:#6B7280;">Enemy HP left</span>
-                    <strong id="hp-left-display" style="color:#EF4444;">{{ number_format($session->enemy_current_hp) }}</strong>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:12px;">
-                    <span style="color:#6B7280;">Points to earn</span>
-                    <strong style="color:#F59E0B;">⭐ {{ $session->activity->points_reward }}</strong>
-                </div>
-        </div>
+Do not trust a manually submitted age value.
 
-        <div class="dash-card">
-            <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:10px;">📋 Round History</div>
-            <div id="round-history">
-                @forelse($session->rounds->sortByDesc('created_at') as $round)
-                <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:11px;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
-                        <span style="color:#6B7280;">Read: "{{ Str::limit($round->word_or_passage, 20) }}"</span>
-                        <span style="color:#EF4444;font-weight:700;">-{{ $round->damage_dealt }} HP</span>
-                    </div>
-                    <div style="display:flex;gap:8px;">
-                        <span style="background:#EDE9FE;color:#5B21B6;padding:1px 6px;border-radius:10px;">Score: {{ $round->final_score ?? $round->ml_score ?? '—' }}%</span>
-                        <span style="color:#9CA3AF;">{{ \Carbon\Carbon::parse($round->created_at)->diffForHumans() }}</span>
-                    </div>
-                @empty
-                <div style="text-align:center;color:#9CA3AF;font-size:12px;padding:12px;">No rounds yet. Start attacking! ⚔️</div>
-                @endforelse
-            </div>
+5. GENDER
+Add Gender:
 
-    </div>{{-- /RIGHT --}}
-</div>{{-- /row --}}
+- Male
+- Female
 
-{{-- Win overlay --}}
-<div id="win-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
-    <div style="background:#fff;border-radius:20px;padding:40px;text-align:center;max-width:400px;width:90%;">
-        <div style="font-size:80px;margin-bottom:10px;">🏆</div>
-        <div style="font-size:22px;font-weight:700;color:#111827;margin-bottom:6px;">Victory!</div>
-        <div style="font-size:14px;color:#6B7280;margin-bottom:16px;" id="win-message"></div>
-        <div style="font-size:28px;font-weight:700;color:#F59E0B;margin-bottom:20px;" id="win-points"></div>
-        <a href="{{ route('student.game.index') }}" style="display:inline-block;padding:12px 28px;background:#7C3AED;color:#fff;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;">🏰 Back to Arena</a>
-    </div>
+Use accessible radio buttons or styled selectable cards like the reference image.
 
-<input type="hidden" id="session-id" value="{{ $session->id }}">
-<input type="hidden" id="current-word-value" value="{{ $currentWord }}">
-<meta name="csrf-token" content="{{ csrf_token() }}">
+Validate:
+required
+in:Male,Female
 
-@endsection
+6. KEEP EXISTING FIELDS
+Preserve:
+- First Name
+- Last Name
+- Section
+- Starting Level
+- Username
+- Password
+- Confirm Password
+- teacher_id
+- current level
+- existing user account creation
 
-@push('scripts')
-<script>
-let mediaRecorder;
-let audioChunks = [];
-let isRecording = false;
-let timerInterval;
-let seconds = 0;
-let audioBlob;
-let waveInterval;
+Do not break existing student login.
 
-const recBtn       = document.getElementById('rec-btn');
-const recStatus    = document.getElementById('rec-status');
-const recTimer     = document.getElementById('rec-timer');
-const recBtnLabel  = document.getElementById('rec-btn-label');
-const playbackSec  = document.getElementById('playback-section');
-const playbackAudio= document.getElementById('playback-audio');
-const reRecordBtn  = document.getElementById('re-record-btn');
-const attackBtn    = document.getElementById('attack-btn');
-const loadingState = document.getElementById('loading-state');
-const wvBars       = document.querySelectorAll('.wv');
-const sessionId    = document.getElementById('session-id').value;
-const csrfToken    = document.querySelector('meta[name="csrf-token"]').content;
+7. CONTROLLER
+Update the actual Student Management controller that handles create/store/edit/update.
 
-// Record button
-recBtn.addEventListener('click', async () => {
-    if (!isRecording) {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks   = [];
+On store/update:
+- validate LRN
+- validate birthday
+- calculate age server-side
+- validate gender
+- save all new fields
 
-            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-            mediaRecorder.onstop = () => {
-                audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                const url = URL.createObjectURL(audioBlob);
-                playbackAudio.src = url;
-                playbackSec.style.display  = 'block';
-                reRecordBtn.style.display  = 'inline-flex';
-                attackBtn.style.display    = 'inline-flex';
-                stopWaveform();
-            };
+Preserve existing transaction/user creation logic.
 
-            mediaRecorder.start();
-            isRecording = true;
+8. MODEL
+Update Student.php $fillable with:
+- lrn_no
+- birthday
+- age
+- gender
 
-            recBtn.style.background = '#EF4444';
-            recBtn.style.boxShadow  = '0 0 0 12px rgba(239,68,68,0.2)';
-            recBtn.innerHTML = '<i class="ti ti-player-stop" style="color:#fff;font-size:30px;"></i>';
-            recBtnLabel.textContent  = 'Tap to stop recording';
-            recStatus.textContent    = '🔴 Recording your attack...';
-            playbackSec.style.display = 'none';
-            reRecordBtn.style.display = 'none';
-            attackBtn.style.display   = 'none';
+Add a birthday date cast if appropriate.
 
-            seconds = 0;
-            timerInterval = setInterval(() => {
-                seconds++;
-                const m = Math.floor(seconds/60).toString().padStart(2,'0');
-                const s = (seconds%60).toString().padStart(2,'0');
-                recTimer.textContent = `${m}:${s}`;
-            }, 1000);
+9. CREATE FORM
+Update the current Add New Student page to match the attached image.
 
-            animateWaveform();
-        } catch(err) {
-            alert('❌ Microphone access denied. Please allow microphone access in your browser settings!');
-        }
-    } else {
-        mediaRecorder.stop();
-        mediaRecorder.stream.getTracks().forEach(t => t.stop());
-        isRecording = false;
-        clearInterval(timerInterval);
+Layout:
 
-        recBtn.style.background = '#7C3AED';
-        recBtn.style.boxShadow  = '0 0 0 12px rgba(124,58,237,0.15)';
-        recBtn.innerHTML = '<i class="ti ti-microphone" style="color:#fff;font-size:34px;"></i>';
-        recBtnLabel.textContent = 'Tap to record your attack!';
-        recStatus.textContent   = '✅ Done! Listen back or press Attack!';
-    }
-});
+First Name          Last Name
+LRN No.             Birthday
+Age                 Gender
+Section             Starting Level
+Username
+Password            Confirm Password
 
-// Re-record
-reRecordBtn.addEventListener('click', () => {
-    audioBlob = null;
-    playbackSec.style.display = 'none';
-    reRecordBtn.style.display = 'none';
-    attackBtn.style.display   = 'none';
-    recTimer.textContent      = '0:00';
-    recStatus.textContent     = 'Press the button to start recording';
-    recBtnLabel.textContent   = 'Tap to record your attack!';
-    recBtn.innerHTML = '<i class="ti ti-microphone" style="color:#fff;font-size:34px;"></i>';
-    stopWaveform();
-});
+Age is read-only.
 
-// Attack button — submit recording
-attackBtn.addEventListener('click', async () => {
-    if (!audioBlob) { alert('Please record first!'); return; }
+Keep:
+Cancel
+Add Student
 
-    attackBtn.style.display    = 'none';
-    reRecordBtn.style.display  = 'none';
-    loadingState.style.display = 'block';
+Use the existing:
+@extends('layouts.teacher')
 
-    const formData = new FormData();
-    formData.append('recording', new File([audioBlob], 'attack.webm', { type: 'audio/webm' }));
-    formData.append('word_or_passage', document.getElementById('current-word-value').value);
-    formData.append('_token', csrfToken);
+Do not recreate the sidebar/topbar.
 
-    try {
-        const res = await fetch(`/student/game/battle/${sessionId}/round`, { method: 'POST', body: formData });
-        const data = await res.json();
-        loadingState.style.display = 'none';
+10. EDIT STUDENT
+Update the Edit Student form too.
 
-        if (data.status === 'won') {
-            showDamage(data.damage);
-            updateHpBar(0, 0);
-            setTimeout(() => {
-                document.getElementById('win-message').textContent = data.message;
-                document.getElementById('win-points').textContent  = `+${data.points} ⭐ Points earned!`;
-                document.getElementById('win-overlay').style.display = 'flex';
-            }, 1200);
-        } else if (data.status === 'ongoing') {
-            showDamage(data.damage);
-            updateHpBar(data.enemy_hp, data.hp_percent);
-            document.getElementById('battle-msg').textContent = data.message;
-            setTimeout(() => { window.location.reload(); }, 1500);
-        } else {
-            document.getElementById('battle-msg').textContent = data.message || '⏳ Processing...';
-            resetRecorder();
-        }
-    } catch(err) {
-        loadingState.style.display = 'none';
-        alert('Something went wrong. Please try again!');
-        resetRecorder();
-    }
-});
+Pre-fill:
+- LRN
+- Birthday
+- calculated age
+- Gender
 
-function showDamage(damage) {
-    const popup = document.getElementById('damage-popup');
-    const sprite = document.getElementById('enemy-sprite');
-    popup.textContent = `-${damage} 💥`;
-    popup.style.display = 'block';
-    popup.style.animation = 'none';
-    popup.offsetHeight;
-    sprite.style.transform = 'scale(1.1) rotate(-5deg)';
-    sprite.style.filter    = 'brightness(2) saturate(0)';
-    setTimeout(() => {
-        sprite.style.transform = '';
-        sprite.style.filter    = '';
-        popup.style.display    = 'none';
-    }, 1000);
-}
+Changing birthday should immediately recalculate age.
 
-function updateHpBar(newHp, hpPercent) {
-    document.getElementById('hp-bar').style.width = hpPercent + '%';
-    document.getElementById('hp-display').textContent = `❤️ ${newHp.toLocaleString()} / {{ $session->enemy_max_hp }}`;
-    document.getElementById('hp-left-display').textContent = newHp.toLocaleString();
-    const bar = document.getElementById('hp-bar');
-    if (hpPercent <= 25) bar.style.background = '#EF4444';
-    else if (hpPercent <= 50) bar.style.background = 'linear-gradient(90deg,#F59E0B,#FCD34D)';
-}
+11. STUDENT LIST / MANAGEMENT
+Update the Student Management table to show useful student details.
 
-function resetRecorder() {
-    audioBlob = null;
-    playbackSec.style.display = 'none';
-    reRecordBtn.style.display = 'none';
-    attackBtn.style.display   = 'none';
-    recTimer.textContent      = '0:00';
-    recStatus.textContent     = 'Press the button to start recording';
-    recBtnLabel.textContent   = 'Tap to record your attack!';
-    recBtn.innerHTML = '<i class="ti ti-microphone" style="color:#fff;font-size:34px;"></i>';
-    stopWaveform();
-}
+Recommended columns:
+- Student
+- LRN
+- Age
+- Gender
+- Section
+- Level
+- Points / Status if already present
+- Actions
 
-function animateWaveform() {
-    let t = 0;
-    waveInterval = setInterval(() => {
-        wvBars.forEach((bar, i) => {
-            const h = Math.abs(Math.sin((t + i) * 0.4)) * 36 + 6;
-            bar.style.height     = h + 'px';
-            bar.style.background = '#7C3AED';
-        });
-        t++;
-    }, 80);
-}
+Do not overcrowd the table on mobile; use horizontal scrolling if needed.
 
-function stopWaveform() {
-    clearInterval(waveInterval);
-    wvBars.forEach(bar => {
-        bar.style.height     = '8px';
-        bar.style.background = '#E5E7EB';
-    });
-}
-</script>
+12. RESPONSIVE
+Desktop:
+two-column form like the reference image.
 
-<style>
-@keyframes floatUp {
-    0%   { opacity:1; transform:translateX(-50%) translateY(0); }
-    100% { opacity:0; transform:translateX(-50%) translateY(-60px); }
-}
-</style>
-@endpush
+Mobile:
+stack fields into one column.
+
+Gender buttons should fit on small screens.
+
+13. SAFETY
+Do NOT run Git commands.
+Do NOT commit or push.
+Do NOT run migrations.
+Do NOT run migrate:fresh / migrate:refresh.
+Do NOT delete existing student records.
+
+I will handle backup, migration, and Git manually.
+
+14. WHEN FINISHED
+Report only:
+- files changed
+- migration created
+- columns added
+- validation added
+- age calculation method
+- create/edit/list changes
+- commands I should run manually

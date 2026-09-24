@@ -64,9 +64,9 @@
     <div class="col-md-6">
         <div class="dash-card h-100">
             <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:14px;">
-                📊 Reading Skill Breakdown
+                📊 Reading Assessment
             </div>
-            @if(array_sum($skills) > 0)
+            @if(collect($skills)->contains(fn ($score) => $score !== null))
             @foreach($skills as $skill => $score)
             @php
                 $color = $score >= 75 ? '#22C55E' : ($score >= 50 ? '#F59E0B' : '#EF4444');
@@ -75,14 +75,14 @@
                 <div style="width:110px;font-size:12px;color:#6B7280;flex-shrink:0;">{{ $skill }}</div>
                 <div style="flex:1;background:#E5E7EB;border-radius:4px;height:8px;">
                     <div style="height:8px;border-radius:4px;background:{{ $color }};
-                                width:{{ $score }}%;"></div>
+                                width:{{ $score ?? 0 }}%;"></div>
                 </div>
-                <div style="width:36px;font-size:11px;color:#6B7280;text-align:right;">{{ $score }}%</div>
+                <div style="width:36px;font-size:11px;color:#6B7280;text-align:right;">{{ $score === null ? '—' : $score.'%' }}</div>
             </div>
             @endforeach
             @else
             <div class="text-center text-muted small py-3">
-                No evaluations yet. Complete some Read Aloud activities!
+                New reading scores appear after your teacher evaluates a Read Aloud activity.
             </div>
             @endif
         </div>

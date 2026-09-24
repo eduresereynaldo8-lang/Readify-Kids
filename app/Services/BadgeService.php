@@ -41,6 +41,8 @@ class BadgeService
                     'badge_id'   => $badge->id,
                     'earned_at'  => now(),
                 ]);
+                \App\Helpers\LogActivity::forStudent($student, 'EARN_BADGE', 'Badges',
+                    'Earned badge: ' . $badge->badge_name);
                 $newBadges[] = $badge;
             }
         }

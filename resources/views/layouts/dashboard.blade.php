@@ -41,14 +41,12 @@
             ['Classroom','teacher.evaluations.index','clipboard-check','Evaluations'],
             ['Reports','teacher.progress','chart-bar','Progress'],
             ['Reports','teacher.leaderboard','trophy','Leaderboard'],
-            ['Reports','teacher.logs','history','My Activity Logs'],
+            ['Reports','teacher.logs','history','Activity logs'],
         ],
         default => [
             ['Overview','admin.dashboard','home','Dashboard'],
             ['Management','admin.teachers','school','Teachers'],
             ['Management','admin.students','users','Students'],
-            ['Management','admin.activities','book','Activities'],
-            ['Management','admin.evaluations','clipboard-check','Evaluations'],
             ['Management','admin.reports','chart-bar','Reports'],
             ['Management','admin.logs','history','Activity Logs'],
         ],
@@ -59,6 +57,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    @if($role === 'student')
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Readify Kids">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    @endif
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') · Readify Kids</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">

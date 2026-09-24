@@ -101,7 +101,7 @@
         display:flex; align-items:center; justify-content:center;
         box-shadow:0 0 0 12px rgba(255,111,165,.18), 0 6px 0 rgba(0,0,0,.15);
         animation:micPulse 2s infinite; transition:all .2s;
-        position:relative;
+        position:relative; touch-action:none; user-select:none; -webkit-user-select:none;
     }
 .rk-reader .mic-btn.recording {
         background:linear-gradient(180deg,#8F7AD1,var(--purple));
@@ -267,7 +267,7 @@
 
     {{-- Status text --}}
     <div class="rec-status-text" id="rec-status" role="status" aria-live="polite">
-        Press and hold the button below to start recording
+        Click the button below to start recording
     </div>
 
     {{-- Waveform --}}
@@ -278,16 +278,15 @@
     {{-- Mic button --}}
     <div class="mic-wrap">
         <button type="button" id="mic-btn" class="mic-btn"
-                onmousedown="startRecording()"
-                onmouseup="stopRecording()"
+                aria-label="Start recording" aria-describedby="mic-hint"
+                onclick="toggleRecording()"
                 ontouchstart="startRecording(event)"
                 ontouchend="stopRecording(event)"
-                ontouchcancel="stopRecording(event)"
-                onmouseleave="stopRecording()">
+                ontouchcancel="stopRecording(event)">
             <i class="ti ti-microphone" id="mic-icon"></i>
         </button>
         <div class="mic-timer" id="mic-timer">0:00</div>
-        <div class="mic-hint" id="mic-hint">Hold the button while reading</div>
+        <div class="mic-hint" id="mic-hint">Click to record, then click again to submit</div>
     </div>
 
     {{-- Hidden form --}}
@@ -308,6 +307,7 @@
 let mediaRecorder, audioChunks = [], isRecording = false;
 let timerInterval, seconds = 0, waveInterval = null;
 let requestingMic = false, holdActive = false, submitting = false, recordingFailed = false;
+let touchRecording = window.matchMedia('(pointer: coarse)').matches;
 
 const micBtn       = document.getElementById('mic-btn');
 const micIcon      = document.getElementById('mic-icon');
@@ -320,6 +320,24 @@ const uploadUrl    = @json(route('student.readaloud.upload', $activity->id, fals
 const indexUrl     = @json(route('student.readaloud.index', [], false));
 const debugUploads = @json(config('app.debug'));
 const maxRecordingBytes = 20 * 1024 * 1024;
+
+function idleRecordingHint() {
+    return touchRecording ? 'Hold the button while reading' : 'Click to record, then click again to submit';
+}
+
+micHint.textContent = idleRecordingHint();
+recStatus.textContent = touchRecording
+    ? 'Press and hold the button below to start recording'
+    : 'Click the button below to start recording';
+
+function toggleRecording() {
+    if (requestingMic || submitting || micBtn.disabled) return;
+    if (isRecording) {
+        stopRecording();
+    } else {
+        startRecording();
+    }
+}
 
 function debugRecording(label, details) {
     if (debugUploads) console.log('[ReadAloud] ' + label, details);
@@ -359,7 +377,8 @@ function resetRecordingUi() {
     micIcon.className = 'ti ti-microphone';
     micTimer.style.display = 'none';
     waveWrap.style.display = 'none';
-    micHint.textContent = 'Hold the button while reading';
+    micHint.textContent = idleRecordingHint();
+    micBtn.setAttribute('aria-label', 'Start recording');
     document.getElementById('uploading-overlay').style.display = 'none';
 }
 
@@ -379,10 +398,11 @@ function microphoneErrorMessage(error) {
     }
 }
 
-// Permission is requested only while the student presses Record.
+// Touch holds to record; mouse and keyboard clicks toggle recording.
 async function startRecording(e) {
     if (e) e.preventDefault();
     if (isRecording || requestingMic || submitting || micBtn.disabled) return;
+    touchRecording = !!e && e.type === 'touchstart';
     if (!window.isSecureContext) {
         showRecordingError('Recording requires HTTPS or localhost. Open the secure link supplied by your teacher.');
         return;
@@ -398,7 +418,7 @@ async function startRecording(e) {
     try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         // Releasing while the permission prompt is open must not start a stuck recording.
-        if (!holdActive) {
+        if (touchRecording && !holdActive) {
             stream.getTracks().forEach(track => track.stop());
             recStatus.textContent = 'Microphone is ready. Hold the button again while reading.';
             return;
@@ -432,8 +452,9 @@ async function startRecording(e) {
         isRecording = true;
         micBtn.classList.add('recording');
         micIcon.className = 'ti ti-player-stop';
-        recStatus.textContent = '🔴 Recording… release when done!';
-        micHint.textContent = 'Release the button when finished';
+        recStatus.textContent = '🔴 Recording… ' + (touchRecording ? 'release when done!' : 'click again to submit!');
+        micHint.textContent = touchRecording ? 'Release the button when finished' : 'Click the button to stop and submit';
+        micBtn.setAttribute('aria-label', touchRecording ? 'Release to submit recording' : 'Stop and submit recording');
         micTimer.textContent = '0:00';
         micTimer.style.display = 'block';
         waveWrap.style.display = 'flex';
@@ -505,7 +526,9 @@ async function submitRecording() {
         const mime = mediaRecorder?.mimeType || audioChunks.find(chunk => chunk.type)?.type || '';
         const audioBlob = new Blob(audioChunks, { type: mime });
         debugRecording('recording', { mime: audioBlob.type, size: audioBlob.size, uploadUrl });
-        if (!audioBlob.size) throw new Error('No audio was recorded. Hold the button while reading, then release it.');
+        if (!audioBlob.size) throw new Error('No audio was recorded. ' + (touchRecording
+            ? 'Hold the button while reading, then release it.'
+            : 'Click to start recording, read aloud, then click again to submit.'));
         if (audioBlob.size > maxRecordingBytes) throw new Error('The recording is larger than 20 MB. Please make a shorter recording.');
 
         const formData = new FormData();
@@ -593,9 +616,14 @@ function stopWaveform() {
     });
 }
 
-// Releasing outside the mic or leaving the window must finish the recording.
-window.addEventListener('mouseup', stopRecording);
-window.addEventListener('blur', stopRecording);
+// A touch release outside the button still finishes a held recording.
+// Desktop recording stays active until the next click, including during permission prompts.
+function finishTouchRecording() {
+    if (touchRecording && holdActive) stopRecording();
+}
+window.addEventListener('touchend', finishTouchRecording);
+window.addEventListener('touchcancel', finishTouchRecording);
+window.addEventListener('blur', finishTouchRecording);
 
 // Prevent context menu on long press (mobile)
 document.getElementById('mic-btn').addEventListener('contextmenu', e => e.preventDefault());

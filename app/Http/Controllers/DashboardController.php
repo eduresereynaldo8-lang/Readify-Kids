@@ -12,43 +12,28 @@ class DashboardController extends Controller
     {
         $teacher = auth()->user()->teacher;
         $students = Student::where('teacher_id', $teacher->id)
-            ->withAvg('activityResults', 'score')
-            ->withCount(['activityResults as completed_this_week' => fn ($q) => $q
-                ->where('status', 'completed')
-                ->whereBetween('completed_at', [now()->startOfWeek(), now()->endOfWeek()])])
+            ->withAvg(['activityResults' => fn ($q) => $q->where('status', 'completed')], 'score')
             ->get();
         $total = $students->count();
-        $activeToday = \Illuminate\Support\Facades\DB::table('sessions')
-            ->whereIn('user_id', Student::where('teacher_id', $teacher->id)->select('user_id'))
-            ->where('last_activity', '>=', now()->startOfDay()->timestamp)
-            ->distinct()->count('user_id');
-        $activitiesDone = ActivityResult::whereHas('student', fn ($q) => $q->where('teacher_id', $teacher->id))
-            ->where('status', 'completed')
-            ->whereBetween('completed_at', [now()->startOfWeek(), now()->endOfWeek()])->count();
+        $query = \App\Services\ReadingAssessmentMetrics::forTeacher($teacher->id);
+        $assessment = \App\Services\ReadingAssessmentMetrics::report($query);
+        $evaluationsCompleted = (clone $query)
+            ->whereBetween('created_at', [now()->startOfWeek(), now()])->count();
         $pendingReviews = VoiceRecording::whereHas('student', fn ($q) => $q->where('teacher_id', $teacher->id))
+            ->whereHas('activity', fn ($q) => $q->where('teacher_id', $teacher->id)
+                ->where('activity_type', 'Read Aloud')->where('battle_mode', false))
             ->where('status', 'pending')->count();
+        $averageFinalScore = ActivityResult::whereHas('student', fn ($q) => $q->where('teacher_id', $teacher->id))
+            ->where('status', 'completed')->avg('score');
 
-        // Preserve the existing activity-average status thresholds.
-        $onTrack = $students->filter(fn ($s) => ($s->activity_results_avg_score ?? 0) >= 75)->count();
-        $needsHelp = $students->filter(fn ($s) => ($s->activity_results_avg_score ?? 0) >= 50 && ($s->activity_results_avg_score ?? 0) < 75)->count();
-        $struggling = $students->filter(fn ($s) => ($s->activity_results_avg_score ?? 0) < 50)->count();
-        $skills = \App\Services\DashboardMetrics::readingSkills(
-            \App\Models\Evaluation::whereHas('voiceRecording.student', fn ($q) => $q->where('teacher_id', $teacher->id))
-        );
-        $topStudents = $students->sortByDesc('total_points')->take(5)->values();
-        $activityTypes = \App\Services\DashboardMetrics::activityTypes(
-            \App\Models\Activity::where('teacher_id', $teacher->id)
-        );
-        $attention = [
-            'inactive' => $students->where('completed_this_week', 0)->count(),
-            'unattempted' => \App\Services\DashboardMetrics::unattemptedActivities(
-                \App\Models\Activity::where('teacher_id', $teacher->id)
-            ),
-            'pending' => $pendingReviews,
-        ];
+        $scoredStudents = $students->filter(fn ($s) => $s->activity_results_avg_score !== null);
+        $topStudents = $scoredStudents->sortByDesc('activity_results_avg_score')->take(5)->values();
+        $needHelp = $scoredStudents->filter(fn ($s) => $s->activity_results_avg_score < 75)
+            ->sortBy('activity_results_avg_score')->take(5)->values();
+
         return view('teacher.dashboard', compact(
-            'teacher', 'students', 'total', 'activeToday', 'activitiesDone', 'pendingReviews',
-            'onTrack', 'needsHelp', 'struggling', 'skills', 'topStudents', 'activityTypes', 'attention'
+            'teacher', 'students', 'total', 'assessment', 'evaluationsCompleted',
+            'pendingReviews', 'averageFinalScore', 'topStudents', 'needHelp'
         ));
     }
 
@@ -128,7 +113,7 @@ class DashboardController extends Controller
         $badgesEarned = $earnedBadges->count();
     }
 
-    $skills = \App\Services\DashboardMetrics::readingSkills(
+    $skills = \App\Services\ReadingAssessmentMetrics::skills(
         \App\Models\Evaluation::whereHas('voiceRecording', fn ($q) => $q->where('student_id', $student->id))
     );
     $completedActivityIds = ActivityResult::where('student_id', $student->id)
@@ -143,62 +128,18 @@ class DashboardController extends Controller
     ));
 }
     public function progress()
-{
-    $teacher  = auth()->user()->teacher;
-    $students = Student::where('teacher_id', $teacher->id)
-                ->with(['activityResults.activity'])
-                ->get();
+    {
+        $teacher = auth()->user()->teacher;
+        $query = \App\Services\ReadingAssessmentMetrics::forTeacher($teacher->id);
+        $assessment = \App\Services\ReadingAssessmentMetrics::report($query);
+        $history = (clone $query)->with(['voiceRecording.student', 'voiceRecording.activity'])
+            ->latest('created_at')->orderByDesc('id')->paginate(20);
+        $history->getCollection()->each(function ($evaluation) {
+            $evaluation->reading_time_label = \App\Services\ReadingAssessment::formatTime($evaluation->total_reading_seconds);
+        });
 
-    // Class averages
-    $classAvg     = round($students->flatMap->activityResults->avg('score') ?? 0, 1);
-    $totalDone    = $students->flatMap->activityResults->count();
-    $struggling   = $students->filter(fn($s) => ($s->activityResults->avg('score') ?? 0) < 50)->count();
-    $onTrack      = $students->filter(fn($s) => ($s->activityResults->avg('score') ?? 0) >= 75)->count();
-
-    // Skill breakdown from evaluations
-    $evaluations  = \App\Models\Evaluation::whereHas('voiceRecording.student',
-                    fn($q) => $q->where('teacher_id', $teacher->id))->get();
-
-    $skills = [
-        'Pronunciation' => round($evaluations->avg('pronunciation_score') * 20 ?? 0, 1),
-        'Fluency'       => round($evaluations->avg('fluency_score') * 20 ?? 0, 1),
-        'Accuracy'      => round($evaluations->avg('accuracy_score') * 20 ?? 0, 1),
-        'Comprehension' => round($evaluations->avg('comprehension_score') * 20 ?? 0, 1),
-    ];
-
-    // Activity completions per day this week
-    $weeklyData = [];
-    for ($i = 6; $i >= 0; $i--) {
-        $date  = now()->subDays($i);
-        $count = \App\Models\ActivityResult::whereHas('student',
-                 fn($q) => $q->where('teacher_id', $teacher->id))
-                 ->whereDate('completed_at', $date)->count();
-        $weeklyData[] = [
-            'day'   => $date->format('D'),
-            'count' => $count,
-        ];
+        return view('teacher.progress', compact('assessment', 'history'));
     }
-
-    // Top performers
-    $topStudents = $students->sortByDesc(fn($s) => $s->activityResults->avg('score') ?? 0)->take(5);
-
-    // Students needing intervention
-    $needHelp = $students->filter(fn($s) => ($s->activityResults->avg('score') ?? 0) < 50)
-                ->sortBy(fn($s) => $s->activityResults->avg('score') ?? 0)->take(5);
-
-    // Activity type breakdown
-    $byType = \App\Models\ActivityResult::whereHas('student',
-              fn($q) => $q->where('teacher_id', $teacher->id))
-              ->with('activity')
-              ->get()
-              ->groupBy('activity.activity_type')
-              ->map->count();
-
-    return view('teacher.progress', compact(
-        'students', 'classAvg', 'totalDone', 'struggling', 'onTrack',
-        'skills', 'weeklyData', 'topStudents', 'needHelp', 'byType'
-    ));
-}
 
 public function leaderboard()
 {
@@ -229,14 +170,9 @@ public function leaderboard()
     $recordings   = \App\Models\VoiceRecording::where('student_id', $student->id)
                     ->with('evaluation')->latest()->get();
 
-    // Skill breakdown from evaluations
-    $evaluations = \App\Models\Evaluation::whereHas('voiceRecording', fn($q) => $q->where('student_id', $student->id))->get();
-    $skills = [
-        'Pronunciation' => round($evaluations->avg('pronunciation_score') * 20 ?? 0, 1),
-        'Fluency'       => round($evaluations->avg('fluency_score') * 20 ?? 0, 1),
-        'Accuracy'      => round($evaluations->avg('accuracy_score') * 20 ?? 0, 1),
-        'Comprehension' => round($evaluations->avg('comprehension_score') * 20 ?? 0, 1),
-    ];
+    $skills = \App\Services\ReadingAssessmentMetrics::skills(
+        \App\Models\Evaluation::whereHas('voiceRecording', fn ($q) => $q->where('student_id', $student->id))
+    );
 
     // Activity type breakdown
     $byType = $results->groupBy('activity.activity_type')->map->count();
@@ -254,20 +190,47 @@ public function leaderboard()
 
 public function teacherLogs(Request $request)
 {
-    $teacher = auth()->user();
-    $action  = $request->input('action');
-    $date    = $request->input('date');
+    $user = auth()->user();
+    $teacher = $user->teacher;
+    abort_unless($teacher, 403);
 
-    $logs = \App\Models\ActivityLog::where('user_id', $teacher->id)
-            ->when($action, fn($q) => $q->where('action', $action))
-            ->when($date,   fn($q) => $q->whereDate('created_at', $date))
-            ->latest()
-            ->paginate(20)
-            ->withQueryString();
+    $filters = $request->validate([
+        'scope' => 'nullable|in:all,students,mine',
+        'student_id' => 'nullable|integer|min:1',
+        'action' => 'nullable|string|max:100',
+        'date' => 'nullable|date_format:Y-m-d',
+    ]);
+    $scope = $filters['scope'] ?? 'all';
+    $studentId = $filters['student_id'] ?? null;
+    $action = $filters['action'] ?? null;
+    $date = $filters['date'] ?? null;
+    $students = Student::where('teacher_id', $teacher->id)
+        ->orderBy('lastname')->orderBy('firstname')->get();
+    if ($studentId) {
+        abort_unless($students->contains('id', $studentId), 403);
+    }
 
-    $actions = \App\Models\ActivityLog::where('user_id', $teacher->id)
-               ->select('action')->distinct()->pluck('action');
+    // Group the ownership conditions so every filter stays inside this classroom.
+    $query = \App\Models\ActivityLog::where(function ($q) use ($user, $teacher) {
+        $q->where('user_id', $user->id)
+            ->orWhere(function ($q) use ($teacher) {
+                $q->where('role', 'student')->whereHas('user.student',
+                    fn ($q) => $q->where('teacher_id', $teacher->id));
+            });
+    });
+    $query->when($scope === 'mine', fn ($q) => $q->where('user_id', $user->id))
+        ->when($scope === 'students', fn ($q) => $q->where('role', 'student'))
+        ->when($studentId, fn ($q) => $q->whereHas('user.student',
+            fn ($q) => $q->whereKey($studentId)->where('teacher_id', $teacher->id)));
 
-    return view('teacher.logs', compact('logs', 'action', 'date', 'actions'));
+    $actions = (clone $query)->select('action')->distinct()->orderBy('action')->pluck('action');
+    $logs = $query->with('user.student')
+        ->when($action, fn ($q) => $q->where('action', $action))
+        ->when($date, fn ($q) => $q->whereDate('created_at', $date))
+        ->latest()->orderByDesc('id')->paginate(20)->withQueryString();
+
+    return view('teacher.logs', compact(
+        'logs', 'action', 'date', 'actions', 'scope', 'studentId', 'students'
+    ));
 }
 }
