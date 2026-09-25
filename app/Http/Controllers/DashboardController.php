@@ -11,9 +11,9 @@ class DashboardController extends Controller
     public function teacherDashboard()
     {
         $teacher = auth()->user()->teacher;
-        $students = Student::where('teacher_id', $teacher->id)
-            ->withAvg(['activityResults' => fn ($q) => $q->where('status', 'completed')], 'score')
-            ->get();
+        $students = \App\Services\StudentProgress::withActivityProgress(
+            Student::where('teacher_id', $teacher->id)
+        )->get();
         $total = $students->count();
         $query = \App\Services\ReadingAssessmentMetrics::forTeacher($teacher->id);
         $assessment = \App\Services\ReadingAssessmentMetrics::report($query);
@@ -28,7 +28,7 @@ class DashboardController extends Controller
 
         $scoredStudents = $students->filter(fn ($s) => $s->activity_results_avg_score !== null);
         $topStudents = $scoredStudents->sortByDesc('activity_results_avg_score')->take(5)->values();
-        $needHelp = $scoredStudents->filter(fn ($s) => $s->activity_results_avg_score < 75)
+        $needHelp = $scoredStudents->filter(fn ($s) => in_array($s->reading_status['key'], ['needs_help', 'struggling'], true))
             ->sortBy('activity_results_avg_score')->take(5)->values();
 
         return view('teacher.dashboard', compact(

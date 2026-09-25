@@ -12,13 +12,13 @@ use App\Http\Controllers\GameController;
 use App\Http\Controllers\AdminController;
 
 // ── Public routes (no login needed) ──────────────────────────
-Route::get('/',        [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login',  [AuthController::class, 'login'])->name('login.post');
-Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
+Route::get('/',        [AuthController::class, 'showLogin'])->middleware('guest')->name('login');
+Route::post('/login',  [AuthController::class, 'login'])->middleware('guest')->name('login.post');
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
 // Teacher registration
-Route::get('/register',  [AuthController::class, 'showTeacherRegister'])->name('register');
-Route::post('/register', [AuthController::class, 'registerTeacher'])->name('register.post');
+Route::get('/register',  [AuthController::class, 'showTeacherRegister'])->middleware('guest')->name('register');
+Route::post('/register', [AuthController::class, 'registerTeacher'])->middleware('guest')->name('register.post');
 
 
 // ── Admin routes ─────────────────────────────────────────────
@@ -50,6 +50,8 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')
     Route::get('/students',          [StudentController::class, 'index'])->name('students.index');
     Route::get('/students/create',   [StudentController::class, 'create'])->name('students.create');
     Route::post('/students',         [StudentController::class, 'store'])->name('students.store');
+    Route::get('/students/export/class-pdf', [StudentController::class, 'exportClassPdf'])->name('students.exportClassPdf');
+    Route::get('/students/{id}/export-pdf', [StudentController::class, 'exportPdf'])->name('students.exportPdf');
     Route::get('/students/{id}',     [StudentController::class, 'show'])->name('students.show');
     Route::get('/students/{id}/edit',[StudentController::class, 'edit'])->name('students.edit');
     Route::put('/students/{id}',     [StudentController::class, 'update'])->name('students.update');

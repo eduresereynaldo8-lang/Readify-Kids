@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Helpers\LogActivity;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\StudentProgress;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,13 +18,13 @@ class StudentController extends Controller
     public function index()
     {
         $teacher = auth()->user()->teacher;
-        $students = Student::where('teacher_id', $teacher->id)
-            ->with('activityResults')
+        abort_unless($teacher, 403);
+        $students = StudentProgress::withActivityProgress(Student::where('teacher_id', $teacher->id))
             ->latest()->get();
 
         $total = $students->count();
-        $onTrack = $students->filter(fn ($s) => ($s->activityResults->avg('score') ?? 0) >= 75)->count();
-        $needAttention = $total - $onTrack;
+        $onTrack = $students->filter(fn ($s) => $s->reading_status['key'] === 'on_track')->count();
+        $needAttention = $students->filter(fn ($s) => in_array($s->reading_status['key'], ['needs_help', 'struggling'], true))->count();
 
         // Get unique sections for filter dropdown
         $sections = $students->pluck('section')
@@ -83,24 +84,109 @@ class StudentController extends Controller
     public function show($id)
     {
         $teacher = auth()->user()->teacher;
-        $student = Student::where('teacher_id', $teacher->id)
-            ->with('activityResults.activity')
+        abort_unless($teacher, 403);
+        $student = StudentProgress::withActivityProgress(Student::where('teacher_id', $teacher->id))
+            ->with(['activityResults' => fn ($q) => $q->with('activity')->orderByDesc('completed_at')->orderByDesc('id')])
             ->findOrFail($id);
 
-        $avg = round($student->activityResults->avg('score') ?? 0, 1);
-
-        if ($avg >= 75) {
-            $status = 'On Track';
-            $badgeClass = 'badge-green';
-        } elseif ($avg >= 50) {
-            $status = 'Needs Help';
-            $badgeClass = 'badge-amber';
-        } else {
-            $status = 'Struggling';
-            $badgeClass = 'badge-red';
-        }
+        $avg = $student->activity_results_avg_score === null ? null : round($student->activity_results_avg_score, 2);
+        $status = $student->reading_status['label'];
+        $badgeClass = $student->reading_status['badge'];
 
         return view('teacher.students.show', compact('student', 'avg', 'status', 'badgeClass'));
+    }
+
+    public function exportClassPdf(Request $request)
+    {
+        $teacher = $request->user()->teacher;
+        abort_unless($teacher, 403);
+        $filters = $request->validate([
+            'status' => ['sometimes', 'required', Rule::in(StudentProgress::EXPORT_FILTERS)],
+            // Keep the page status as an intersection, never silently broaden its scope.
+            'page_status' => ['sometimes', 'required', Rule::in(array_merge(['all'], array_keys(StudentProgress::STATUSES)))],
+            'search' => ['nullable', 'string', 'max:200'],
+            'section' => ['nullable', 'string', 'max:50'],
+            'level' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $filters = array_merge(['status' => 'all', 'page_status' => 'all', 'search' => null,
+            'section' => null, 'level' => null], $filters);
+
+        if (! app()->bound('dompdf.wrapper')) {
+            return $this->pdfUnavailable();
+        }
+
+        $query = StudentProgress::forTeacher($teacher->id)
+            ->when($filters['section'] !== null, fn ($q) => $q->where('section', $filters['section']))
+            ->when($filters['level'] !== null, fn ($q) => $q->where('current_level', $filters['level']))
+            ->orderBy('lastname')->orderBy('firstname')->orderBy('id');
+        $search = mb_strtolower(trim($filters['search'] ?? ''));
+        $rows = $query->get()
+            ->filter(fn ($student) => $search === ''
+                || str_contains(mb_strtolower($student->firstname.' '.$student->lastname), $search)
+                || str_contains(mb_strtolower($student->lrn_no ?? ''), $search))
+            ->map(fn ($student) => StudentProgress::report($student))
+            ->filter(fn ($row) => ($filters['status'] === 'all' || $row['status']['key'] === $filters['status'])
+                && ($filters['page_status'] === 'all' || $row['status']['key'] === $filters['page_status']))
+            ->values();
+
+        $summary = ['total' => $rows->count()];
+        foreach (array_keys(StudentProgress::STATUSES) as $key) {
+            $summary[$key] = $rows->where('status.key', $key)->count();
+        }
+        $reportFilter = $filters['status'] === 'all' ? 'All Students' : StudentProgress::STATUSES[$filters['status']]['label'];
+        if ($filters['page_status'] !== 'all') {
+            $reportFilter .= ' (Page status: '.StudentProgress::STATUSES[$filters['page_status']]['label'].')';
+        }
+        $generatedAt = now();
+        $filename = match ($filters['status']) {
+            'on_track' => 'ReadifyKids_On_Track_Students',
+            'needs_help' => 'ReadifyKids_Needs_Help_Students',
+            'struggling' => 'ReadifyKids_Struggling_Students',
+            default => 'ReadifyKids_All_Students_Report',
+        };
+
+        return $this->downloadPdf('teacher.students.class-report-pdf',
+            compact('teacher', 'rows', 'summary', 'filters', 'reportFilter', 'generatedAt'),
+            $filename.'_'.$generatedAt->format('Y-m-d').'.pdf', 'landscape');
+    }
+
+    public function exportPdf(Request $request, $id)
+    {
+        $teacher = $request->user()->teacher;
+        abort_unless($teacher, 403);
+        // Resolve within the teacher's scope even when the PDF package is unavailable.
+        $student = Student::where('teacher_id', $teacher->id)->findOrFail($id);
+        if (! app()->bound('dompdf.wrapper')) {
+            return $this->pdfUnavailable();
+        }
+
+        $student = StudentProgress::forTeacher($teacher->id)
+            ->with([
+                'activityResults' => fn ($q) => $q->with('activity')->orderByDesc('completed_at')->orderByDesc('id'),
+                'evaluations' => fn ($q) => $q->where('evaluations.teacher_id', $teacher->id)
+                    ->with(['voiceRecording.activity', 'teacher'])->orderByDesc('evaluations.created_at')->orderByDesc('evaluations.id'),
+            ])->findOrFail($student->id);
+        $progress = StudentProgress::report($student);
+        $generatedAt = now();
+
+        return $this->downloadPdf('teacher.students.student-report-pdf',
+            compact('teacher', 'student', 'progress', 'generatedAt'),
+            'ReadifyKids_Student_'.$student->id.'_'.$generatedAt->format('Y-m-d').'.pdf', 'portrait');
+    }
+
+    private function pdfUnavailable()
+    {
+        return redirect()->route('teacher.students.index')
+            ->with('error', 'PDF export is not available yet. Please contact your administrator to enable it.');
+    }
+
+    private function downloadPdf(string $view, array $data, string $filename, string $orientation)
+    {
+        $response = app('dompdf.wrapper')->loadView($view, $data)
+            ->setPaper('a4', $orientation)->download($filename);
+        $response->headers->set('Cache-Control', 'private, no-store');
+
+        return $response;
     }
 
     public function edit($id)

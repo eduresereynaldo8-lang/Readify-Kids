@@ -274,6 +274,7 @@ class StudentManagementTest extends TestCase
             $t->integer('student_id');
             $t->integer('activity_id');
             $t->decimal('score', 5, 2)->nullable();
+            $t->string('status')->default('completed');
             $t->dateTime('completed_at')->nullable();
             $t->timestamps();
         });

@@ -17,6 +17,17 @@ return Application::configure(basePath: dirname(__DIR__))
         headers: \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
     );
 
+    // Wrap web responses, including redirects and authentication errors.
+    $middleware->web(prepend: [
+        \App\Http\Middleware\PreventBackHistory::class,
+    ]);
+
+    $middleware->redirectUsersTo(fn (\Illuminate\Http\Request $request) => match ($request->user()->role) {
+        'admin' => route('admin.dashboard'),
+        'teacher' => route('teacher.dashboard'),
+        default => route('student.dashboard'),
+    });
+
     $middleware->alias([
         'role' => \App\Http\Middleware\RoleMiddleware::class,
     ]);

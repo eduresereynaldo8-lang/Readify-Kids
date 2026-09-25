@@ -14,6 +14,10 @@
 </div>
 @endif
 
+@if(session('error'))
+<div class="alert alert-warning mb-3" role="alert">{{ session('error') }}</div>
+@endif
+
 {{-- Summary cards --}}
 <div class="row g-3 mb-4">
     <div class="col-md-4">
@@ -57,7 +61,7 @@
         <div class="d-flex gap-2 align-items-center flex-wrap">
             <input type="text" id="searchInput" class="form-control form-control-sm"
                    placeholder="Search name or LRN…" style="width:200px;"
-                   onkeyup="filterTable()">
+                   maxlength="200" oninput="filterTable()">
             <select class="form-select form-select-sm" id="sectionFilter"
                     style="width:140px;" onchange="filterTable()">
                 <option value="">All sections</option>
@@ -73,15 +77,31 @@
             <select class="form-select form-select-sm" id="statusFilter"
                     style="width:130px;" onchange="filterTable()">
                 <option value="">All status</option>
-                <option value="On Track">On Track</option>
-                <option value="Needs Help">Needs Help</option>
-                <option value="Struggling">Struggling</option>
+                <option value="on_track">On Track</option>
+                <option value="needs_help">Needs Help</option>
+                <option value="struggling">Struggling</option>
+                <option value="no_data">No Data</option>
             </select>
         </div>
-        <a href="{{ route('teacher.students.create') }}"
-           class="btn btn-sm btn-primary">
-            <i class="ti ti-plus"></i> Add Student
-        </a>
+        <div class="d-flex gap-2 align-items-center">
+            <a href="{{ route('teacher.students.create') }}" class="btn btn-sm btn-primary">
+                <i class="ti ti-plus"></i> Add Student
+            </a>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="ti ti-file-download"></i> Export Report
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" data-export-status="all" href="{{ route('teacher.students.exportClassPdf', ['status' => 'all']) }}">All Students</a></li>
+                    <li><a class="dropdown-item" data-export-status="on_track" href="{{ route('teacher.students.exportClassPdf', ['status' => 'on_track']) }}">On Track Students</a></li>
+                    <li><a class="dropdown-item" data-export-status="needs_help" href="{{ route('teacher.students.exportClassPdf', ['status' => 'needs_help']) }}">Needs Help Students</a></li>
+                    <li><a class="dropdown-item" data-export-status="struggling" href="{{ route('teacher.students.exportClassPdf', ['status' => 'struggling']) }}">Struggling Students</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><span class="dropdown-item-text small text-muted">Exports respect all selected filters.</span></li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <div class="table-responsive" role="region" aria-label="Scrollable table" tabindex="0">
@@ -103,15 +123,18 @@
         <tbody>
             @forelse($students as $student)
             @php
-                $avg = round($student->activityResults->avg('score') ?? 0, 1);
-                if ($avg >= 75)     { $status = 'On Track';   $bc = 'badge-green'; $color = '#22C55E'; }
-                elseif ($avg >= 50) { $status = 'Needs Help'; $bc = 'badge-amber'; $color = '#F59E0B'; }
-                else                { $status = 'Struggling'; $bc = 'badge-red';   $color = '#EF4444'; }
+                $avg = $student->activity_results_avg_score === null ? null : round($student->activity_results_avg_score, 2);
+                $readingStatus = $student->reading_status;
+                $status = $readingStatus['label'];
+                $bc = $readingStatus['badge'];
+                $color = $readingStatus['color'];
                 $initials = strtoupper(substr($student->firstname,0,1).substr($student->lastname,0,1));
             @endphp
             <tr data-section="{{ $student->section }}"
                 data-level="{{ $student->current_level }}"
-                data-status="{{ $status }}">
+                data-status="{{ $readingStatus['key'] }}"
+                data-name="{{ mb_strtolower($student->firstname.' '.$student->lastname) }}"
+                data-lrn="{{ $student->lrn_no }}">
                 <td>
                     <div class="d-flex align-items-center gap-2">
                         <div style="width:28px;height:28px;border-radius:50%;
@@ -137,11 +160,11 @@
                         Level {{ $student->current_level }}
                     </span>
                 </td>
-                <td>{{ $avg }}%</td>
+                <td>{{ $avg === null ? '—' : number_format($avg, 2).'%' }}</td>
                 <td>
                     <div class="prog-bg">
                         <div class="prog-fill"
-                             style="width:{{ $avg }}%;background:{{ $color }};"></div>
+                             style="width:{{ $avg ?? 0 }}%;background:{{ $color }};"></div>
                     </div>
                 </td>
                 <td>
@@ -156,6 +179,10 @@
                         <a href="{{ route('teacher.students.edit', $student->id) }}"
                            class="btn btn-sm btn-outline-primary" title="Edit">
                             <i class="ti ti-edit"></i>
+                        </a>
+                        <a href="{{ route('teacher.students.exportPdf', $student->id) }}"
+                           class="btn btn-sm btn-outline-secondary" title="Export PDF" aria-label="Export PDF for {{ $student->firstname }} {{ $student->lastname }}">
+                            <i class="ti ti-file-download"></i>
                         </a>
                         <form method="POST"
                               action="{{ route('teacher.students.destroy', $student->id) }}"
@@ -209,7 +236,7 @@ let currentPage = 1;
 let perPage = 10;
 
 function getVisibleRows() {
-    const search  = document.getElementById('searchInput').value.toLowerCase();
+    const search  = document.getElementById('searchInput').value.trim().toLowerCase();
     const section = document.getElementById('sectionFilter').value;
     const level   = document.getElementById('levelFilter').value;
     const status  = document.getElementById('statusFilter').value;
@@ -217,8 +244,8 @@ function getVisibleRows() {
     const rows = [];
     document.querySelectorAll('#studentTable tbody tr').forEach(row => {
         if (!row.hasAttribute('data-section')) return;
-        const name    = row.cells[0]?.textContent.toLowerCase() ?? '';
-        const id      = row.cells[1]?.textContent.toLowerCase() ?? '';
+        const name    = row.dataset.name ?? '';
+        const id      = row.dataset.lrn ?? '';
         const rowSec  = row.dataset.section ?? '';
         const rowLvl  = row.dataset.level   ?? '';
         const rowStat = row.dataset.status  ?? '';
@@ -233,7 +260,25 @@ function getVisibleRows() {
     return rows;
 }
 
+function updateExportLinks() {
+    document.querySelectorAll('[data-export-status]').forEach(link => {
+        const url = new URL(@json(route('teacher.students.exportClassPdf')), window.location.origin);
+        url.searchParams.set('status', link.dataset.exportStatus);
+        url.searchParams.set('page_status', document.getElementById('statusFilter').value || 'all');
+        const filters = {
+            search: document.getElementById('searchInput').value.trim(),
+            section: document.getElementById('sectionFilter').value,
+            level: document.getElementById('levelFilter').value
+        };
+        Object.entries(filters).forEach(([key, value]) => {
+            if (value !== '') url.searchParams.set(key, value);
+        });
+        link.href = url.toString();
+    });
+}
+
 function filterTable() {
+    updateExportLinks();
     currentPage = 1;
     paginate();
 }
@@ -316,7 +361,8 @@ function renderPaginationButtons(totalPages, total) {
     ul.appendChild(next);
 }
 
-// Initial render
-paginate();
+// Refresh restored browser form values as well as newly selected filters.
+window.addEventListener('pageshow', filterTable);
+filterTable();
 </script>
 @endpush

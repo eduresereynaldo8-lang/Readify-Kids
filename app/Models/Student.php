@@ -44,6 +44,20 @@ class Student extends Model
         return $this->hasMany(ActivityResult::class);
     }
 
+    public function evaluations()
+    {
+        return $this->hasManyThrough(Evaluation::class, VoiceRecording::class,
+            'student_id', 'recording_id', 'id', 'id');
+    }
+
+    /** Requires the completed activity score aggregate from StudentProgress. */
+    public function getReadingStatusAttribute(): array
+    {
+        return \App\Services\StudentProgress::status(
+            $this->activity_results_avg_score === null ? null : (float) $this->activity_results_avg_score
+        );
+    }
+
     public function voiceRecordings()
     {
         return $this->hasMany(VoiceRecording::class);

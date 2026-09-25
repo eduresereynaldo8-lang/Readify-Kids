@@ -34,6 +34,7 @@ class AuthController extends Controller
     }
 
     Auth::login($user);
+    $request->session()->regenerate();
 LogActivity::log('LOGIN', 'Auth', auth()->user()->username . ' logged in');
 
     // Redirect based on user role
@@ -80,6 +81,7 @@ LogActivity::log('LOGIN', 'Auth', auth()->user()->username . ' logged in');
         ]);
 
         Auth::login($user);
+        $request->session()->regenerate();
 
         return redirect()->route('teacher.dashboard');
     }
@@ -94,7 +96,7 @@ LogActivity::log('LOGIN', 'Auth', auth()->user()->username . ' logged in');
         LogActivity::log('LOGOUT', 'Auth', $username . ' logged out');
     }
 
-    auth()->logout();
+    Auth::logout();
     $request->session()->invalidate();
     $request->session()->regenerateToken();
 
