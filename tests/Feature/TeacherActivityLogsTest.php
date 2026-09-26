@@ -35,7 +35,7 @@ class TeacherActivityLogsTest extends TestCase
             'activity_logs' => ['user_id', 'role', 'action', 'module', 'description', 'ip_address', 'user_agent'],
             'badges' => ['badge_name', 'criteria'],
             'student_badges' => ['student_id', 'badge_id', 'earned_at'],
-            'activities' => ['teacher_id', 'activity_name', 'points_reward', 'activity_type', 'is_published'],
+            'activities' => ['teacher_id', 'activity_name', 'points_reward', 'activity_type', 'is_published', 'battle_mode', 'level', 'duration_minutes', 'allow_reattempt'],
             'voice_recordings' => ['student_id', 'activity_id', 'recording_path', 'attempt_number', 'status'],
             'activity_results' => ['student_id', 'activity_id', 'score', 'mistakes', 'time_spent', 'status', 'completed_at'],
         ];
@@ -175,7 +175,8 @@ class TeacherActivityLogsTest extends TestCase
     {
         \Illuminate\Support\Facades\Storage::fake('public');
         $activity = Activity::create(['teacher_id' => $this->teacher->id, 'activity_name' => 'Forest story',
-            'activity_type' => 'Read Aloud', 'is_published' => true, 'points_reward' => 25]);
+            'activity_type' => 'Read Aloud', 'is_published' => true, 'points_reward' => 25,
+            'battle_mode' => false, 'level' => 1, 'duration_minutes' => 1, 'allow_reattempt' => true]);
         Badge::create(['badge_name' => 'First Reading', 'criteria' => 'first_recording']);
         $this->actingAs($this->student->user)->postJson(route('student.readaloud.upload', $activity->id), [
             'recording' => \Illuminate\Http\UploadedFile::fake()->create('reading.wav', 1, 'audio/wav'),

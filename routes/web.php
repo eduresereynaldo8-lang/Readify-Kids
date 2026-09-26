@@ -3,6 +3,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\StudentImportController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\ReadingMaterialController;
 use App\Http\Controllers\VoiceRecordingController;
@@ -52,6 +53,16 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')
     Route::post('/students',         [StudentController::class, 'store'])->name('students.store');
     Route::get('/students/export/class-pdf', [StudentController::class, 'exportClassPdf'])->name('students.exportClassPdf');
     Route::get('/students/{id}/export-pdf', [StudentController::class, 'exportPdf'])->name('students.exportPdf');
+    // Fixed import paths must precede student IDs. Lock only these session workflows.
+    Route::get('/students/import', [StudentImportController::class, 'index'])->block(120, 10)->name('students.import');
+    Route::get('/students/import/template', [StudentImportController::class, 'template'])->name('students.import.template');
+    Route::post('/students/import/preview', [StudentImportController::class, 'preview'])->block(120, 10)->name('students.import.preview');
+    Route::post('/students/import/confirm', [StudentImportController::class, 'confirm'])->block(120, 10)->name('students.import.confirm');
+    Route::get('/students/import/result', [StudentImportController::class, 'result'])->block(120, 10)->name('students.import.result');
+    Route::get('/students/import/credentials', [StudentImportController::class, 'credentials'])->block(120, 10)->name('students.import.credentials');
+    Route::get('/students/import/errors', [StudentImportController::class, 'errors'])->block(120, 10)->name('students.import.errors');
+    Route::post('/students/import/finish', [StudentImportController::class, 'finish'])->block(120, 10)->name('students.import.finish');
+
     Route::get('/students/{id}',     [StudentController::class, 'show'])->name('students.show');
     Route::get('/students/{id}/edit',[StudentController::class, 'edit'])->name('students.edit');
     Route::put('/students/{id}',     [StudentController::class, 'update'])->name('students.update');
@@ -117,3 +128,4 @@ Route::get('/game/start/{activityId}', [GameController::class, 'start'])->name('
 Route::get('/game/battle/{sessionId}', [GameController::class, 'battle'])->name('game.battle');
 Route::post('/game/battle/{sessionId}/round', [GameController::class, 'submitRound'])->name('game.submitRound');
 });
+

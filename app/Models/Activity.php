@@ -11,6 +11,15 @@ class Activity extends Model
         'allow_reattempt', 'adaptive_difficulty', 'battle_mode'
     ];
 
+    public function readAloudDurationSeconds(): ?int
+    {
+        $minutes = filter_var($this->duration_minutes, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => intdiv(PHP_INT_MAX, 60000)],
+        ]);
+
+        return $minutes === false ? null : $minutes * 60;
+    }
+
     public function teacher() {
         return $this->belongsTo(Teacher::class);
     }

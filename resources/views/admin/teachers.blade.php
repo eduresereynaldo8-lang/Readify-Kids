@@ -140,11 +140,7 @@
                         <form method="POST"
                               action="{{ route('admin.teachers.toggle', $t->id) }}">
                             @csrf
-                            <button type="submit"
-                                    class="btn btn-sm {{ $t->user->email_verified_at ? 'btn-outline-warning' : 'btn-outline-success' }}"
-                                    title="{{ $t->user->email_verified_at ? 'Deactivate' : 'Activate' }}">
-                                <i class="ti ti-{{ $t->user->email_verified_at ? 'ban' : 'check' }}"></i>
-                            </button>
+                            
                         </form>
                         <form method="POST"
                               action="{{ route('admin.teachers.delete', $t->id) }}"

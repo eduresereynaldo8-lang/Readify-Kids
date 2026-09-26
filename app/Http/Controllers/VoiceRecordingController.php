@@ -7,6 +7,9 @@ use App\Models\VoiceRecording;
 use App\Models\Activity;
 use App\Helpers\LogActivity;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Storage;
 
 class VoiceRecordingController extends Controller
@@ -19,6 +22,7 @@ class VoiceRecordingController extends Controller
         $activities = Activity::where('is_published', true)
             ->where('teacher_id', $student->teacher_id)
             ->where('activity_type', 'Read Aloud')
+            ->where('battle_mode', false)
             ->where('level', '<=', $student->current_level)
             ->with([
                 'results' => fn ($q) => $q->where('student_id', $student->id)
@@ -39,6 +43,8 @@ class VoiceRecordingController extends Controller
         $activity = Activity::where('is_published', true)
             ->where('teacher_id', $student->teacher_id)
             ->where('activity_type', 'Read Aloud')
+            ->where('battle_mode', false)
+            ->where('level', '<=', $student->current_level)
             ->with(['readingMaterial', 'wordBank'])
             ->findOrFail($id);
 
@@ -50,10 +56,12 @@ class VoiceRecordingController extends Controller
             ->get();
 
         $attemptNumber = $recordings->count() + 1;
+        $durationSeconds = $activity->readAloudDurationSeconds();
+        $canRecord = $durationSeconds !== null && ($activity->allow_reattempt || $recordings->isEmpty());
 
         return view(
             'student.readaloud.show',
-            compact('activity', 'recordings', 'attemptNumber')
+            compact('activity', 'recordings', 'attemptNumber', 'durationSeconds', 'canRecord')
         );
     }
 
@@ -64,6 +72,8 @@ class VoiceRecordingController extends Controller
         $activity = Activity::where('teacher_id', $student->teacher_id)
             ->where('is_published', true)
             ->where('activity_type', 'Read Aloud')
+            ->where('battle_mode', false)
+            ->where('level', '<=', $student->current_level)
             ->findOrFail($id);
 
         $file = $request->file('recording');
@@ -81,35 +91,65 @@ class VoiceRecordingController extends Controller
         }
 
         $request->validate([
-            'recording' => 'required|file|mimes:mp3,wav,ogg,webm,weba,mp4,m4a|max:20480',
+            'recording' => 'required|file|mimes:mp3,wav,ogg,webm,weba,mp4,m4a|min:1|max:20480',
+            'recording_token' => 'nullable|uuid',
         ]);
 
-        $attemptNumber = VoiceRecording::where('student_id', $student->id)
-            ->where('activity_id', $activity->id)
-            ->count() + 1;
+        // Reuse a token for retries of this same audio. Its path is also the durable
+        // duplicate check, so a lost HTTP response does not create a second attempt.
+        $token = strtolower($request->input('recording_token') ?: (string) Str::uuid());
+        $directory = 'recordings/'.$student->id.'/'.$activity->id;
+        $filename = $token.'.'.$file->extension();
+        $recordingPath = $directory.'/'.$filename;
 
-        $path = null;
         try {
-            $path = $file->store('recordings', 'public');
-            if (!$path) {
-                throw new \RuntimeException('Public disk did not store the recording.');
-            }
-
-            $recording = VoiceRecording::create([
-                'student_id'     => $student->id,
-                'activity_id'    => $activity->id,
-                'recording_path' => $path,
-                'attempt_number' => $attemptNumber,
-                'status'         => 'pending',
-            ]);
-        } catch (\Throwable $error) {
-            if ($path) {
-                try {
-                    Storage::disk('public')->delete($path);
-                } catch (\Throwable $cleanupError) {
-                    report($cleanupError);
+            [$recording, $replayed] = DB::transaction(function () use ($student, $activity, $file, $directory, $filename, $recordingPath) {
+                // Serialize attempts across tabs before checking the reattempt rule.
+                $student->newQuery()->whereKey($student->id)->lockForUpdate()->firstOrFail();
+                $recordings = VoiceRecording::where('student_id', $student->id)
+                    ->where('activity_id', $activity->id);
+                if ($existing = (clone $recordings)->where('recording_path', $recordingPath)->first()) {
+                    return [$existing, true];
                 }
-            }
+                if ($activity->readAloudDurationSeconds() === null) {
+                    throw ValidationException::withMessages([
+                        'recording' => 'This activity does not have a valid reading duration. Please contact your teacher.',
+                    ]);
+                }
+                if (!$activity->allow_reattempt && (clone $recordings)->exists()) {
+                    abort(409, 'You have already submitted this activity. Another attempt is not allowed.');
+                }
+
+                $path = null;
+                try {
+                    $path = $file->storeAs($directory, $filename, 'public');
+                    if (!$path) {
+                        throw new \RuntimeException('Public disk did not store the recording.');
+                    }
+                    $recording = VoiceRecording::create([
+                        'student_id' => $student->id,
+                        'activity_id' => $activity->id,
+                        'recording_path' => $path,
+                        'attempt_number' => ((int) (clone $recordings)->max('attempt_number')) + 1,
+                        'status' => 'pending',
+                    ]);
+
+                    return [$recording, false];
+                } catch (\Throwable $error) {
+                    // Clean up while the student lock is still held.
+                    if ($path) {
+                        try {
+                            Storage::disk('public')->delete($path);
+                        } catch (\Throwable $cleanupError) {
+                            report($cleanupError);
+                        }
+                    }
+                    throw $error;
+                }
+            });
+        } catch (ValidationException | \Symfony\Component\HttpKernel\Exception\HttpException $error) {
+            throw $error;
+        } catch (\Throwable $error) {
             Log::error('Read aloud upload could not be saved', [
                 'student_id' => $student->id,
                 'activity_id' => $activity->id,
@@ -121,18 +161,21 @@ class VoiceRecordingController extends Controller
             return back()->withErrors(['recording' => 'Your recording could not be saved. Please try again.']);
         }
 
-        // A badge/log failure must not turn a saved submission into a failed upload.
-        try {
-            \App\Services\BadgeService::checkAndAward($student);
-        } catch (\Throwable $error) {
-            report($error);
-        }
-        try {
-            LogActivity::log('SUBMIT_RECORDING', 'Read Aloud',
-                'Submitted Read Aloud recording for activity: ' . $activity->activity_name
-                . ' (ID ' . $activity->id . ') - Attempt ' . $attemptNumber);
-        } catch (\Throwable $error) {
-            report($error);
+        if (!$replayed) {
+            // A badge/log failure must not turn a saved submission into a failed upload.
+            try {
+                \App\Services\BadgeService::checkAndAward($student);
+            } catch (\Throwable $error) {
+                report($error);
+            }
+            try {
+                LogActivity::log('SUBMIT_RECORDING', 'Read Aloud',
+                    'Submitted Read Aloud recording for activity: ' . $activity->activity_name
+                    . ' (ID ' . $activity->id . ') - Attempt ' . $recording->attempt_number);
+            } catch (\Throwable $error) {
+                report($error);
+            }
+
         }
 
         $message = 'Recording submitted! Your teacher will listen and give you feedback soon. 🎉';
@@ -141,9 +184,10 @@ class VoiceRecordingController extends Controller
                 'status' => 'pending',
                 'recording_id' => $recording->id,
                 'message' => $message,
-            ], 201);
+            ], $replayed ? 200 : 201);
         }
 
         return redirect()->route('student.readaloud.show', $id)->with('success', $message);
     }
 }
+

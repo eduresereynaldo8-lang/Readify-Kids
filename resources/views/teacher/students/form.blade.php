@@ -38,11 +38,7 @@
         <div class="sm-input"><i class="ti ti-school" aria-hidden="true"></i><select id="section" name="section" class="form-select @error('section') is-invalid @enderror" required @error('section') aria-invalid="true" aria-describedby="section-error" @enderror><option value="">Select section</option>@foreach($sections as $section)<option value="{{ $section }}" @selected(old('section', $student->section ?? '') === $section)>{{ $section }}</option>@endforeach</select></div>
         @error('section')<small class="sm-error" id="section-error">{{ $message }}</small>@enderror
     </div>
-    <div class="sm-field">
-        <label for="current_level">{{ $editing ? 'Current Level' : 'Starting Level' }} <span aria-hidden="true">*</span></label>
-        <div class="sm-input"><i class="ti ti-chart-bar" aria-hidden="true"></i><select id="current_level" name="current_level" class="form-select @error('current_level') is-invalid @enderror" required @error('current_level') aria-invalid="true" aria-describedby="current_level-error" @enderror><option value="">Select {{ $editing ? 'current' : 'starting' }} level</option>@foreach($levels as $level)<option value="{{ $level }}" @selected((string) old('current_level', $student->current_level ?? '') === (string) $level)>Level {{ $level }}</option>@endforeach</select></div>
-        @error('current_level')<small class="sm-error" id="current_level-error">{{ $message }}</small>@enderror
-    </div>
+    
     <div class="sm-field sm-full">
         <label for="username">Username @unless($editing)<span aria-hidden="true">*</span>@endunless</label>
         <div class="sm-input {{ $editing ? 'sm-readonly' : '' }}"><i class="ti ti-at" aria-hidden="true"></i><input type="text" id="username" @unless($editing) name="username" @endunless class="form-control @error('username') is-invalid @enderror" value="{{ $editing ? $student->user?->username : old('username') }}" placeholder="Enter username" maxlength="100" autocomplete="off" @if($editing) readonly @else required @endif @error('username') aria-invalid="true" aria-describedby="username-error" @enderror></div>

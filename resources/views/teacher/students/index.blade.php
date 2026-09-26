@@ -83,9 +83,12 @@
                 <option value="no_data">No Data</option>
             </select>
         </div>
-        <div class="d-flex gap-2 align-items-center">
+        <div class="d-flex gap-2 align-items-center flex-wrap">
             <a href="{{ route('teacher.students.create') }}" class="btn btn-sm btn-primary">
                 <i class="ti ti-plus"></i> Add Student
+            </a>
+            <a href="{{ route('teacher.students.import') }}" class="btn btn-sm btn-outline-primary">
+                <i class="ti ti-file-upload" aria-hidden="true"></i> Import Students
             </a>
             <div class="dropdown">
                 <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button"
@@ -366,3 +369,4 @@ window.addEventListener('pageshow', filterTable);
 filterTable();
 </script>
 @endpush
+
