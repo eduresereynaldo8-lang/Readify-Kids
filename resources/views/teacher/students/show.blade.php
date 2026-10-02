@@ -7,9 +7,7 @@
 
 {{-- Profile header --}}
 <div class="dash-card mb-3 d-flex align-items-center gap-3">
-    <div style="width:52px;height:52px;border-radius:50%;background:#DBEAFE;color:#1E40AF;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0;">
-        {{ strtoupper(substr($student->firstname,0,1).substr($student->lastname,0,1)) }}
-    </div>
+    <x-student-avatar :student="$student" :size="64" />
     <div class="flex-grow-1">
         <div class="fw-bold" style="font-size:16px;">{{ $student->firstname }} {{ $student->lastname }}</div>
         <div class="text-muted small d-flex gap-3 mt-1">

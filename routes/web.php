@@ -11,6 +11,9 @@ use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminProfileController;
+use App\Http\Controllers\TeacherProfileController;
+use App\Http\Controllers\StudentProfileController;
 
 // ── Public routes (no login needed) ──────────────────────────
 Route::get('/',        [AuthController::class, 'showLogin'])->middleware('guest')->name('login');
@@ -24,6 +27,10 @@ Route::post('/register', [AuthController::class, 'registerTeacher'])->middleware
 
 // ── Admin routes ─────────────────────────────────────────────
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/profile', [AdminProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [AdminProfileController::class, 'password'])->middleware('throttle:6,1')->name('profile.password');
+
     Route::get('/dashboard',             [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/teachers',              [AdminController::class, 'teachers'])->name('teachers');
     Route::get('/students',              [AdminController::class, 'students'])->name('students');
@@ -36,6 +43,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/reports',     [AdminController::class, 'reports'])->name('reports');
     Route::get('/teachers/create',  [AdminController::class, 'createTeacher'])->name('teachers.create');
     Route::post('/teachers/create', [AdminController::class, 'storeTeacher'])->name('teachers.store');
+    Route::get('/teachers/{teacher}', [AdminController::class, 'showTeacher'])->name('teachers.show');
     Route::get('/logs', [AdminController::class, 'logs'])->name('logs');
     Route::get('/teachers/{id}/edit',   [AdminController::class, 'editTeacher'])->name('teachers.edit');
 Route::put('/teachers/{id}',        [AdminController::class, 'updateTeacher'])->name('teachers.update');
@@ -44,6 +52,10 @@ Route::get('/students/{id}',        [AdminController::class, 'viewStudent'])->na
 
 // ── Teacher routes (must be logged in as teacher) ─────────────
 Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')->group(function () {
+    Route::get('/profile', [TeacherProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile', [TeacherProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [TeacherProfileController::class, 'password'])->middleware('throttle:6,1')->name('profile.password');
+
 
     Route::get('/dashboard', [DashboardController::class, 'teacherDashboard'])->name('dashboard');
 
@@ -105,6 +117,11 @@ Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')
 
 // ── Student routes (must be logged in as student) ─────────────
 Route::middleware(['auth', 'role:student'])->prefix('student')->name('student.')->group(function () {
+    Route::get('/profile', [StudentProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile/password', [StudentProfileController::class, 'password'])->middleware('throttle:6,1')->name('profile.password');
+    Route::post('/profile/photo', [StudentProfileController::class, 'photo'])->name('profile.photo');
+    Route::delete('/profile/photo', [StudentProfileController::class, 'destroyPhoto'])->name('profile.photo.destroy');
+
 
     Route::get('/dashboard',    [DashboardController::class, 'studentDashboard'])->name('dashboard');
 

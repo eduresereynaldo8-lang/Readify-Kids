@@ -72,6 +72,8 @@
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
     <link href="{{ asset('css/readify-dashboard.css') }}" rel="stylesheet">
     <link href="{{ asset('css/readify-pages.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/profile.css') }}" rel="stylesheet">
+    <script src="{{ asset('js/profile.js') }}" defer></script>
     @stack('styles')
     <script src="{{ asset('js/readify-dashboard.js') }}" defer></script>
 </head>
@@ -87,7 +89,7 @@
     </div>
     @if($role !== 'student')<span class="rk-role">{{ strtoupper($role) }}</span>@endif
     <div class="rk-sidebar-profile">
-        <span class="rk-avatar rk-avatar-lg">{{ $initials }}</span>
+        @if($role === 'student')<x-student-avatar :student="$profile" :size="48" />@else<span class="rk-avatar rk-avatar-lg">{{ $initials }}</span>@endif
         <div><strong>{{ $role === 'admin' ? 'Administrator' : $profile->firstname . ' ' . $profile->lastname }}</strong>
             <small>{{ $role === 'student' ? 'Level ' . $student->current_level . ' · ' . $student->section : ($role === 'teacher' ? ($teacher->school_name ?: 'Your classroom') : 'System overview') }}</small>
             @if($role === 'student')<span class="rk-sidebar-points">★ {{ number_format($student->total_points) }} pts</span>@endif
@@ -115,9 +117,9 @@
         <div class="rk-topbar-actions">
             <time datetime="{{ now()->toDateString() }}"><i class="ti ti-calendar-event" aria-hidden="true"></i>{{ now()->format('M j, Y') }}</time>
             <details class="rk-profile-menu">
-                <summary><span class="rk-avatar">{{ $initials }}</span><span>{{ $displayName }}</span><i class="ti ti-chevron-down" aria-hidden="true"></i></summary>
+                <summary>@if($role === 'student')<x-student-avatar :student="$profile" :size="36" />@else<span class="rk-avatar">{{ $initials }}</span>@endif<span>{{ $displayName }}</span><i class="ti ti-chevron-down" aria-hidden="true"></i></summary>
                 <div class="rk-profile-panel"><strong>{{ ucfirst($role) }} account</strong>
-                    @if($role === 'student')<a href="{{ route('student.progress') }}">My progress</a>@elseif($role === 'teacher')<a href="{{ route('teacher.students.index') }}">My classroom</a>@else<a href="{{ route('admin.reports') }}">System reports</a>@endif
+                    <a href="{{ route($role . '.profile.show') }}">My Profile</a>
                     <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit">Log out</button></form>
                 </div>
             </details>

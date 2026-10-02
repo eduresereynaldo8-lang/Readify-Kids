@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class Student extends Model
 {
@@ -11,7 +12,7 @@ class Student extends Model
         'user_id', 'teacher_id', 'student_number',
         'firstname', 'lastname', 'section',
         'lrn_no', 'birthday', 'age', 'gender',
-        'current_level', 'total_points',
+        'current_level', 'total_points', 'profile_picture',
     ];
 
     protected $casts = [
@@ -27,6 +28,26 @@ class Student extends Model
         }
 
         return $value === null ? null : (int) $value;
+    }
+
+    public function ownsProfilePicture(?string $path): bool
+    {
+        // Only generated filenames within this student's own directory are managed.
+        return $path !== null && preg_match(
+            '~\Aprofile_pictures/students/'.preg_quote((string) $this->id, '~').'/[A-Za-z0-9]{40}\.(?:jpg|jpeg|png|webp)\z~',
+            $path
+        ) === 1;
+    }
+
+    public function getProfilePictureUrlAttribute(): ?string
+    {
+        $path = $this->profile_picture;
+        if (! $this->ownsProfilePicture($path) || ! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        // The public disk is served by public/storage; use the current request host.
+        return asset('storage/'.$path);
     }
 
     public function user()

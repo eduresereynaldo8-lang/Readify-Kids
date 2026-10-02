@@ -8,6 +8,7 @@ use App\Models\Student;
 use App\Models\Activity;
 use App\Models\VoiceRecording;
 use App\Models\GameSession;
+use App\Helpers\LogActivity;
 
 class AdminController extends Controller
 {
@@ -306,6 +307,18 @@ public function logs(Request $request)
                ->distinct()->pluck('action');
 
     return view('admin.logs', compact('logs', 'search', 'role', 'action', 'date', 'actions'));
+}
+
+public function showTeacher(Teacher $teacher)
+{
+    $teacher->load('user')->loadCount([
+        'students', 'activities', 'evaluations',
+        'activities as published_activities_count' => fn ($query) => $query->where('is_published', true),
+    ]);
+    $assignedStudents = \App\Services\StudentProgress::withActivityProgress($teacher->students()->getQuery())
+        ->orderBy('lastname')->orderBy('firstname')->orderBy('id')->paginate(10);
+
+    return view('admin.teachers.show', compact('teacher', 'assignedStudents'));
 }
 
 public function editTeacher($id)

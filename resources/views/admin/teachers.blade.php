@@ -147,14 +147,15 @@
                               onsubmit="return confirm('Delete {{ $t->firstname }} {{ $t->lastname }} and all their data?')">
                             @csrf @method('DELETE')
                             <div class="d-flex gap-1">
+    <a href="{{ route('admin.teachers.show', $t->id) }}" class="btn btn-sm btn-outline-info" title="View Teacher" aria-label="View Teacher"><i class="ti ti-eye" aria-hidden="true"></i></a>
     {{-- Edit --}}
     <a href="{{ route('admin.teachers.edit', $t->id) }}"
-       class="btn btn-sm btn-outline-primary" title="Edit">
+       class="btn btn-sm btn-outline-primary" title="Edit Teacher" aria-label="Edit Teacher">
         <i class="ti ti-edit"></i>
     </a>
                             <button type="submit"
                                     class="btn btn-sm btn-outline-danger"
-                                    title="Delete">
+                                    title="Delete Teacher" aria-label="Delete Teacher">
                                 <i class="ti ti-trash"></i>
                         
                             </button>
