@@ -236,7 +236,7 @@
 
     @php
 
-        $enemy = $enemies->get($activity->level);
+        $enemy = $enemies->firstWhere('level', $activity->level);
 
         $levelColors = [
             1 => '#22C55E',

@@ -152,8 +152,14 @@ class GameController extends Controller
   public function start($activityId)
 {
     $student  = auth()->user()->student;
-    $activity = Activity::findOrFail($activityId);
-    $enemy    = Enemy::where('level', $activity->level)->first();
+    $activity = Activity::withCount('wordBank')->findOrFail($activityId);
+
+    if ($activity->word_bank_count < 1) {
+        return redirect()->route('student.game.index')
+               ->with('error', 'This battle has no reading items. Ask your teacher to add at least one.');
+    }
+
+    $enemy = Enemy::where('level', $activity->level)->first();
 
     if (!$enemy) {
         return redirect()->route('student.game.index')
@@ -221,7 +227,12 @@ class GameController extends Controller
                ->with('error', 'No battle words set up yet!');
     }
 
-    $roundIndex  = $session->rounds_played % $totalWords;
+    if ($session->rounds_played >= $totalWords) {
+        return redirect()->route('student.game.index')
+               ->with('error', 'This battle has no reading items remaining.');
+    }
+
+    $roundIndex  = $session->rounds_played;
     $currentWord = $allWords[$roundIndex];
     $roundsLeft  = $totalWords - $session->rounds_played;
     $hpPercent   = max(0, round(($session->enemy_current_hp / $session->enemy_max_hp) * 100));
@@ -258,6 +269,18 @@ class GameController extends Controller
     $totalWords   = $session->activity->wordBank->count();
     $roundsPlayed = $session->rounds_played;
 
+    if ($totalWords < 1) {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'battle' => 'This battle has no reading items. Ask your teacher to add at least one.',
+        ]);
+    }
+
+    if ($roundsPlayed >= $totalWords) {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'battle' => 'This battle has no reading items remaining.',
+        ]);
+    }
+
     // Store recording
     $path = $request->file('recording')->store('game_recordings', 'public');
 
@@ -282,9 +305,12 @@ class GameController extends Controller
         'insertions' => $insertions,
     ];
 
-    // Calculate damage to enemy
+    // Each teacher-created reading item receives a share of the enemy's HP.
+    $roundMaxDamage = $this->calculateRoundMaxDamage(
+        $session->enemy_max_hp, $totalWords, $roundsPlayed + 1
+    );
     $damage = $mlScore !== null
-        ? $this->calculateDamage($mlScore, $session->enemy_max_hp)
+        ? $this->calculateDamage($mlScore, $roundMaxDamage)
         : 0;
 
     // Calculate enemy damage to student (8–15% of student max HP)
@@ -442,13 +468,22 @@ class GameController extends Controller
         return round((float) ($average ?? 0), 2);
     }
 
-    // Calculate damage from the oral reading score
-    private function calculateDamage(float $score, int $maxHp): int
+    private function calculateRoundMaxDamage(int $enemyMaxHp, int $totalRounds, int $roundNumber): int
     {
-        $baseDamage = $maxHp * 0.05;
-        $bonusDamage = ($score / 100) * ($maxHp * 0.15);
+        if ($enemyMaxHp < 0 || $totalRounds < 1 || $roundNumber < 1 || $roundNumber > $totalRounds) {
+            throw new \InvalidArgumentException('A damage allocation requires a valid battle round.');
+        }
 
-        return (int) round($baseDamage + $bonusDamage);
+        // Give the first remainder rounds one extra HP so allocations sum exactly to max HP.
+        return intdiv($enemyMaxHp, $totalRounds)
+            + ($roundNumber <= $enemyMaxHp % $totalRounds ? 1 : 0);
+    }
+
+    private function calculateDamage(float $score, int $roundMaxDamage): int
+    {
+        $score = max(0, min(100, $score));
+
+        return min($roundMaxDamage, (int) round($roundMaxDamage * ($score / 100)));
     }
 
     // Call Python ML API

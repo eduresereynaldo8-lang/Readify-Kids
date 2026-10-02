@@ -67,6 +67,9 @@
             <p class="small text-muted mb-2">
                 Add the words, phrases, or paragraphs students will read aloud during the battle.
                 Each item appears one-by-one as students progress through the rounds.
+                Each reading item shares the enemy's total HP. More reading items create more rounds,
+                while fewer items create stronger individual attacks.
+                A 100% reading score deals the full damage allocated to that round.
             </p>
 
             <div id="battle-words-list">
@@ -91,7 +94,7 @@
                 💡 <strong>Tips:</strong>
                 Level 1 → Single words (e.g. "cat") |
                 Level 2 → Short phrases (e.g. "big red dog") |
-                Level 3 → Paragraphs. Add at least 5 items so the battle lasts long enough!
+                Level 3 → Paragraphs. Add at least 1 reading item.
             </div>
         </div>
     </div>

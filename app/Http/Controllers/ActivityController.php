@@ -184,8 +184,12 @@ class ActivityController extends Controller
             'difficulty_level' => 'required|string',
             'duration_minutes' => 'required|integer|min:1',
             'points_reward'    => 'required|integer|min:1',
-            'battle_words'     => 'nullable|array',
-            'battle_words.*'   => 'nullable|string|max:1000',
+            'battle_words'     => 'required|array|min:1',
+            'battle_words.*'   => 'required|string|max:1000',
+        ], [
+            'battle_words.required' => 'Add at least one reading item for this battle.',
+            'battle_words.min' => 'Add at least one reading item for this battle.',
+            'battle_words.*.required' => 'Each reading item must contain text.',
         ]);
 
         // Determine published status:
@@ -212,7 +216,7 @@ class ActivityController extends Controller
 
         // Save battle words/paragraphs
         if ($request->filled('battle_words')) {
-            foreach (array_filter($request->battle_words) as $index => $word) {
+            foreach ($request->battle_words as $index => $word) {
                 $type = strlen($word) <= 20
                     ? 'word'
                     : (str_word_count($word) <= 4 ? 'phrase' : 'paragraph');
@@ -261,8 +265,12 @@ LogActivity::log('CREATE_ACTIVITY', 'Activities',
             'difficulty_level' => 'required|string',
             'duration_minutes' => 'required|integer|min:1',
             'points_reward'    => 'required|integer|min:1',
-            'battle_words'     => 'nullable|array',
-            'battle_words.*'   => 'nullable|string|max:1000',
+            'battle_words'     => 'required|array|min:1',
+            'battle_words.*'   => 'required|string|max:1000',
+        ], [
+            'battle_words.required' => 'Add at least one reading item for this battle.',
+            'battle_words.min' => 'Add at least one reading item for this battle.',
+            'battle_words.*.required' => 'Each reading item must contain text.',
         ]);
 
         $activity->update([
@@ -279,7 +287,7 @@ LogActivity::log('CREATE_ACTIVITY', 'Activities',
         // Update word bank
         if ($request->filled('battle_words')) {
             $activity->wordBank()->delete();
-            foreach (array_filter($request->battle_words) as $index => $word) {
+            foreach ($request->battle_words as $index => $word) {
                 $type = strlen($word) <= 20
                     ? 'word'
                     : (str_word_count($word) <= 4 ? 'phrase' : 'paragraph');

@@ -53,6 +53,11 @@
 
         <div class="dash-card">
             <h6 class="fw-semibold mb-3"><i class="ti ti-sword text-primary"></i> ⚔️ Battle Words / Paragraphs</h6>
+            <p class="small text-muted mb-2">
+                Add at least 1 reading item. Each reading item shares the enemy's total HP.
+                More reading items create more rounds, while fewer items create stronger individual attacks.
+                A 100% reading score deals the full damage allocated to that round.
+            </p>
             <div id="battle-words-list">
                 @forelse($activity->wordBank->sortBy('order') as $wb)
                 <div class="battle-word-item d-flex gap-2 mb-2 align-items-start">
