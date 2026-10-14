@@ -38,25 +38,7 @@
 </div>
 
 {{-- Level progress --}}
-<div class="dash-card mb-4">
-    <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:12px;">
-        🎯 Level Progress
-    </div>
-    <div class="d-flex align-items-center gap-3">
-        <span style="background:#185FA5;color:#fff;font-size:11px;font-weight:700;
-                     padding:4px 12px;border-radius:20px;">Level {{ $student->current_level }}</span>
-        <div style="flex:1;background:#E5E7EB;border-radius:6px;height:12px;">
-            <div style="height:12px;border-radius:6px;width:{{ $xpPercent }}%;
-                        background:linear-gradient(90deg,#185FA5,#60A5FA);"></div>
-        </div>
-        <span style="background:#E5E7EB;color:#9CA3AF;font-size:11px;font-weight:700;
-                     padding:4px 12px;border-radius:20px;">Level {{ $student->current_level + 1 }}</span>
-    </div>
-    <div style="font-size:11px;color:#9CA3AF;margin-top:6px;text-align:center;">
-        {{ number_format($totalPoints) }} / {{ number_format($nextLevelPoints) }} pts
-        ({{ $xpPercent }}%) — {{ number_format($nextLevelPoints - $totalPoints) }} pts to next level
-    </div>
-</div>
+@include('student.partials.level-progress')
 
 <div class="row g-3 mb-4">
 

@@ -33,7 +33,13 @@
                     <td>{{ $evaluation->oral_reading_score === null ? '—' : $evaluation->oral_reading_score.'%' }}</td>
                     <td>{{ $evaluation->comprehension_percentage === null ? '—' : $evaluation->comprehension_percentage.'%' }}</td>
                     <td>{{ $evaluation->observation_level === null ? '—' : 'Level '.$evaluation->observation_level }}</td>
-                    <td>{{ $evaluation->miscues ?? '—' }}</td><td>{{ $evaluation->reading_time_label }}</td>
+                    <td>
+                        {{ $evaluation->miscues ?? '—' }}
+                        <details class="ra-breakdown-details">
+                            <summary>Miscue Breakdown</summary>
+                            @include('teacher.evaluations.miscue-breakdown', ['evaluation' => $evaluation])
+                        </details>
+                    </td><td>{{ $evaluation->reading_time_label }}</td>
                     <td>{{ $evaluation->learner_experience === null ? '—' : $evaluation->learner_experience.' / 5' }}</td>
                     <td>{{ $evaluation->final_score === null ? '—' : number_format($evaluation->final_score, 2).'%' }}</td>
                 </tr>

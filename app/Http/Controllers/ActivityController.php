@@ -330,6 +330,7 @@ LogActivity::log('CREATE_ACTIVITY', 'Activities',
 
         $activity = Activity::where('is_published', true)
                     ->where('teacher_id', $student->teacher_id)
+                    ->where('level', '<=', $student->current_level)
                     ->with('wordBank')
                     ->findOrFail($id);
         return view('student.activities.show', compact('activity'));
@@ -337,27 +338,45 @@ LogActivity::log('CREATE_ACTIVITY', 'Activities',
 
     public function submit(Request $request, $id)
     {
-        $student  = auth()->user()->student;
-        $activity = Activity::where('teacher_id', $student->teacher_id)->findOrFail($id);
-
-        \App\Models\ActivityResult::create([
-            'student_id'   => $student->id,
-            'activity_id'  => $activity->id,
-            'score'        => $request->score ?? 0,
-            'mistakes'     => $request->mistakes ?? 0,
-            'time_spent'   => $request->time_spent ?? 0,
-            'status'       => 'completed',
-            'completed_at' => now(),
+        $student = auth()->user()->student;
+        $activity = Activity::where('teacher_id', $student->teacher_id)
+            ->where('is_published', true)
+            ->where('level', '<=', $student->current_level)->findOrFail($id);
+        // Read Aloud and Battle have their own finalized-score and reward flows.
+        abort_if($activity->battle_mode || $activity->activity_type === 'Read Aloud', 403);
+        $data = $request->validate([
+            'score' => 'required|numeric|between:0,100',
+            'mistakes' => 'nullable|integer|min:0',
+            'time_spent' => 'nullable|integer|min:0',
         ]);
 
-        $student->increment('total_points', $activity->points_reward);
-        $student->checkAndUpdateLevel();
-        LogActivity::forStudent($student, 'COMPLETE_ACTIVITY', 'Activities',
-            'Completed activity: ' . $activity->activity_name . ' (ID ' . $activity->id . ')'
-            . ' - Score: ' . ($request->score ?? 0) . '% - Earned ' . $activity->points_reward . ' points.');
-        \App\Services\BadgeService::checkAndAward($student);
+        $message = \Illuminate\Support\Facades\DB::transaction(function () use ($student, $activity, $data) {
+            $student = $student->newQuery()->lockForUpdate()->findOrFail($student->id);
+            abort_if((int) $activity->level > (int) $student->current_level, 403);
+            $result = $student->activityResults()->where('activity_id', $activity->id)
+                ->lockForUpdate()->first();
+            if ($result?->status === 'completed') {
+                return 'You have already completed this activity!';
+            }
 
-        return redirect()->route('student.activities.index')
-               ->with('success', 'Activity submitted!');
+            \App\Models\ActivityResult::updateOrCreate([
+                'student_id' => $student->id, 'activity_id' => $activity->id,
+            ], [
+                'score' => $data['score'],
+                'mistakes' => $data['mistakes'] ?? 0,
+                'time_spent' => $data['time_spent'] ?? 0,
+                'status' => 'completed', 'completed_at' => now(),
+            ]);
+            $student->increment('total_points', $activity->points_reward);
+            $levels = $student->checkAndUpdateLevel();
+            LogActivity::forStudent($student, 'COMPLETE_ACTIVITY', 'Activities',
+                'Completed activity: ' . $activity->activity_name . ' (ID ' . $activity->id . ')'
+                . ' - Score: ' . $data['score'] . '% - Earned ' . $activity->points_reward . ' points.');
+            \App\Services\BadgeService::checkAndAward($student);
+
+            return $levels ? "Level Up! You reached Level {$student->current_level}!" : 'Activity submitted!';
+        }, 3);
+
+        return redirect()->route('student.activities.index')->with('success', $message);
     }
 }

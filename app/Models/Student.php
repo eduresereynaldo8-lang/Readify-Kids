@@ -3,11 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class Student extends Model
 {
+    // Activity validation and student placement both support Levels 1 through 5.
+    public const MAX_LEVEL = 5;
+    public const POINTS_PER_LEVEL = 500;
+    public const MIN_READING_SCORE = 100.0;
+
     protected $fillable = [
         'user_id', 'teacher_id', 'student_number',
         'firstname', 'lastname', 'section',
@@ -117,38 +123,75 @@ class Student extends Model
     }
 
     /**
-     * Automatically check and update the student's level based on total points.
-     * Level threshold = current_level * 500 points.
-     * This handles multiple level-ups at once.
-     *
-     * @return array|null Array of levels achieved, or null if no change
+     * Current-level reading performance and cumulative points share one rule for
+     * both progression and its display. A null average means no scored results.
      */
-    public function checkAndUpdateLevel()
+    public function levelProgress(): array
     {
-        $achieved = [];
-        $originalLevel = $this->current_level;
+        $level = (int) $this->current_level;
+        $atMaxLevel = $level >= self::MAX_LEVEL;
+        $requiredPoints = $atMaxLevel ? null : $level * self::POINTS_PER_LEVEL;
+        $average = $this->activityResults()
+            ->where('status', 'completed')
+            ->whereNotNull('score')
+            ->whereHas('activity', fn ($query) => $query->where('level', $level))
+            ->avg('score');
+        $average = $average === null ? null : (float) $average;
+        // Compare the unrounded average: 99.996% must not qualify as 100%.
+        $readingMet = $average !== null && $average >= self::MIN_READING_SCORE;
+        $pointsMet = !$atMaxLevel && $this->total_points >= $requiredPoints;
 
-        // Keep leveling up while points meet the threshold
-        while ($this->total_points >= $this->current_level * 500) {
-            $this->current_level++;
-            $achieved[] = $this->current_level;
-        }
+        return [
+            'current_level' => $level,
+            'max_level' => self::MAX_LEVEL,
+            'at_max_level' => $atMaxLevel,
+            'next_level' => $atMaxLevel ? null : $level + 1,
+            'total_points' => (int) $this->total_points,
+            'required_points' => $requiredPoints,
+            'points_remaining' => $atMaxLevel ? 0 : max(0, $requiredPoints - $this->total_points),
+            'points_percent' => $atMaxLevel ? 100 : min(100, round($this->total_points / max(1, $requiredPoints) * 100)),
+            'average_score' => $average,
+            'required_score' => self::MIN_READING_SCORE,
+            'points_met' => $pointsMet,
+            'reading_met' => $readingMet,
+            'eligible' => !$atMaxLevel && $level >= 1 && $pointsMet && $readingMet,
+        ];
+    }
 
-        if (! empty($achieved)) {
-            $this->save();
+    /**
+     * Advance using cumulative points AND completed reading scores at each level.
+     * Returns achieved levels, or null when no level changed.
+     */
+    public function checkAndUpdateLevel(): ?array
+    {
+        return DB::transaction(function () {
+            // Always use current persisted state, including across concurrent awards.
+            $student = $this->newQuery()->lockForUpdate()->findOrFail($this->id);
+            $achieved = [];
+            $originalLevel = (int) $student->current_level;
 
-            \App\Helpers\LogActivity::forStudent($this, 'LEVEL_UP', 'Progress',
-                "Advanced from level {$originalLevel} to level {$this->current_level} with {$this->total_points} points.");
+            while ($student->levelProgress()['eligible']) {
+                $student->current_level++;
+                $achieved[] = (int) $student->current_level;
+            }
 
-            // Log the level up event
-            Log::info("Student #{$this->id} ({$this->firstname} {$this->lastname}) leveled up!", [
-                'from_level' => $originalLevel,
-                'to_level' => $this->current_level,
-                'total_points' => $this->total_points,
-                'teacher_id' => $this->teacher_id,
-            ]);
-        }
+            if ($achieved !== []) {
+                $student->save();
+                \App\Helpers\LogActivity::forStudent($student, 'LEVEL_UP', 'Progress',
+                    "Advanced from level {$originalLevel} to level {$student->current_level} with {$student->total_points} points.");
 
-        return ! empty($achieved) ? $achieved : null;
+                Log::info("Student #{$student->id} leveled up!", [
+                    'from_level' => $originalLevel,
+                    'to_level' => $student->current_level,
+                    'total_points' => $student->total_points,
+                    'teacher_id' => $student->teacher_id,
+                ]);
+            }
+
+            $this->setRawAttributes($student->getAttributes(), true);
+            $this->unsetRelation('activityResults');
+
+            return $achieved === [] ? null : $achieved;
+        }, 3);
     }
 }

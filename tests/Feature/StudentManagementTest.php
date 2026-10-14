@@ -54,6 +54,7 @@ class StudentManagementTest extends TestCase
         $this->assertSame('Female', $student->gender);
         $this->assertSame($this->teacher->id, $student->teacher_id);
         $this->assertSame(0, $student->total_points);
+        $this->assertSame(1, $student->current_level);
         $this->assertNull($student->student_number);
         $this->assertTrue(Hash::check('secret123', $student->user->password));
         $this->assertSame('student', $student->user->role);
@@ -123,9 +124,9 @@ class StudentManagementTest extends TestCase
     {
         $student = $this->legacyStudent();
         $password = $student->user->password;
-        $this->get(route('teacher.students.edit', $student->id))->assertOk()->assertSee('value="7"', false);
+        $this->get(route('teacher.students.edit', $student->id))->assertOk()->assertDontSee('name="current_level"', false);
         $this->put(route('teacher.students.update', $student->id), array_replace($this->input(), [
-            'birthday' => '2018-09-22', 'current_level' => 7,
+            'birthday' => '2018-09-22',
             'username' => 'do_not_change', 'password' => 'do_not_change',
             'teacher_id' => 999, 'total_points' => 999999, 'student_number' => 'do_not_change',
         ]))->assertRedirect();
@@ -206,7 +207,7 @@ class StudentManagementTest extends TestCase
         $this->assertNull($legacy->age);
         $this->get(route('teacher.students.index'))->assertOk()->assertSee('LRN No.')->assertSee('Gender');
         $this->get(route('teacher.students.edit', $legacy->id))->assertOk()
-            ->assertSee('name="current_level"', false)->assertSee('Existing Section');
+            ->assertDontSee('name="current_level"', false)->assertSee('Existing Section');
         $this->get(route('teacher.students.show', $legacy->id))->assertOk()->assertSee('Birthday');
         $this->post(route('teacher.students.store'), $this->input());
         $student = Student::latest('id')->firstOrFail();
@@ -220,7 +221,7 @@ class StudentManagementTest extends TestCase
     {
         return ['firstname' => 'New', 'lastname' => 'Learner', 'lrn_no' => '012345678901',
             'birthday' => '2018-09-23', 'age' => 99, 'gender' => 'Female', 'section' => 'Section A',
-            'current_level' => 2, 'username' => 'new_learner', 'password' => 'secret123',
+            'username' => 'new_learner', 'password' => 'secret123',
             'password_confirmation' => 'secret123'];
     }
 

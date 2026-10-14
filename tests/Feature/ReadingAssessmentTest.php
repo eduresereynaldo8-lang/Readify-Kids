@@ -23,7 +23,7 @@ class ReadingAssessmentTest extends TestCase
     public function test_authoritative_score_examples(int $words, int $miscues, int $correct, int $questions, float $oral, float $comprehension, float $final): void
     {
         $data = ReadingAssessment::calculate(array_replace($this->validInput(), [
-            'miscues' => $miscues, 'correct_answers' => $correct, 'total_questions' => $questions,
+            'mispronunciation' => $miscues, 'correct_answers' => $correct, 'total_questions' => $questions,
             'total_words' => 9999, 'oral_reading_score' => 999, 'comprehension_percentage' => 999,
         ]), str_repeat('word ', $words));
         $this->assertSame($words, $data['total_words']);
@@ -36,9 +36,9 @@ class ReadingAssessmentTest extends TestCase
     public static function invalidInputs(): array
     {
         return [
-            'too many miscues' => ['miscues', 66],
-            'negative miscues' => ['miscues', -1],
-            'fractional miscues' => ['miscues', 1.5],
+            'overflow miscues' => ['mispronunciation', 4294967296],
+            'negative miscues' => ['mispronunciation', -1],
+            'fractional miscues' => ['mispronunciation', 1.5],
             'too many answers' => ['correct_answers', 8],
             'negative answers' => ['correct_answers', -1],
             'zero questions' => ['total_questions', 0],
@@ -76,10 +76,13 @@ class ReadingAssessmentTest extends TestCase
         $this->assertSame(0, ReadingAssessment::wordCount(null));
     }
 
-    public function test_empty_passage_is_rejected(): void
+    public function test_zero_words_produces_no_oral_or_final_score(): void
     {
-        $this->expectException(ValidationException::class);
-        ReadingAssessment::calculate($this->validInput(), '<p> </p>');
+        $data = ReadingAssessment::calculate($this->validInput(), '<p> </p>');
+        $this->assertSame(0, $data['total_words']);
+        $this->assertSame(15, $data['miscues']);
+        $this->assertNull($data['oral_reading_score']);
+        $this->assertNull(ReadingAssessment::finalScore($data));
     }
 
     public function test_observation_and_experience_do_not_change_scores(): void
@@ -160,7 +163,7 @@ class ReadingAssessmentTest extends TestCase
         $this->assertSame(38.46, ReadingAssessment::finalScore($data));
         $this->assertSame(38.46, (new Evaluation($data))->final_score);
         $data = ReadingAssessment::calculate(array_replace($this->validInput(), [
-            'miscues' => 65, 'correct_answers' => null, 'total_questions' => null,
+            'mispronunciation' => 65, 'correct_answers' => null, 'total_questions' => null,
         ]), str_repeat('word ', 65));
         $this->assertSame(0.0, ReadingAssessment::finalScore($data));
         $this->assertSame(0.0, (new Evaluation($data))->final_score);
@@ -169,7 +172,7 @@ class ReadingAssessmentTest extends TestCase
     private function validInput(): array
     {
         return [
-            'reading_minutes' => 1, 'reading_seconds' => 41, 'miscues' => 15,
+            'reading_minutes' => 1, 'reading_seconds' => 41, 'mispronunciation' => 15,
             'correct_answers' => 4, 'total_questions' => 7,
             'observation_level' => 3, 'learner_experience' => 4, 'feedback' => 'Keep reading.',
         ];

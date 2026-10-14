@@ -70,9 +70,16 @@ class DashboardController extends Controller
         else break;
     }
 
-    // XP / level
-    $nextLevelPoints = $student->current_level * 500;
-    $xpPercent       = min(100, round(($student->total_points / max(1, $nextLevelPoints)) * 100));
+    $levelProgress = $student->levelProgress();
+    // Teacher-awarded levels are visible on the learner's next dashboard visit.
+    $lastLevelUp = \App\Models\ActivityLog::where('user_id', $student->user_id)
+        ->where('role', 'student')->where('action', 'LEVEL_UP')->max('id');
+    $noticeKey = 'last_level_notice.'.$student->id;
+    $levelUpMessage = $lastLevelUp && $lastLevelUp > (int) session($noticeKey, 0)
+        ? "Level Up! You reached Level {$student->current_level}!" : null;
+    if ($levelUpMessage) {
+        session()->put($noticeKey, $lastLevelUp);
+    }
 
     // ── Badges ────────────────────────────────────────────────
     $allBadges    = \App\Models\Badge::all();
@@ -122,7 +129,7 @@ class DashboardController extends Controller
     return view('student.dashboard', compact(
         'student', 'activities', 'results',
         'activitiesDone', 'badgesEarned', 'leaderboard',
-        'streak', 'nextLevelPoints', 'xpPercent',
+        'streak', 'levelProgress', 'levelUpMessage',
         'allBadges', 'earnedBadges', 'earnedIds',
         'myRank', 'trophy', 'skills', 'completedActivityIds'
     ));
@@ -177,14 +184,12 @@ public function leaderboard()
     // Activity type breakdown
     $byType = $results->groupBy('activity.activity_type')->map->count();
 
-    // Next level info
-    $nextLevelPoints = $student->current_level * 500;
-    $xpPercent       = min(100, round(($student->total_points / $nextLevelPoints) * 100));
+    $levelProgress = $student->levelProgress();
 
     return view('student.progress', compact(
         'student', 'results', 'totalDone', 'avgScore',
         'totalPoints', 'recordings', 'skills', 'byType',
-        'nextLevelPoints', 'xpPercent'
+        'levelProgress'
     ));
 }
 

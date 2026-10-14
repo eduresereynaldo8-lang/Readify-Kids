@@ -155,6 +155,12 @@ class TeacherActivityLogsTest extends TestCase
     public function test_level_change_is_logged_once_for_student(): void
     {
         $this->student->update(['total_points' => 1000]);
+        foreach ([1, 2] as $level) {
+            $activity = Activity::create(['teacher_id' => $this->teacher->id, 'level' => $level]);
+            $this->student->activityResults()->create([
+                'activity_id' => $activity->id, 'score' => 100, 'status' => 'completed',
+            ]);
+        }
         $this->student->checkAndUpdateLevel();
         $this->student->checkAndUpdateLevel();
         $log = ActivityLog::where('action', 'LEVEL_UP')->sole();
@@ -190,7 +196,8 @@ class TeacherActivityLogsTest extends TestCase
 
     public function test_activity_completion_records_activity_score_and_points(): void
     {
-        $activity = Activity::create(['teacher_id' => $this->teacher->id, 'activity_name' => 'Word practice', 'points_reward' => 25]);
+        $activity = Activity::create(['teacher_id' => $this->teacher->id, 'activity_name' => 'Word practice', 'points_reward' => 25,
+            'level' => 1, 'is_published' => true, 'battle_mode' => false]);
         $this->actingAs($this->student->user)->post(route('student.activities.submit', $activity->id), ['score' => 80])->assertRedirect();
         $log = ActivityLog::where('action', 'COMPLETE_ACTIVITY')->sole();
         $this->assertSame($this->student->user_id, $log->user_id);

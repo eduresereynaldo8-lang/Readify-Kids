@@ -76,3 +76,19 @@
 @media(max-width:700px){.ra-dashboard-grid{grid-template-columns:1fr}.ra-progress-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.ra-experience-report{grid-template-columns:minmax(110px,.8fr) minmax(0,1.4fr)}.ra-observation-options{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.ra-panel{padding:16px!important}.ra-panel-title{margin:-16px -16px 16px;padding:13px 16px;font-size:16px}.ra-student{flex-direction:column}.ra-student-avatar{width:52px;height:52px;font-size:19px}.ra-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ra-time-input{grid-column:span 2}.ra-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.ra-summary>div{border:0}.ra-computed h4{font-size:12px}.ra-computed strong{font-size:23px}.ra-experience-report{grid-template-columns:1fr}.ra-student-details{font-size:12px;gap:9px}.ra-face{font-size:28px}.ra-stat strong{font-size:22px}.ra-passage{padding:15px}}
 @media(prefers-reduced-motion:reduce){.ra-choice{transition:none}}
+
+/* Detailed manual miscues and saved assessment breakdowns. */
+.ra-miscue-section{border:1px solid #dceaff;border-radius:12px;background:#f8fbff;padding:15px;margin:16px 0;min-width:0}
+.ra-subsection-title{float:none;width:auto;margin:0 0 12px;padding:0 6px;color:#0754b5;font:800 14px 'Nunito',sans-serif}
+.ra-miscue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ra-legacy-note{font-size:12px;line-height:1.6;color:#526986}
+.ra-legacy-option{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5;margin-bottom:8px}
+.ra-legacy-option input{margin-top:3px;accent-color:#087afa;flex-shrink:0}
+.ra-breakdown-list{margin:0;font-size:12px}
+.ra-breakdown-list>div{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid #e3edfa}
+.ra-breakdown-list dt{font-weight:600;overflow-wrap:anywhere}.ra-breakdown-list dd{margin:0;font-weight:800}
+.ra-breakdown-list .ra-breakdown-total{color:#0754b5;font-weight:800}
+.ra-breakdown-details{min-width:180px;max-width:300px;margin-top:6px;white-space:normal}
+.ra-breakdown-details summary{cursor:pointer;font-size:11px;color:#0754b5}
+.ra-breakdown-details[open]{padding:10px;border-radius:10px;background:#f1f7ff}
+@media(max-width:380px){.ra-miscue-grid{grid-template-columns:1fr}}

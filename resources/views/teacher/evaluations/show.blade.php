@@ -7,6 +7,17 @@
 @endpush
 
 @section('content')
+@php
+    $evaluation = $recording->evaluation;
+    $miscueTypes = \App\Services\ReadingAssessment::MISCUE_TYPES;
+    $miscueValues = collect($miscueTypes)->map(function ($label, $field) use ($evaluation) {
+        $value = old($field, $evaluation?->{$field} ?? 0);
+        return is_scalar($value) || $value === null ? $value : '';
+    });
+    $enteredMiscues = $miscueValues->sum(fn ($value) => is_numeric($value) && $value >= 0 ? (int) $value : 0);
+    $usingLegacyTotal = $evaluation?->has_legacy_miscues && $enteredMiscues === 0 && ! old('replace_legacy_miscues', false);
+    $displayMiscues = $usingLegacyTotal ? $evaluation->miscues : $enteredMiscues;
+@endphp
 <div class="ra-page">
 @if($errors->any())
 <div class="alert alert-danger" role="alert"><strong>Please check your evaluation.</strong><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
@@ -48,11 +59,18 @@
                 <div class="ra-word-count">Total words: <strong>{{ $totalWords }}</strong></div>
             </div>
         </section>
+        @if($evaluation)
+        <section class="rk-card ra-panel">
+            <h2 class="ra-panel-title"><i class="ti ti-list-details" aria-hidden="true"></i> Miscue Breakdown</h2>
+            <p class="rk-footnote">Saved evaluation</p>
+            @include('teacher.evaluations.miscue-breakdown', ['evaluation' => $evaluation])
+        </section>
+        @endif
     </div>
 
     <section class="rk-card ra-panel">
         <h2 class="ra-panel-title"><i class="ti ti-file-description" aria-hidden="true"></i> Evaluation Form</h2>
-        <form method="POST" action="{{ route('teacher.evaluations.store') }}" id="reading-assessment-form">
+        <form method="POST" action="{{ route('teacher.evaluations.store') }}" id="reading-assessment-form" data-legacy-miscues="{{ $evaluation?->has_legacy_miscues ? $evaluation->miscues : 0 }}">
             @csrf
             <input type="hidden" name="recording_id" value="{{ $recording->id }}">
             <fieldset class="ra-fieldset">
@@ -66,11 +84,35 @@
                         </div>
                     </div>
                     <div><label for="total_words">Total words in passage</label><input class="form-control" type="number" id="total_words" value="{{ $totalWords }}" readonly aria-describedby="word-count-note"></div>
-                    <div><label for="miscues">Total miscues</label><input class="form-control" type="number" id="miscues" name="miscues" min="0" max="{{ $totalWords }}" step="1" required value="{{ old('miscues', $recording->evaluation?->miscues) }}"></div>
+                </div>
+                <p class="rk-footnote" id="word-count-note">Word count comes from the passage above.</p>
+                <fieldset class="ra-miscue-section">
+                    <legend class="ra-subsection-title">Types of Miscues</legend>
+                    @if($evaluation?->has_legacy_miscues)
+                    <p class="ra-legacy-note">Legacy total miscues: <strong>{{ $evaluation->miscues }}</strong>. No detailed breakdown was recorded.</p>
+                    <label class="ra-legacy-option"><input type="checkbox" id="replace_legacy_miscues" name="replace_legacy_miscues" value="1" @checked(old('replace_legacy_miscues', false))> Replace the legacy total with the breakdown below (including all zeros).</label>
+                    <p class="rk-footnote" id="legacy-miscue-status">The saved total is kept until you edit the breakdown or select this option.</p>
+                    @endif
+                    <div class="ra-detail-grid ra-miscue-grid">
+                        @foreach($miscueTypes as $field => $label)
+                        <div>
+                            <label for="{{ $field }}">{{ $label }}</label>
+                            <input class="form-control @error($field) is-invalid @enderror" type="number" id="{{ $field }}" name="{{ $field }}" data-miscue-type min="0" max="4294967295" step="1" inputmode="numeric" value="{{ $miscueValues[$field] }}" @error($field) aria-invalid="true" aria-describedby="{{ $field }}-error" @enderror>
+                            @error($field)<small class="invalid-feedback" id="{{ $field }}-error">{{ $message }}</small>@enderror
+                        </div>
+                        @endforeach
+                        <div>
+                            <label for="miscues">Total Miscues</label>
+                            <input class="form-control" type="number" id="miscues" name="miscues" readonly value="{{ $displayMiscues }}" aria-describedby="miscues-note">
+                        </div>
+                    </div>
+                    <p class="rk-footnote" id="miscues-note">Calculated from the seven types above. Blank fields count as 0.</p>
+                    @error('miscues')<p class="text-danger small" role="alert">{{ $message }}</p>@enderror
+                </fieldset>
+                <div class="ra-detail-grid">
                     <div><label for="correct_answers">Correct answers (optional)</label><input class="form-control" type="number" id="correct_answers" name="correct_answers" min="0" step="1" aria-describedby="comprehension-note" value="{{ old('correct_answers', $recording->evaluation?->correct_answers) }}"></div>
                     <div><label for="total_questions">Total questions (optional)</label><input class="form-control" type="number" id="total_questions" name="total_questions" min="1" max="4294967295" step="1" aria-describedby="comprehension-note" value="{{ old('total_questions', $recording->evaluation?->total_questions) }}"></div>
                 </div>
-                <p class="rk-footnote" id="word-count-note">Word count comes from the passage above.</p>
                 <p class="rk-footnote" id="comprehension-note">No comprehension questions? Leave both fields blank. If there are questions, enter both values, including 0 when no answers are correct.</p>
             </fieldset>
 

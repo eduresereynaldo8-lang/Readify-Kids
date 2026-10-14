@@ -7,6 +7,9 @@ use App\Models\Enemy;
 use App\Models\GameSession;
 use App\Models\GameRound;
 use App\Helpers\LogActivity;
+use App\Models\Student;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class GameController extends Controller
 {
@@ -152,7 +155,10 @@ class GameController extends Controller
   public function start($activityId)
 {
     $student  = auth()->user()->student;
-    $activity = Activity::withCount('wordBank')->findOrFail($activityId);
+    $activity = Activity::where('teacher_id', $student->teacher_id)
+        ->where('is_published', true)->where('battle_mode', true)
+        ->withCount('wordBank')->findOrFail($activityId);
+    $this->ensureBattleAccess($student, $activity);
 
     if ($activity->word_bank_count < 1) {
         return redirect()->route('student.game.index')
@@ -207,6 +213,7 @@ class GameController extends Controller
     $session = GameSession::where('student_id', $student->id)
                ->with(['enemy', 'activity.wordBank', 'rounds'])
                ->findOrFail($sessionId);
+    $this->ensureBattleAccess($student, $session->activity);
 
     if ($session->status === 'won') {
         return redirect()->route('student.game.index')
@@ -265,6 +272,7 @@ class GameController extends Controller
                ->where('status', 'ongoing')
                ->with(['enemy', 'activity.wordBank'])
                ->findOrFail($sessionId);
+    $this->ensureBattleAccess($student, $session->activity);
 
     $totalWords   = $session->activity->wordBank->count();
     $roundsPlayed = $session->rounds_played;
@@ -305,167 +313,205 @@ class GameController extends Controller
         'insertions' => $insertions,
     ];
 
-    // Each teacher-created reading item receives a share of the enemy's HP.
-    $roundMaxDamage = $this->calculateRoundMaxDamage(
-        $session->enemy_max_hp, $totalWords, $roundsPlayed + 1
-    );
-    $damage = $mlScore !== null
-        ? $this->calculateDamage($mlScore, $roundMaxDamage)
-        : 0;
+    try {
+        return DB::transaction(function () use ($sessionId, $student, $roundsPlayed, $totalWords,
+            $path, $request, $mlScore, $transcript, $readingDetails) {
+            // Scoring runs outside the transaction. Serialize persistence and rewards.
+            $student = Student::lockForUpdate()->findOrFail($student->id);
+            $session = GameSession::where('student_id', $student->id)
+                ->where('status', 'ongoing')->lockForUpdate()
+                ->with(['enemy', 'activity.wordBank'])->findOrFail($sessionId);
+            $this->ensureBattleAccess($student, $session->activity);
+            abort_if((int) $session->rounds_played !== (int) $roundsPlayed
+                || $session->activity->wordBank->count() !== $totalWords,
+                409, 'This battle has changed. Reload it before reading again.');
 
-    // Calculate enemy damage to student (8–15% of student max HP)
-    $studentMaxHp     = $session->student_max_hp ?: $session->enemy_max_hp;
-    $enemyDamage      = (int) round($studentMaxHp * (0.08 + (mt_rand(0, 7) / 100)));
-    $studentCurrentHp = $session->student_current_hp ?? $studentMaxHp;
-    $newStudentHp     = max(0, $studentCurrentHp - $enemyDamage);
+            // Each teacher-created reading item receives a share of the enemy's HP.
+            $roundMaxDamage = $this->calculateRoundMaxDamage(
+                $session->enemy_max_hp, $totalWords, $roundsPlayed + 1
+            );
+            $damage = $mlScore !== null
+                ? $this->calculateDamage($mlScore, $roundMaxDamage)
+                : 0;
 
-    // Save game round
-    $round = GameRound::create([
-        'game_session_id' => $session->id,
-        'student_id'      => $student->id,
-        'word_or_passage' => $request->word_or_passage,
-        'recording_path'  => $path,
-        'ml_score'        => $mlScore,
-        'final_score'     => $mlScore,
-        'damage_dealt'    => $damage,
-        'status'          => $mlScore !== null ? 'ml_scored' : 'pending',
-    ]);
+            // Calculate enemy damage to student (8–15% of student max HP)
+            $studentMaxHp     = $session->student_max_hp ?: $session->enemy_max_hp;
+            $enemyDamage      = (int) round($studentMaxHp * (0.08 + (mt_rand(0, 7) / 100)));
+            $studentCurrentHp = $session->student_current_hp ?? $studentMaxHp;
+            $newStudentHp     = max(0, $studentCurrentHp - $enemyDamage);
 
-    // Update enemy HP
-    $newEnemyHp      = max(0, $session->enemy_current_hp - $damage);
-    $newRoundsPlayed = $roundsPlayed + 1;
-    $allWords = $session->activity->wordBank
-        ->sortBy('order')
-        ->pluck('word')
-        ->values()
-        ->toArray();
-    $hpPercent       = round(($newEnemyHp / $session->enemy_max_hp) * 100);
-    $roundsLeft      = $totalWords - $newRoundsPlayed;
+            // Save game round
+            $round = GameRound::create([
+                'game_session_id' => $session->id,
+                'student_id'      => $student->id,
+                'word_or_passage' => $request->word_or_passage,
+                'recording_path'  => $path,
+                'ml_score'        => $mlScore,
+                'final_score'     => $mlScore,
+                'damage_dealt'    => $damage,
+                'status'          => $mlScore !== null ? 'ml_scored' : 'pending',
+            ]);
 
-    // Update session — save BOTH HPs
-    $session->update([
-        'enemy_current_hp'   => $newEnemyHp,
-        'student_current_hp' => $newStudentHp,
-        'rounds_played'      => $newRoundsPlayed,
-        'total_damage'       => $session->total_damage + $damage,
-    ]);
+            // Update enemy HP
+            $newEnemyHp      = max(0, $session->enemy_current_hp - $damage);
+            $newRoundsPlayed = $roundsPlayed + 1;
+            $allWords = $session->activity->wordBank
+                ->sortBy('order')
+                ->pluck('word')
+                ->values()
+                ->toArray();
+            $hpPercent       = round(($newEnemyHp / $session->enemy_max_hp) * 100);
+            $roundsLeft      = $totalWords - $newRoundsPlayed;
 
-    // ── WIN ───────────────────────────────────────────────────
-    if ($newEnemyHp <= 0) {
-        $pointsEarned = $session->activity->points_reward;
-        $session->update([
-            'status'        => 'won',
-            'points_earned' => $pointsEarned,
-        ]);
-        $student->increment('total_points', $pointsEarned);
+            // Update session — save BOTH HPs
+            $session->update([
+                'enemy_current_hp'   => $newEnemyHp,
+                'student_current_hp' => $newStudentHp,
+                'rounds_played'      => $newRoundsPlayed,
+                'total_damage'       => $session->total_damage + $damage,
+            ]);
 
-        \App\Models\ActivityResult::updateOrCreate(
-            ['student_id' => $student->id, 'activity_id' => $session->activity_id],
-            ['score' => $this->calculateBattlePerformance($session),
-             'status' => 'completed', 'completed_at' => now()]
-        );
+            // ── WIN ───────────────────────────────────────────────────
+            if ($newEnemyHp <= 0) {
+                $pointsEarned = $session->activity->points_reward;
+                $session->update([
+                    'status'        => 'won',
+                    'points_earned' => $pointsEarned,
+                ]);
+                \App\Models\ActivityResult::updateOrCreate(
+                    ['student_id' => $student->id, 'activity_id' => $session->activity_id],
+                    ['score' => $this->calculateBattlePerformance($session),
+                     'status' => 'completed', 'completed_at' => now()]
+                );
 
-        $newBadges = \App\Services\BadgeService::checkAndAward($student);
+                // Save the final reading result before checking progression.
+                $student->increment('total_points', $pointsEarned);
+                $levels = $student->checkAndUpdateLevel();
+                $newBadges = \App\Services\BadgeService::checkAndAward($student);
 
-        LogActivity::forStudent($student, 'BATTLE_WON', 'Battle Arena',
-            'Won battle: ' . $session->activity->activity_name . ' (ID ' . $session->activity_id . ')'
-            . ' - Enemy: ' . $session->enemy->name . ' - Session #' . $session->id
-            . ' - Score: ' . $this->calculateBattlePerformance($session) . '%'
-            . ' - Earned ' . $pointsEarned . ' points.');
+                LogActivity::forStudent($student, 'BATTLE_WON', 'Battle Arena',
+                    'Won battle: ' . $session->activity->activity_name . ' (ID ' . $session->activity_id . ')'
+                    . ' - Enemy: ' . $session->enemy->name . ' - Session #' . $session->id
+                    . ' - Score: ' . ($this->calculateBattlePerformance($session) === null ? 'N/A' : $this->calculateBattlePerformance($session) . '%')
+                    . ' - Earned ' . $pointsEarned . ' points.');
 
-        return response()->json([
-            ...$readingDetails,
-            'status'          => 'won',
-            'ml_score'        => $mlScore,
-            'transcript'      => $transcript,
-            'damage'          => $damage,
-            'enemy_hp'        => 0,
-            'hp_percent'      => 0,
-            'student_hp'      => $newStudentHp,
-            'student_hp_pct'  => round(($newStudentHp / $studentMaxHp) * 100),
-            'enemy_damage'    => $enemyDamage,
-            'round_id'        => $round->id,
-            'rounds_left'     => $roundsLeft,
-            'points'          => $pointsEarned,
-            'new_badges'      => collect($newBadges)->map(fn($b) => [
-                'name' => $b->badge_name,
-                'icon' => $b->badge_icon,
-            ])->values(),
-            'message'         => '🎉 You defeated the ' . $session->enemy->name . '!',
-        ]);
+                return response()->json([
+                    ...$readingDetails,
+                    'status'          => 'won',
+                    'ml_score'        => $mlScore,
+                    'transcript'      => $transcript,
+                    'damage'          => $damage,
+                    'enemy_hp'        => 0,
+                    'hp_percent'      => 0,
+                    'student_hp'      => $newStudentHp,
+                    'student_hp_pct'  => round(($newStudentHp / $studentMaxHp) * 100),
+                    'enemy_damage'    => $enemyDamage,
+                    'round_id'        => $round->id,
+                    'rounds_left'     => $roundsLeft,
+                    'points'          => $pointsEarned,
+                    'current_level'   => (int) $student->current_level,
+                    'level_up_message' => $levels ? "Level Up! You reached Level {$student->current_level}!" : null,
+                    'new_badges'      => collect($newBadges)->map(fn($b) => [
+                        'name' => $b->badge_name,
+                        'icon' => $b->badge_icon,
+                    ])->values(),
+                    'message'         => '🎉 You defeated the ' . $session->enemy->name . '!',
+                ]);
+            }
+
+            // ── LOSE ──────────────────────────────────────────────────
+            if ($newRoundsPlayed >= $totalWords) {
+                $session->update(['status' => 'lost', 'student_current_hp' => 0]);
+
+                \App\Models\ActivityResult::updateOrCreate(
+                    ['student_id' => $student->id, 'activity_id' => $session->activity_id],
+                    ['score' => $this->calculateBattlePerformance($session),
+                     'status' => 'completed', 'completed_at' => now()]
+                );
+
+                $levels = $student->checkAndUpdateLevel();
+
+                LogActivity::forStudent($student, 'BATTLE_LOST', 'Battle Arena',
+                    'Lost battle: ' . $session->activity->activity_name . ' (ID ' . $session->activity_id . ')'
+                    . ' - Enemy: ' . $session->enemy->name . ' - Session #' . $session->id
+                    . ' - Score: ' . ($this->calculateBattlePerformance($session) === null ? 'N/A' : $this->calculateBattlePerformance($session) . '%'));
+
+                return response()->json([
+                    ...$readingDetails,
+                    'status'         => 'lost',
+                    'current_level'  => (int) $student->current_level,
+                    'level_up_message' => $levels ? "Level Up! You reached Level {$student->current_level}!" : null,
+                    'ml_score'       => $mlScore,
+                    'transcript'     => $transcript,
+                    'damage'         => $damage,
+                    'enemy_hp'       => $newEnemyHp,
+                    'hp_percent'     => $hpPercent,
+                    'student_hp'     => 0,
+                    'student_hp_pct' => 0,
+                    'enemy_damage'   => $enemyDamage,
+                    'enemy_name'     => $session->enemy->name,
+                    'rounds_used'    => $newRoundsPlayed,
+                    'total_words'    => $totalWords,
+                    'message'        => '💀 You lost to ' . $session->enemy->name . '!',
+                ]);
+            }
+
+            // ── ONGOING ───────────────────────────────────────────────
+            if ($mlScore === null) {
+                $message = '⏳ Could not analyze. Try again!';
+            } else {
+                $band = collect(self::SCORE_BANDS)->first(fn ($band) => $mlScore >= $band['min']);
+                $message = "{$band['label']}! -{$damage} HP! {$roundsLeft} round(s) left.";
+            }
+
+            $nextRoundIndex = $newRoundsPlayed;
+            $nextWord = $allWords[$nextRoundIndex] ?? null;
+
+            return response()->json([
+                ...$readingDetails,
+                'status'           => 'ongoing',
+                'ml_score'         => $mlScore,
+                'transcript'       => $transcript,
+                'damage'           => $damage,
+                'enemy_hp'         => $newEnemyHp,
+                'hp_percent'       => $hpPercent,
+                'student_hp'       => $newStudentHp,
+                'student_hp_pct'   => round(($newStudentHp / $studentMaxHp) * 100),
+                'enemy_damage'     => $enemyDamage,
+                'round_id'         => $round->id,
+                'rounds_left'      => $roundsLeft,
+                'rounds_used'      => $newRoundsPlayed,
+                'total_words'     => $totalWords,
+                'next_word'        => $nextWord,
+                'next_round'       => $newRoundsPlayed + 1,
+                'next_round_index' => $nextRoundIndex,
+                'message'          => $message,
+            ]);
+        }, 3);
+    } catch (\Throwable $error) {
+        // A rejected or rolled-back round must not leave an unused recording.
+        try {
+            Storage::disk('public')->delete($path);
+        } catch (\Throwable $cleanupError) {
+            report($cleanupError);
+        }
+        throw $error;
     }
-
-    // ── LOSE ──────────────────────────────────────────────────
-    if ($newRoundsPlayed >= $totalWords) {
-        $session->update(['status' => 'lost', 'student_current_hp' => 0]);
-
-        \App\Models\ActivityResult::updateOrCreate(
-            ['student_id' => $student->id, 'activity_id' => $session->activity_id],
-            ['score' => $this->calculateBattlePerformance($session),
-             'status' => 'completed', 'completed_at' => now()]
-        );
-
-        LogActivity::forStudent($student, 'BATTLE_LOST', 'Battle Arena',
-            'Lost battle: ' . $session->activity->activity_name . ' (ID ' . $session->activity_id . ')'
-            . ' - Enemy: ' . $session->enemy->name . ' - Session #' . $session->id
-            . ' - Score: ' . $this->calculateBattlePerformance($session) . '%');
-
-        return response()->json([
-            ...$readingDetails,
-            'status'         => 'lost',
-            'ml_score'       => $mlScore,
-            'transcript'     => $transcript,
-            'damage'         => $damage,
-            'enemy_hp'       => $newEnemyHp,
-            'hp_percent'     => $hpPercent,
-            'student_hp'     => 0,
-            'student_hp_pct' => 0,
-            'enemy_damage'   => $enemyDamage,
-            'enemy_name'     => $session->enemy->name,
-            'rounds_used'    => $newRoundsPlayed,
-            'total_words'    => $totalWords,
-            'message'        => '💀 You lost to ' . $session->enemy->name . '!',
-        ]);
-    }
-
-    // ── ONGOING ───────────────────────────────────────────────
-    if ($mlScore === null) {
-        $message = '⏳ Could not analyze. Try again!';
-    } else {
-        $band = collect(self::SCORE_BANDS)->first(fn ($band) => $mlScore >= $band['min']);
-        $message = "{$band['label']}! -{$damage} HP! {$roundsLeft} round(s) left.";
-    }
-
-    $nextRoundIndex = $newRoundsPlayed;
-    $nextWord = $allWords[$nextRoundIndex] ?? null;
-
-    return response()->json([
-        ...$readingDetails,
-        'status'           => 'ongoing',
-        'ml_score'         => $mlScore,
-        'transcript'       => $transcript,
-        'damage'           => $damage,
-        'enemy_hp'         => $newEnemyHp,
-        'hp_percent'       => $hpPercent,
-        'student_hp'       => $newStudentHp,
-        'student_hp_pct'   => round(($newStudentHp / $studentMaxHp) * 100),
-        'enemy_damage'     => $enemyDamage,
-        'round_id'         => $round->id,
-        'rounds_left'      => $roundsLeft,
-        'rounds_used'      => $newRoundsPlayed,
-        'total_words'     => $totalWords,
-        'next_word'        => $nextWord,
-        'next_round'       => $newRoundsPlayed + 1,
-        'next_round_index' => $nextRoundIndex,
-        'message'          => $message,
-    ]);
 }
 
-    private function calculateBattlePerformance(GameSession $session): float
+    private function ensureBattleAccess(Student $student, Activity $activity): void
+    {
+        abort_unless((int) $activity->teacher_id === (int) $student->teacher_id
+            && $activity->is_published && $activity->battle_mode, 403);
+        abort_if((int) $activity->level > (int) $student->current_level,
+            403, 'This battle is not available at your current level.');
+    }
+
+    private function calculateBattlePerformance(GameSession $session): ?float
     {
         $average = $session->rounds()->whereNotNull('final_score')->avg('final_score');
 
-        return round((float) ($average ?? 0), 2);
+        return $average === null ? null : round((float) $average, 2);
     }
 
     private function calculateRoundMaxDamage(int $enemyMaxHp, int $totalRounds, int $roundNumber): int

@@ -11,10 +11,12 @@ use App\Models\StudentBadge;
 use App\Models\Teacher;
 use App\Models\User;
 use App\Models\VoiceRecording;
+use App\Services\ReadingAssessment;
 use App\Services\ReadingAssessmentMetrics;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class ManualEvaluationWorkflowTest extends TestCase
@@ -73,7 +75,7 @@ class ManualEvaluationWorkflowTest extends TestCase
         $completedAt = ActivityResult::firstOrFail()->completed_at;
 
         $this->post(route('teacher.evaluations.store'), array_replace($this->input(), [
-            'miscues' => 0, 'correct_answers' => 7, 'observation_level' => 4, 'learner_experience' => 5,
+            'mispronunciation' => 0, 'correct_answers' => 7, 'observation_level' => 4, 'learner_experience' => 5,
         ]))->assertRedirect();
         $this->post(route('teacher.evaluations.store'), $this->input())->assertRedirect();
         $this->assertSame(1, Evaluation::count());
@@ -136,9 +138,9 @@ class ManualEvaluationWorkflowTest extends TestCase
     public function test_invalid_submission_does_not_change_any_saved_state(): void
     {
         $this->postJson(route('teacher.evaluations.store'), array_replace($this->input(), [
-            'miscues' => 66, 'correct_answers' => 8, 'observation_level' => null, 'learner_experience' => null,
+            'mispronunciation' => -1, 'correct_answers' => 8, 'observation_level' => null, 'learner_experience' => null,
         ]))->assertUnprocessable()->assertJsonValidationErrors([
-            'miscues', 'correct_answers', 'observation_level', 'learner_experience',
+            'mispronunciation', 'correct_answers', 'observation_level', 'learner_experience',
         ]);
         $this->assertSame(0, Evaluation::count());
         $this->assertSame('pending', $this->recording->fresh()->status);
@@ -176,7 +178,7 @@ class ManualEvaluationWorkflowTest extends TestCase
         $second->status = 'pending';
         $second->save();
         $this->post(route('teacher.evaluations.store'), array_replace($this->input(), [
-            'recording_id' => $second->id, 'miscues' => 65, 'correct_answers' => 0,
+            'recording_id' => $second->id, 'mispronunciation' => 65, 'correct_answers' => 0,
         ]))->assertRedirect();
         Evaluation::create(['teacher_id' => $this->teacher->id, 'recording_id' => $this->recording->id,
             'pronunciation_score' => 5, 'fluency_score' => 5, 'accuracy_score' => 5, 'comprehension_score' => 5]);
@@ -282,10 +284,221 @@ class ManualEvaluationWorkflowTest extends TestCase
         $this->assertSame(57.14, $report['trend'][3]['comprehension']);
     }
 
+    public static function detailedMiscueExamples(): array
+    {
+        return [
+            '100 words and 10 miscues' => [100, [2, 3, 4, 1, 0, 0, 0], 10, '90.00'],
+            '65 words and 15 miscues' => [65, [4, 3, 3, 2, 1, 1, 1], 15, '76.92'],
+            'no miscues' => [13, [0, 0, 0, 0, 0, 0, 0], 0, '100.00'],
+            'more miscues than words' => [10, [2, 3, 4, 1, 1, 1, 0], 12, '0.00'],
+        ];
+    }
+
+    #[DataProvider('detailedMiscueExamples')]
+    public function test_detailed_miscues_are_saved_authoritatively_and_loaded_for_editing(
+        int $words, array $counts, int $total, string $oral
+    ): void {
+        $fields = $this->breakdown($counts);
+        $this->recording->activity->readingMaterial->update(['content' => str_repeat('word ', $words)]);
+        $this->post(route('teacher.evaluations.store'), array_replace($this->input(), $fields, [
+            'miscues' => -999, 'oral_reading_score' => 999, 'total_words' => 999,
+        ]))->assertSessionHasNoErrors()->assertRedirect(route('teacher.evaluations.index'));
+
+        $evaluation = Evaluation::sole();
+        foreach ($fields as $field => $value) {
+            $this->assertSame($value, $evaluation->{$field});
+        }
+        $this->assertSame($total, $evaluation->miscues);
+        $this->assertSame($words, $evaluation->total_words);
+        $this->assertSame($oral, $evaluation->oral_reading_score);
+        $this->assertSame('57.14', $evaluation->comprehension_percentage);
+        $this->assertSame(round(((float) $oral + 57.14) / 2, 2), (float) ActivityResult::sole()->score);
+        $this->assertFalse($evaluation->has_legacy_miscues);
+        $response = $this->get(route('teacher.evaluations.show', $this->recording->id))
+            ->assertOk()->assertSee('Types of Miscues')->assertSee('Miscue Breakdown');
+        foreach ($fields as $field => $value) {
+            $response->assertSee(ucfirst($field));
+            $this->assertMatchesRegularExpression('/<input[^>]*name="'.$field.'"[^>]*min="0"[^>]*step="1"[^>]*value="'.$value.'"/', $response->getContent());
+        }
+        $this->assertMatchesRegularExpression('/<input[^>]*name="miscues"[^>]*readonly[^>]*value="'.$total.'"/', $response->getContent());
+        $this->get(route('teacher.progress'))->assertOk()->assertSee('Miscue Breakdown')->assertSee($oral.'%');
+    }
+
+    public static function invalidMiscueFields(): array
+    {
+        $cases = [];
+        foreach (['mispronunciation', 'omission', 'substitution', 'insertion',
+            'repetition', 'transposition', 'reversal'] as $field) {
+            foreach (['negative' => -1, 'fractional' => 1.5, 'text' => 'invalid', 'overflow' => 4294967296] as $kind => $value) {
+                $cases[$field.' '.$kind] = [$field, $value];
+            }
+        }
+        $cases['array input'] = ['omission', [1]];
+        $cases['invalid legacy replacement flag'] = ['replace_legacy_miscues', 'invalid'];
+
+        return $cases;
+    }
+
+    #[DataProvider('invalidMiscueFields')]
+    public function test_invalid_miscue_fields_do_not_save_or_award_points(string $field, mixed $value): void
+    {
+        $this->postJson(route('teacher.evaluations.store'), array_replace($this->input(), [$field => $value]))
+            ->assertUnprocessable()->assertJsonValidationErrors($field);
+        $this->assertSame(0, Evaluation::count());
+        $this->assertSame(0, ActivityResult::count());
+        $this->assertSame('pending', $this->recording->fresh()->status);
+        $this->assertSame(0, $this->student->fresh()->total_points);
+    }
+
+    public static function emptyMiscueInputs(): array
+    {
+        return [['omitted'], [null], [''], [' ']];
+    }
+
+    #[DataProvider('emptyMiscueInputs')]
+    public function test_empty_miscue_fields_default_to_zero_and_ignore_submitted_total(mixed $value): void
+    {
+        $input = $this->input();
+        unset($input['mispronunciation']);
+        if ($value !== 'omitted') {
+            $input = array_replace($input, $this->breakdown(array_fill(0, 7, $value)));
+        }
+        $input['miscues'] = 1234;
+        $this->post(route('teacher.evaluations.store'), $input)
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $evaluation = Evaluation::sole();
+        $this->assertSame(0, $evaluation->miscues);
+        $this->assertSame('100.00', $evaluation->oral_reading_score);
+        foreach (array_keys($this->breakdown(array_fill(0, 7, 0))) as $field) {
+            $this->assertSame(0, $evaluation->{$field});
+        }
+    }
+
+    public function test_sum_overflow_is_rejected_without_a_database_error(): void
+    {
+        $this->postJson(route('teacher.evaluations.store'), array_replace($this->input(), [
+            'mispronunciation' => 4294967295, 'omission' => 1,
+        ]))->assertUnprocessable()->assertJsonValidationErrors('miscues');
+        $this->assertSame(0, Evaluation::count());
+        $this->assertSame(0, $this->student->fresh()->total_points);
+    }
+
+    public function test_legacy_miscues_survive_unrelated_edits_and_can_be_replaced_with_a_breakdown(): void
+    {
+        $this->post(route('teacher.evaluations.store'), $this->input())->assertRedirect();
+        $evaluation = Evaluation::sole();
+        $evaluation->update($this->breakdown(array_fill(0, 7, 0)));
+        $this->assertTrue($evaluation->has_legacy_miscues);
+        $response = $this->get(route('teacher.evaluations.show', $this->recording->id))
+            ->assertOk()->assertSee('Legacy total miscues:')->assertSee('data-legacy-miscues="15"', false);
+        $this->assertMatchesRegularExpression('/<input[^>]*name="miscues"[^>]*readonly[^>]*value="15"/', $response->getContent());
+        $input = array_replace($this->input(), $this->breakdown(array_fill(0, 7, 0)), [
+            'miscues' => 999, 'feedback' => 'Updated feedback only.',
+        ]);
+        $this->post(route('teacher.evaluations.store'), $input)->assertSessionHasNoErrors()->assertRedirect();
+        $evaluation->refresh();
+        $this->assertSame(15, $evaluation->miscues);
+        $this->assertSame('76.92', $evaluation->oral_reading_score);
+        $this->assertSame('Updated feedback only.', $evaluation->feedback);
+        $this->assertSame(25, $this->student->fresh()->total_points);
+        $this->get(route('teacher.progress'))->assertOk()->assertSee('Legacy total miscues:');
+
+        // Supplying actual details works even with JavaScript disabled.
+        $this->post(route('teacher.evaluations.store'), array_replace($input, $this->breakdown([2, 1, 3, 1, 0, 1, 0])))
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $evaluation->refresh();
+        $this->assertSame(8, $evaluation->miscues);
+        $this->assertSame('87.69', $evaluation->oral_reading_score);
+        $this->assertFalse($evaluation->has_legacy_miscues);
+        $this->get(route('teacher.evaluations.show', $this->recording->id))
+            ->assertOk()->assertDontSee('Legacy total miscues:');
+
+        // A detailed evaluation can be corrected to all zeros without a legacy flag.
+        $this->post(route('teacher.evaluations.store'), $input)->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame(0, $evaluation->fresh()->miscues);
+        $this->assertSame('100.00', $evaluation->fresh()->oral_reading_score);
+    }
+
+    public function test_legacy_total_can_explicitly_be_corrected_to_zero(): void
+    {
+        $this->post(route('teacher.evaluations.store'), $this->input())->assertRedirect();
+        $evaluation = Evaluation::sole();
+        $evaluation->update($this->breakdown(array_fill(0, 7, 0)));
+        $this->post(route('teacher.evaluations.store'), array_replace($this->input(), $this->breakdown(array_fill(0, 7, 0)), [
+            'replace_legacy_miscues' => 1, 'miscues' => 500,
+        ]))->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame(0, $evaluation->fresh()->miscues);
+        $this->assertSame('100.00', $evaluation->fresh()->oral_reading_score);
+        $this->assertSame(25, $this->student->fresh()->total_points);
+    }
+
+    public function test_validation_retry_keeps_entered_breakdown_and_legacy_replacement_choice(): void
+    {
+        $this->post(route('teacher.evaluations.store'), $this->input())->assertRedirect();
+        $evaluation = Evaluation::sole();
+        $evaluation->update($this->breakdown(array_fill(0, 7, 0)));
+        $editUrl = route('teacher.evaluations.show', $this->recording->id);
+        $this->from($editUrl)->post(route('teacher.evaluations.store'), array_replace($this->input(), $this->breakdown([2, 1, 3, 1, 0, 1, 0]), [
+            'replace_legacy_miscues' => 1, 'observation_level' => null, 'miscues' => 999,
+        ]))->assertRedirect($editUrl)->assertSessionHasErrors('observation_level');
+        $response = $this->get($editUrl)->assertOk();
+        $this->assertMatchesRegularExpression('/<input[^>]*name="replace_legacy_miscues"[^>]*checked/', $response->getContent());
+        $this->assertMatchesRegularExpression('/<input[^>]*name="miscues"[^>]*value="8"/', $response->getContent());
+        $this->assertSame(15, $evaluation->fresh()->miscues);
+        $this->assertSame('76.92', $evaluation->fresh()->oral_reading_score);
+    }
+
+    public function test_read_aloud_reward_triggers_level_up_using_the_saved_final_score(): void
+    {
+        $this->student->update(['total_points' => 475]);
+        $input = array_replace($this->input(), ['mispronunciation' => 0, 'correct_answers' => 7]);
+        $this->post(route('teacher.evaluations.store'), $input)->assertRedirect();
+        $this->assertSame(100.0, (float) ActivityResult::sole()->score);
+        $this->assertSame(500, (int) $this->student->fresh()->total_points);
+        $this->assertSame(2, (int) $this->student->fresh()->current_level);
+        $this->post(route('teacher.evaluations.store'), $input)->assertRedirect();
+        $this->assertSame(500, (int) $this->student->fresh()->total_points);
+        $this->assertSame(1, DB::table('activity_logs')->where('action', 'LEVEL_UP')->count());
+
+        $this->actingAs($this->student->user)->get(route('student.dashboard'))->assertOk()
+            ->assertSee('Level Up! You reached Level 2!')->assertSee('Level 2 Reading Average:')
+            ->assertSee('N/A');
+        $this->get(route('student.dashboard'))->assertOk()->assertDontSee('Level Up! You reached Level 2!');
+        $this->get(route('student.progress'))->assertOk()->assertSee('Level 2 Reading Average:');
+    }
+
+    public function test_teacher_score_correction_can_unlock_level_without_awarding_again(): void
+    {
+        $this->student->update(['total_points' => 475]);
+        $this->recording->activity->readingMaterial->update(['content' => str_repeat('word ', 100)]);
+        // Existing final-score formula: 98% oral + 100% comprehension = 99%.
+        $input = array_replace($this->input(), ['mispronunciation' => 2, 'correct_answers' => 7]);
+        $this->post(route('teacher.evaluations.store'), $input)->assertRedirect();
+        $this->assertSame(99.0, (float) ActivityResult::sole()->score);
+        $this->assertSame(1, (int) $this->student->fresh()->current_level);
+        $this->assertSame(500, (int) $this->student->fresh()->total_points);
+        $this->assertSame(0, DB::table('activity_logs')->where('action', 'LEVEL_UP')->count());
+
+        $input['mispronunciation'] = 0;
+        $this->post(route('teacher.evaluations.store'), $input)->assertRedirect();
+        $this->assertSame(100.0, (float) ActivityResult::sole()->score);
+        $this->assertSame(2, (int) $this->student->fresh()->current_level);
+        $this->assertSame(500, (int) $this->student->fresh()->total_points);
+        $this->assertSame(1, ActivityResult::count());
+        $this->post(route('teacher.evaluations.store'), $input)->assertRedirect();
+        $this->assertSame(1, DB::table('activity_logs')->where('action', 'LEVEL_UP')->count());
+    }
+
+    private function breakdown(array $values): array
+    {
+        return array_combine(['mispronunciation', 'omission', 'substitution', 'insertion',
+            'repetition', 'transposition', 'reversal'], $values);
+    }
+
     private function input(): array
     {
         return ['recording_id' => $this->recording->id, 'reading_minutes' => 1,
-            'reading_seconds' => 41, 'miscues' => 15, 'correct_answers' => 4, 'total_questions' => 7,
+            'reading_seconds' => 41, 'mispronunciation' => 15, 'correct_answers' => 4, 'total_questions' => 7,
             'observation_level' => 3, 'learner_experience' => 4, 'feedback' => 'Private test feedback',
             'total_words' => 1, 'oral_reading_score' => 100, 'comprehension_percentage' => 100];
     }
@@ -360,6 +573,9 @@ class ManualEvaluationWorkflowTest extends TestCase
                 'reading_minutes', 'reading_seconds', 'total_reading_seconds', 'total_words', 'miscues',
                 'correct_answers', 'total_questions', 'observation_level', 'learner_experience'] as $column) {
                 $t->integer($column)->nullable();
+            }
+            foreach (array_keys(ReadingAssessment::MISCUE_TYPES) as $column) {
+                $t->unsignedInteger($column)->default(0);
             }
             $t->decimal('oral_reading_score', 5, 2)->nullable();
             $t->decimal('comprehension_percentage', 5, 2)->nullable();

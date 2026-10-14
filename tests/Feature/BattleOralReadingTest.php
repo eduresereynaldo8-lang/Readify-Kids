@@ -36,8 +36,9 @@ class BattleOralReadingTest extends TestCase
         Storage::fake('public');
         Http::preventStrayRequests();
         $user = User::create(['username' => 'battle_test', 'role' => 'student', 'status' => 'active']);
-        $this->student = Student::create(['user_id' => $user->id, 'total_points' => 0]);
-        $this->activity = Activity::create(['activity_name' => 'Reading', 'points_reward' => 25, 'level' => 1]);
+        $this->student = Student::create(['user_id' => $user->id, 'teacher_id' => 1, 'current_level' => 1, 'total_points' => 0]);
+        $this->activity = Activity::create(['teacher_id' => 1, 'activity_name' => 'Reading', 'points_reward' => 25, 'level' => 1,
+            'is_published' => true, 'battle_mode' => true]);
         $this->enemy = Enemy::create(['name' => 'Test Enemy', 'max_hp' => 1000]);
         for ($i = 0; $i < 5; $i++) {
             $this->activity->wordBank()->create(['word' => 'the little cat sleeps', 'order' => $i]);
@@ -146,14 +147,14 @@ class BattleOralReadingTest extends TestCase
         $this->assertNull($session->rounds()->first()->final_score);
     }
 
-    public function test_average_includes_valid_zero_excludes_null_and_returns_zero_when_empty(): void
+    public function test_average_includes_valid_zero_excludes_null_and_stays_null_when_empty(): void
     {
         $method = new \ReflectionMethod(GameController::class, 'calculateBattlePerformance');
         $controller = new GameController;
         $session = $this->createGameSession();
-        $this->assertSame(0.0, $method->invoke($controller, $session));
+        $this->assertNull($method->invoke($controller, $session));
         $this->round($session, null);
-        $this->assertSame(0.0, $method->invoke($controller, $session));
+        $this->assertNull($method->invoke($controller, $session));
         foreach ([0, 66.67, 100] as $score) $this->round($session, $score);
         $this->assertSame(55.56, $method->invoke($controller, $session));
     }
@@ -226,6 +227,7 @@ class BattleOralReadingTest extends TestCase
     public function test_perfect_readings_use_all_enemy_hp_and_win(int $level, int $hp, array $allocations): void
     {
         $items = $this->setReadingItems(count($allocations));
+        $this->student->update(['current_level' => $level]);
         $this->activity->update(['level' => $level]);
         $this->enemy->update(['level' => $level, 'max_hp' => $hp]);
         // Unrelated word-bank rows must never increase this battle's round count.
@@ -382,12 +384,168 @@ class BattleOralReadingTest extends TestCase
         $this->assertSame(2, \App\Models\ActivityLog::where('action', 'BATTLE_STARTED')->count());
     }
 
+    public function test_win_saves_reading_result_then_awards_points_and_levels_up_once(): void
+    {
+        $this->student->update(['total_points' => 450]);
+        $this->activity->update(['points_reward' => 50]);
+        $this->setReadingItems(1);
+        $session = $this->createGameSession();
+        \App\Models\Badge::create(['badge_name' => 'First Victory', 'criteria' => 'first_battle_win']);
+        Http::fake(['127.0.0.1:5000/*' => Http::response(['score' => 100])]);
+
+        $this->submit($session)->assertOk()->assertJsonPath('status', 'won')
+            ->assertJsonPath('current_level', 2)
+            ->assertJsonPath('level_up_message', 'Level Up! You reached Level 2!');
+        $this->assertSame(500, (int) $this->student->fresh()->total_points);
+        $this->assertSame(2, (int) $this->student->fresh()->current_level);
+        $this->assertSame(100.0, (float) ActivityResult::sole()->score);
+        $this->submit($session)->assertNotFound();
+        $this->get(route('student.game.battle', $session->id))->assertRedirect();
+        $this->assertSame(500, (int) $this->student->fresh()->total_points);
+        $this->assertSame(1, \App\Models\StudentBadge::count());
+        $this->assertSame(1, \App\Models\ActivityLog::where('action', 'LEVEL_UP')->count());
+        $this->assertSame(1, $session->rounds()->count());
+    }
+
+    public function test_win_cannot_level_up_when_other_current_level_readings_lower_the_average(): void
+    {
+        $this->student->update(['total_points' => 475]);
+        $this->setReadingItems(1);
+        $other = Activity::create(['level' => 1, 'activity_name' => 'Earlier reading']);
+        ActivityResult::create(['student_id' => $this->student->id, 'activity_id' => $other->id,
+            'score' => 99, 'status' => 'completed']);
+        Http::fake(['127.0.0.1:5000/*' => Http::response(['score' => 100])]);
+        $this->submit($this->createGameSession())->assertOk()->assertJsonPath('status', 'won')
+            ->assertJsonPath('level_up_message', null);
+        $this->assertSame(500, (int) $this->student->fresh()->total_points);
+        $this->assertSame(1, (int) $this->student->fresh()->current_level);
+    }
+
+    public function test_higher_level_cannot_start_resume_render_or_submit(): void
+    {
+        $this->activity->update(['level' => 2]);
+        $this->enemy->update(['level' => 2]);
+        $this->get(route('student.game.start', $this->activity->id))->assertForbidden();
+        $this->assertSame(0, GameSession::count());
+
+        $session = $this->createGameSession();
+        $this->get(route('student.game.start', $this->activity->id))->assertForbidden();
+        $this->get(route('student.game.battle', $session->id))->assertForbidden();
+        $this->submit($session)->assertForbidden();
+        $this->assertSame(0, $session->rounds()->count());
+        $this->assertSame(0, (int) $this->student->fresh()->total_points);
+        Http::assertNothingSent();
+    }
+
+    public function test_current_and_lower_level_battles_are_accessible(): void
+    {
+        $this->student->update(['current_level' => 2]);
+        foreach ([1, 2] as $level) {
+            $this->activity->update(['level' => $level]);
+            $this->enemy->update(['level' => $level]);
+            $this->get(route('student.game.start', $this->activity->id))->assertRedirect();
+            $session = GameSession::latest('id')->firstOrFail();
+            $this->get(route('student.game.battle', $session->id))->assertOk();
+        }
+    }
+
+    public function test_all_failed_analysis_remains_no_data_and_cannot_unlock_a_level(): void
+    {
+        $this->student->update(['total_points' => 900]);
+        $this->setReadingItems(1);
+        Http::fake(['127.0.0.1:5000/*' => Http::response(['score' => null])]);
+        $this->submit($this->createGameSession())->assertOk()->assertJsonPath('status', 'lost');
+        $this->assertNull(ActivityResult::sole()->score);
+        $this->assertNull($this->student->levelProgress()['average_score']);
+        $this->assertSame(1, (int) $this->student->fresh()->current_level);
+    }
+
+    public function test_imperfect_reading_cannot_unlock_level_even_when_points_are_sufficient(): void
+    {
+        $this->student->update(['total_points' => 500]);
+        $this->setReadingItems(1);
+        Http::fake(['127.0.0.1:5000/*' => Http::response(['score' => 85])]);
+        $this->submit($this->createGameSession())->assertOk()->assertJsonPath('status', 'lost')
+            ->assertJsonPath('level_up_message', null);
+        $this->assertSame(500, (int) $this->student->fresh()->total_points);
+        $this->assertSame(1, (int) $this->student->fresh()->current_level);
+    }
+
+    public function test_rounded_damage_can_win_but_an_imperfect_reading_score_cannot_level_up(): void
+    {
+        $this->student->update(['total_points' => 475]);
+        $this->setReadingItems(1);
+        Http::fake(['127.0.0.1:5000/*' => Http::response(['score' => 99.99])]);
+        $this->submit($this->createGameSession())->assertOk()->assertJsonPath('status', 'won')
+            ->assertJsonPath('damage', 1000)->assertJsonPath('level_up_message', null);
+        $this->assertSame(99.99, (float) ActivityResult::sole()->score);
+        $this->assertSame(500, (int) $this->student->fresh()->total_points);
+        $this->assertSame(1, (int) $this->student->fresh()->current_level);
+    }
+
+    public function test_badge_failure_rolls_back_battle_reward_result_and_level(): void
+    {
+        $this->student->update(['total_points' => 475]);
+        $this->setReadingItems(1);
+        $session = $this->createGameSession();
+        \App\Models\Badge::create(['badge_name' => 'First Victory', 'criteria' => 'first_battle_win']);
+        Http::fake(['127.0.0.1:5000/*' => Http::response(['score' => 100])]);
+        \App\Models\StudentBadge::creating(fn () => throw new \RuntimeException('Simulated badge failure'));
+        try {
+            $this->submit($session)->assertStatus(500);
+        } finally {
+            \App\Models\StudentBadge::flushEventListeners();
+        }
+        $this->assertSame(475, (int) $this->student->fresh()->total_points);
+        $this->assertSame(1, (int) $this->student->fresh()->current_level);
+        $this->assertSame('ongoing', $session->fresh()->status);
+        $this->assertSame(0, (int) $session->fresh()->rounds_played);
+        $this->assertSame(0, ActivityResult::count());
+        $this->assertSame(0, $session->rounds()->count());
+        $this->assertSame(0, \App\Models\ActivityLog::count());
+        $this->assertSame([], Storage::disk('public')->allFiles('game_recordings'));
+    }
+
+    public function test_round_changed_during_scoring_cannot_save_a_stale_submission(): void
+    {
+        $session = $this->createGameSession();
+        Http::fake(function () use ($session) {
+            // Simulate another request finishing this round while transcription runs.
+            $session->update(['rounds_played' => 1]);
+            return Http::response(['score' => 100]);
+        });
+        $this->submit($session)->assertStatus(409);
+        $this->assertSame(1, (int) $session->fresh()->rounds_played);
+        $this->assertSame(0, $session->rounds()->count());
+        $this->assertSame(0, ActivityResult::count());
+        $this->assertSame(0, (int) $this->student->fresh()->total_points);
+        $this->assertSame([], Storage::disk('public')->allFiles('game_recordings'));
+    }
+
+    public function test_access_changed_during_scoring_is_checked_again_before_rewards(): void
+    {
+        $this->student->update(['total_points' => 475]);
+        $this->setReadingItems(1);
+        $session = $this->createGameSession();
+        Http::fake(function () {
+            $this->activity->update(['level' => 2]);
+            return Http::response(['score' => 100]);
+        });
+        $this->submit($session)->assertForbidden();
+        $this->assertSame('ongoing', $session->fresh()->status);
+        $this->assertSame(0, $session->rounds()->count());
+        $this->assertSame(0, ActivityResult::count());
+        $this->assertSame(475, (int) $this->student->fresh()->total_points);
+        $this->assertSame(1, (int) $this->student->fresh()->current_level);
+        $this->assertSame([], Storage::disk('public')->allFiles('game_recordings'));
+    }
+
     private function createIsolatedTables(): void
     {
         $tables = [
             'users' => ['username', 'role', 'status'],
-            'students' => ['user_id', 'total_points'],
-            'activities' => ['activity_name', 'points_reward', 'level'],
+            'students' => ['user_id', 'teacher_id', 'current_level', 'total_points'],
+            'activities' => ['teacher_id', 'activity_name', 'points_reward', 'level', 'is_published', 'battle_mode'],
             'enemies' => ['name', 'max_hp', 'level'],
             'activity_word_bank' => ['activity_id', 'word', 'order', 'type'],
             'game_sessions' => ['student_id', 'activity_id', 'enemy_id', 'enemy_current_hp', 'enemy_max_hp',
@@ -406,7 +564,7 @@ class BattleOralReadingTest extends TestCase
                     if (in_array($column, ['score', 'ml_score', 'final_score'])) {
                         $t->decimal($column, 5, 2)->nullable();
                     } elseif (str_ends_with($column, '_id') || in_array($column, ['total_points', 'points_reward',
-                        'level', 'max_hp', 'order', 'enemy_current_hp', 'enemy_max_hp', 'student_current_hp',
+                        'level', 'current_level', 'max_hp', 'order', 'enemy_current_hp', 'enemy_max_hp', 'student_current_hp',
                         'student_max_hp', 'total_damage', 'rounds_played', 'points_earned', 'damage_dealt'])) {
                         $t->integer($column)->nullable();
                     } else {

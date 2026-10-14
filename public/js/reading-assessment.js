@@ -3,19 +3,47 @@
     const form = document.getElementById('reading-assessment-form');
     if (!form) return;
     const input = id => document.getElementById(id);
+    const miscueFields = Array.from(form.querySelectorAll('[data-miscue-type]'));
+    const legacyToggle = input('replace_legacy_miscues');
+    const legacyTotal = Number(form.dataset.legacyMiscues || 0);
+    const maxCount = 4294967295;
     const integer = id => {
         const field = input(id);
-        if (field.value.trim() === '') return null;
+        if (field.validity.badInput || field.value.trim() === '') return null;
         const value = Number(field.value);
         return Number.isSafeInteger(value) && value >= 0 ? value : null;
     };
     const rounded = value => Math.round((value + Number.EPSILON) * 100) / 100;
-    const percent = value => value === null ? '—' : value.toFixed(2) + '%';
-    function calculateOralScore() {
+    const percent = value => value === null ? 'N/A' : value.toFixed(2) + '%';
+    function calculateMiscues() {
+        let total = 0;
+        let valid = true;
+        for (const field of miscueFields) {
+            const value = field.value.trim() === '' && !field.validity.badInput ? 0 : integer(field.id);
+            const invalid = value === null || value > maxCount;
+            field.setCustomValidity(invalid ? 'Enter a whole number from 0 to 4294967295.' : '');
+            if (invalid) valid = false;
+            else total += value;
+        }
+        if (total > maxCount) {
+            miscueFields[0].setCustomValidity('Total miscues is too large to store.');
+            valid = false;
+        }
+        const useLegacy = valid && total === 0 && legacyTotal > 0 && legacyToggle && !legacyToggle.checked;
+        if (useLegacy) total = legacyTotal;
+        input('miscues').value = valid ? String(total) : '';
+        const legacyStatus = input('legacy-miscue-status');
+        if (legacyStatus) {
+            legacyStatus.textContent = useLegacy
+                ? 'Keeping the saved total until you edit the breakdown or select the option above.'
+                : 'Saving will replace the legacy total with the calculated breakdown.';
+        }
+        return valid ? total : null;
+    }
+    function calculateOralScore(miscues) {
         const words = integer('total_words');
-        const miscues = integer('miscues');
-        return words > 0 && miscues !== null && miscues <= words
-            ? rounded((words - miscues) / words * 100) : null;
+        return words > 0 && miscues !== null
+            ? rounded(Math.max(0, Math.min(100, (words - miscues) / words * 100))) : null;
     }
     function calculateComprehensionScore() {
         const correct = integer('correct_answers');
@@ -23,8 +51,11 @@
         return questions > 0 && correct !== null && correct <= questions
             ? rounded(correct / questions * 100) : null;
     }
-    function updateSummary() {
-        const oral = calculateOralScore();
+    function updateSummary(event) {
+        if (legacyToggle && event && miscueFields.includes(event.target)) {
+            legacyToggle.checked = true;
+        }
+        const oral = calculateOralScore(calculateMiscues());
         const comprehension = calculateComprehensionScore();
         const correctField = input('correct_answers');
         const questionsField = input('total_questions');

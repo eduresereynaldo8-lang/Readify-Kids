@@ -3,6 +3,9 @@
 @section('greeting', 'Good day, ' . $student->firstname . '!')
 @section('subtitle', "Read, learn, and grow! You're doing great!")
 @section('content')
+@if($levelUpMessage)
+    <div class="alert alert-success" role="status">🌟 {{ $levelUpMessage }}</div>
+@endif
 <div class="rk-stats">
     <x-dashboard.stat-card label="Activities Done" :value="$activitiesDone" icon="book" hint="Keep it up!" :href="route('student.progress')" />
     <x-dashboard.stat-card label="Total Points" :value="number_format($student->total_points)" icon="star" tone="green" hint="Every little effort counts!" :href="route('student.leaderboard')" />
@@ -13,12 +16,10 @@
     <div class="rk-journey-copy"><h2>You're on your reading journey!</h2><p>Small steps every day lead to big progress.</p><a class="rk-button rk-button-yellow" href="{{ route('student.activities.index') }}">Continue Learning <i class="ti ti-arrow-right" aria-hidden="true"></i></a></div>
     <div class="rk-book-scene" aria-hidden="true"><span class="spark one">✦</span><span class="spark two">★</span><span class="spark three">✦</span><i class="ti ti-book-2"></i><span class="rk-book-letter">Aa</span></div>
 </section>
-<div class="rk-level-row">
-    <strong>Level {{ $student->current_level }}</strong><span>{{ max(0, $nextLevelPoints - $student->total_points) }} points to Level {{ $student->current_level + 1 }}</span>
-    <div class="rk-progress" role="progressbar" aria-label="Progress to next level" aria-valuenow="{{ $xpPercent }}" aria-valuemin="0" aria-valuemax="100"><span style="width:{{ $xpPercent }}%"></span></div>
-    <small>{{ number_format($student->total_points) }} / {{ number_format($nextLevelPoints) }} pts</small>
-    @if($trophy)<a href="{{ route('student.leaderboard') }}" class="rk-level-trophy">{{ $trophy['icon'] }} {{ $trophy['label'] }} · Class rank #{{ $myRank }}</a>@endif
-</div>
+@include('student.partials.level-progress')
+@if($trophy)
+    <p><a href="{{ route('student.leaderboard') }}" class="rk-level-trophy">{{ $trophy['icon'] }} {{ $trophy['label'] }} · Class rank #{{ $myRank }}</a></p>
+@endif
 <div class="rk-student-middle">
     <section class="rk-card">
         <div class="rk-card-heading"><h2><i class="ti ti-book" aria-hidden="true"></i> My Activities Today</h2><a href="{{ route('student.activities.index') }}">See all →</a></div>

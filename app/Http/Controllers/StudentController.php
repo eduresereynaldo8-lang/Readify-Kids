@@ -69,6 +69,7 @@ class StudentController extends Controller
             Student::create(array_merge($data, [
                 'user_id' => $user->id,
                 'teacher_id' => $teacher->id,
+                'current_level' => $data['current_level'] ?? 1,
                 'total_points' => 0,
             ]));
 
@@ -206,6 +207,7 @@ class StudentController extends Controller
         abort_unless($teacher, 403);
         $student = Student::where('teacher_id', $teacher->id)->findOrFail($id);
         $data = $request->validate($this->profileRules($student));
+        $data['current_level'] = $data['current_level'] ?? $student->current_level;
         $data['age'] = (int) Carbon::parse($data['birthday'])->age;
         $student->update($data);
 
@@ -229,7 +231,7 @@ class StudentController extends Controller
             'gender' => ['required', Rule::in(['Male', 'Female'])],
             'section' => 'required|string|max:50',
             // Preserve an existing level above five that was earned through points.
-            'current_level' => ['required', 'integer', Rule::in($this->availableLevels($student))],
+            'current_level' => ['nullable', 'integer', Rule::in($this->availableLevels($student))],
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ReadingAssessment;
 use Illuminate\Database\Eloquent\Model;
 
 class Evaluation extends Model
@@ -14,12 +15,17 @@ class Evaluation extends Model
         'total_words', 'miscues', 'oral_reading_score', 'correct_answers',
         'total_questions', 'comprehension_percentage', 'observation_level',
         'learner_experience',
+        'mispronunciation', 'omission', 'substitution', 'insertion',
+        'repetition', 'transposition', 'reversal',
     ];
 
     protected $casts = [
         'reading_minutes' => 'integer', 'reading_seconds' => 'integer',
         'total_reading_seconds' => 'integer', 'total_words' => 'integer',
         'miscues' => 'integer', 'correct_answers' => 'integer',
+        'mispronunciation' => 'integer', 'omission' => 'integer',
+        'substitution' => 'integer', 'insertion' => 'integer',
+        'repetition' => 'integer', 'transposition' => 'integer', 'reversal' => 'integer',
         'total_questions' => 'integer', 'observation_level' => 'integer',
         'learner_experience' => 'integer', 'oral_reading_score' => 'decimal:2',
         'comprehension_percentage' => 'decimal:2',
@@ -33,6 +39,14 @@ class Evaluation extends Model
     public function voiceRecording()
     {
         return $this->belongsTo(VoiceRecording::class, 'recording_id');
+    }
+
+    public function getHasLegacyMiscuesAttribute(): bool
+    {
+        return $this->miscues > 0 && array_sum(array_map(
+            fn ($field) => (int) ($this->{$field} ?? 0),
+            array_keys(ReadingAssessment::MISCUE_TYPES)
+        )) === 0;
     }
 
     public function getIsLegacyAttribute(): bool

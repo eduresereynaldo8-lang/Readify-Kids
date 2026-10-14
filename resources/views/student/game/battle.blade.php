@@ -3262,7 +3262,8 @@ function moveToNext(data) {
     }, 700);
 }
 function showWin(data) {
-    document.getElementById('win-msg').textContent = data.message;
+    document.getElementById('win-msg').textContent = [data.message, data.level_up_message].filter(Boolean).join(' ');
+    if (data.current_level) document.querySelector('.level-chip').textContent = '⭐ Level ' + data.current_level;
     document.getElementById('win-pts').textContent = `+${data.points} ⭐ pts!`;
     if (data.transcript)
         document.getElementById('win-transcript').textContent =
@@ -3277,7 +3278,8 @@ function showWin(data) {
 
 function showLose(data) {
     document.getElementById('lose-title').textContent  = `You Lost to ${data.enemy_name}!`;
-    document.getElementById('lose-msg').textContent    = data.message;
+    document.getElementById('lose-msg').textContent    = [data.message, data.level_up_message].filter(Boolean).join(' ');
+    if (data.current_level) document.querySelector('.level-chip').textContent = '⭐ Level ' + data.current_level;
     document.getElementById('lose-rounds').textContent = `You used all ${data.rounds_used} round(s) but couldn't defeat the enemy.`;
     document.getElementById('lose-hp').textContent     = `Enemy had ${data.enemy_hp} HP remaining.`;
     document.getElementById('lose-overlay').style.display = 'flex';

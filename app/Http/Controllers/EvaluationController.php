@@ -11,6 +11,7 @@ use App\Services\BadgeService;
 use App\Services\ReadingAssessment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class EvaluationController extends Controller
 {
@@ -61,8 +62,15 @@ class EvaluationController extends Controller
             $evaluation = Evaluation::where('recording_id', $recording->id)->first();
             $firstEvaluation = $recording->status !== 'evaluated' && $evaluation === null;
             $data = ReadingAssessment::calculate(
-                $request->all(), $recording->activity->readingMaterial?->content
+                $request->all(), $recording->activity->readingMaterial?->content, $evaluation
             );
+
+            // Keep the existing rule: an empty passage cannot be marked completed.
+            if ($data['total_words'] === 0) {
+                throw ValidationException::withMessages([
+                    'total_words' => 'This activity has no readable passage. Add passage text before evaluating.',
+                ]);
+            }
 
             Evaluation::updateOrCreate(['recording_id' => $recording->id],
                 array_merge($data, ['teacher_id' => $teacher->id]));
@@ -81,8 +89,9 @@ class EvaluationController extends Controller
             // Preserve points per first evaluated recording/attempt, but never per edit.
             if ($firstEvaluation) {
                 $student->increment('total_points', $recording->activity->points_reward);
-                $student->checkAndUpdateLevel();
             }
+            // An edited final score can satisfy reading eligibility without another reward.
+            $student->checkAndUpdateLevel();
 
             // BadgeService only reads/writes this database, with no external side effects.
             // Keep badge and log writes atomic with evaluation/results/rewards.
